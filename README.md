@@ -1,0 +1,1 @@
+# smja-extension
