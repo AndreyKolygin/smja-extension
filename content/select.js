@@ -205,7 +205,13 @@
     analyze.addEventListener('click', () => {
       const text = (STATE.lastText || '').trim();
       if (!text) return;
-      analyze.disabled = true; analyze.textContent = 'Sending…';
+      analyze.disabled = true;
+      const t0 = performance.now();
+      const fmt = (ms) => `Progress: ${(ms/1000).toFixed(2)}s`;
+      analyze.textContent = fmt(0);
+      let timerId = setInterval(() => {
+        analyze.textContent = fmt(performance.now() - t0);
+      }, 100);
 
       // 1) get settings from background
       safeSendMessage({ type: 'GET_SETTINGS' }, (settings) => {
@@ -238,14 +244,19 @@
             }
           }, (resp) => {
             // 3) notify popup to render (if open), fall back to alert on error
+            if (timerId) { clearInterval(timerId); timerId = 0; }
+            const elapsed = performance.now() - t0;
+            const doneMs = (resp && typeof resp.ms === 'number' ? resp.ms : elapsed);
+            analyze.textContent = `Done: ${(doneMs/1000).toFixed(2)}s`;
             if (resp && resp.ok) {
               safeSendMessage({ type: 'LLM_RESULT', text: resp.text });
             } else if (resp && resp.error) {
               alert('LLM error: ' + resp.error);
             }
-            removeActionPanel();
+            setTimeout(() => removeActionPanel(), 600);
           });
         } catch (e){
+          if (timerId) { clearInterval(timerId); timerId = 0; }
           analyze.disabled = false; analyze.textContent = 'Start analyze';
           alert('Unexpected error: ' + (e && e.message ? e.message : e));
         }
@@ -302,6 +313,7 @@
       showActionPanel(x, y);
 
       safeSendMessage({ type: 'SELECTION_RESULT', text });
+      chrome.storage.local.set({ lastSelection: text, lastSelectionWhen: Date.now() })
     }
   }
 

@@ -66,8 +66,11 @@ function populateModels() {
 }
 
 function analyzeSelectedText() {
+  const jobVal = document.getElementById("jobInput")?.value?.trim() || "";
+  if (jobVal) state.selectedText = jobVal;
+
   const resEl = document.getElementById("result");
-  if (!state.selectedText) { if (resEl) resEl.value = "Select a job description first."; return; }
+  if (!state.selectedText) { if (resEl) resEl.value = "Add a job description (select on page or paste above)"; return; }
   const models = (state.settings?.models || []).filter(m => m.active);
   const selected = models.find(m => m.id === (state.chosenModel || document.getElementById("modelSelect")?.value));
   if (!selected) { if (resEl) resEl.value = "No active model is selected."; return; }
@@ -85,7 +88,8 @@ function analyzeSelectedText() {
       text: state.selectedText
     }
   }).then((resp) => {
-    stopTimer(true, resp?.ms || 0);
+    const elapsed = Math.max(0, performance.now() - state.timerStart);
+    stopTimer(true, (resp && typeof resp.ms === 'number') ? resp.ms : elapsed);
     if (resp?.ok) { state.lastResponse = resp.text; if (resEl) resEl.value = resp.text; }
     else { if (resEl) resEl.value = "Error: " + (resp?.error || "Unknown"); }
   });
@@ -105,6 +109,10 @@ async function clearSelection() {
   const r = document.getElementById("result");
   if (r) r.value = "";
   setProgress("Progress: 0 ms");
+  const ji = document.getElementById("jobInput");
+  if (ji) ji.value = "";
+  try { chrome.storage.local.remove(["lastResult", "lastError", "lastSelection"], () => {}); } catch {}
+  state.lastResponse = "";
 }
 
 function wireUI() {
@@ -124,7 +132,10 @@ function wireUI() {
 
   document.getElementById("selectBtn")?.addEventListener("click", startSelection);
   document.getElementById("clearBtn")?.addEventListener("click", clearSelection);
+  document.getElementById("analyzeBtn")?.addEventListener("click", analyzeSelectedText);
   document.getElementById("refreshBtn")?.addEventListener("click", analyzeSelectedText);
+
+  document.getElementById("jobInput")?.addEventListener("input", (e) => { state.selectedText = e.target.value; });
 
   document.getElementById("copyBtn")?.addEventListener("click", async () => {
     const txt = document.getElementById("result")?.value || "";
@@ -147,10 +158,14 @@ function wireUI() {
   chrome.runtime.onMessage.addListener((msg) => {
     if (msg?.type === "SELECTION_RESULT") {
       state.selectedText = msg.text;
+      const ji = document.getElementById("jobInput");
+      if (ji) ji.value = state.selectedText;
       const r = document.getElementById("result");
       if (r) r.value = `Selected ${state.selectedText.length} chars. Click Refresh to analyze or use the floating button.`;
     } else if (msg?.type === "SELECTION_ANALYZE") {
       state.selectedText = msg.text;
+      const ji = document.getElementById("jobInput");
+      if (ji) ji.value = state.selectedText;
       const r = document.getElementById("result");
       if (r) r.value = `Selected ${state.selectedText.length} chars. Running analysis...`;
       analyzeSelectedText();
@@ -159,7 +174,8 @@ function wireUI() {
       state.lastResponse = msg.text || "";
       const r = document.getElementById("result");
       if (r) r.value = state.lastResponse;
-      stopTimer(true, 0);
+      const elapsed = Math.max(0, performance.now() - state.timerStart);
+      stopTimer(true, elapsed);
     }
   });
 }
@@ -177,8 +193,17 @@ async function init() {
       const p = document.getElementById('progress');
       if (p && lr.when) {
         const age = Math.max(0, Date.now() - lr.when);
-        p.textContent = `Last result • ${(age/1000).toFixed(1)}s ago`;
+        p.textContent = `Last result: ${(age/1000).toFixed(1)}s ago`;
       }
+    });
+  } catch {}
+  try {
+    chrome.storage.local.get('lastSelection', (res) => {
+      const ls = res && res.lastSelection;
+      if (!ls) return;
+      const ji = document.getElementById('jobInput');
+      if (ji) ji.value = ls;
+      state.selectedText = ls;
     });
   } catch {}
 }

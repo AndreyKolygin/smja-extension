@@ -9,8 +9,8 @@ async function getSettings() {
       let s = res.settings;
       if (!s) {
         s = {
-          version: "0.0.1",
-          general: { helpUrl: "https://github.com/andreykolygin" },
+          version: "0.0.2",
+          general: { helpUrl: "https://github.com/AndreyKolygin/smja-extension" },
           providers: [],
           models: [],
           cv: "",

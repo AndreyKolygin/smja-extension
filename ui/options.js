@@ -14,8 +14,8 @@ async function persistSettings(){
 
 function normalizeSettings(obj){
   const base = {
-    version: settings?.version || "0.0.1",
-    general: { helpUrl: "https://github.com/andreykolygin" },
+    version: settings?.version || "0.0.2",
+    general: { helpUrl: "https://github.com/AndreyKolygin/smja-extension" },
     providers: [],
     models: [],
     cv: "",
@@ -100,9 +100,9 @@ function setupAutosave(){
 
 async function loadSettings() {
   try { settings = await chrome.runtime.sendMessage({ type: "GET_SETTINGS" }); } catch { settings = null; }
-  if (!settings) { settings = { version: "0.0.1", general: { helpUrl: "https://github.com/andreykolygin" }, providers: [], models: [], cv: "", systemTemplate: "", outputTemplate: "" }; }
-  $id("version").textContent = settings.version || "0.0.1";
-  $id("helpLink").href = settings.general?.helpUrl || "https://github.com/andreykolygin";
+  if (!settings) { settings = { version: "0.0.2", general: { helpUrl: "https://github.com/AndreyKolygin/smja-extension" }, providers: [], models: [], cv: "", systemTemplate: "", outputTemplate: "" }; }
+  $id("version").textContent = settings.version || "0.0.2";
+  $id("helpLink").href = settings.general?.helpUrl || "https://github.com/AndreyKolygin/smja-extension";
   $id("cv").value = settings.cv || "";
   $id("systemTemplate").value = settings.systemTemplate || "";
   $id("outputTemplate").value = settings.outputTemplate || "";
@@ -348,7 +348,7 @@ function wireModals() {
       anthropic: { type: "anthropic", baseUrl: "https://api.anthropic.com/v1", url: "https://console.anthropic.com" },
       azure: { type: "azure", baseUrl: "https://YOUR-RESOURCE-NAME.openai.azure.com", url: "https://portal.azure.com" },
       deepseek: { type: "deepseek", baseUrl: "https://api.deepseek.com/v1", url: "https://platform.deepseek.com" },
-      gemini: { type: "gemini", baseUrl: "https://generativelanguage.googleapis.com/v1beta", url: "https://aistudio.google.com/app/apikey" },
+      gemini: { type: "gemini", baseUrl: "https://generativelanguage.googleapis.com/v1beta/openai/", url: "https://aistudio.google.com/app/apikey" },
       huggingface: { type: "huggingface", baseUrl: "https://api-inference.huggingface.co", url: "https://huggingface.co/settings/tokens" },
       meta: { type: "meta", baseUrl: "https://api.meta.ai", url: "https://developers.facebook.com" },
       ollama: { type: "ollama", baseUrl: "http://localhost:11434", url: "https://ollama.com" },
