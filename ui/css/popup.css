@@ -1,0 +1,105 @@
+.popup {
+  display: flex;
+  flex-direction: column;
+  flex-wrap: nowrap;
+  align-content: center;
+  justify-content: flex-start;
+  align-items: center;
+  width: 400px;
+}
+.container {
+  background: var(--bg);
+  width: 380px;
+  display: flex;
+  flex-direction: row;
+  justify-content: flex-start;
+  align-items: center;
+}
+
+.header {
+  display: flex;
+  /* gap: 8px; */
+  /* align-items: center; */
+  flex-direction: row;
+  justify-content: space-around;
+  flex-wrap: nowrap;
+}
+
+.menu {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: 8px;
+  padding: 8px 10px;
+  position: absolute;
+  margin: 4px;
+  top: 8px;
+  right: 8px;
+}
+.row.highligter {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  justify-content: space-between;
+  align-items: center;
+}
+.body-analyzer {
+  width: 95%;
+  display: flex;
+  flex-direction: column;
+  /* align-content: stretch; */
+  justify-content: center;
+  align-items: stretch;
+  padding-bottom: 16px;
+}
+.select {
+  width: 83vw;
+}
+.popup-label {
+  color: var(--text);
+}
+
+#jobInput {
+  /*height: 160px; */
+  height: 15rex;
+  resize: vertical;
+}
+.muted {
+  display: flex;
+  justify-content: center;
+  flex-wrap: nowrap;
+  flex-direction: row;
+  width: 50ex;
+}
+
+#result {
+  /*height: 360px; */
+  height: 25rex;
+  resize: vertical;
+}
+.progress {
+  color: var(--muted);
+  font-size: 12px;
+  min-height: 16px;
+}
+.footer {
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+  margin-top: 10px;
+}
+/* поля можно тянуть по вертикали */
+#jobInput,
+#jobOutput {
+  min-height: 120px;
+  height: auto;
+  resize: vertical;
+  max-height: 70vh;
+}
+
+#result {
+  min-height: 200px;
+  height: auto; /* рост по контенту */
+  resize: vertical; /* пользователь может растягивать */
+  max-height: 70vh; /* но не выше 70% вьюпорта, чтобы не ломать layout */
+}

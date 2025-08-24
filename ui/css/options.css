@@ -1,0 +1,133 @@
+body.single-column {
+  display: flex;
+  flex-direction: column;
+  flex-wrap: nowrap;
+  justify-content: flex-start;
+  align-items: center;
+}
+
+.options.container {
+  width: 95dvw;
+  max-width: 1450px;
+}
+.grid {
+  display: flex;
+  flex-direction: column;
+  flex-wrap: nowrap;
+  justify-content: flex-start;
+  align-items: center;
+}
+.card {
+  width: 100%;
+  box-sizing: border-box;
+  margin: 16px 0;
+}
+
+.section-title {
+  font-weight: 600;
+  margin: 0 0 8px;
+}
+.subtle {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  background-color: var(--border);
+  border-radius: 8px;
+}
+.table th,
+.table td {
+  border-bottom: 1px solid var(--border);
+  padding: 10px;
+  text-align: left;
+}
+
+.actions {
+  display: flex;
+  gap: 8px;
+}
+/* Utility classes extracted from inline styles */
+.mt-16 {
+  margin-top: 16px;
+}
+.ml-8 {
+  margin-left: 8px;
+}
+.hidden {
+  display: none;
+}
+
+.io-row {
+  margin-top: 12px;
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+/* Modal layout */
+.modal .modal-body {
+  min-width: 80%;
+  max-width: 80vw;
+}
+.modal .modal-actions {
+  margin-top: 12px;
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+/* Form helpers */
+.stretch {
+  width: 100%;
+  box-sizing: border-box;
+}
+.mono {
+  font-family: monospace;
+}
+
+.table {
+  min-width: 800px;
+  width: inherit;
+}
+
+.textInput {
+  height: 14em;
+  width: 100%;
+  box-sizing: border-box;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 12px;
+  background: var(--panel);
+  color: var(--text);
+}
+
+.saveBtn {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.muted {
+  padding: 0 0 15px 0;
+}
+
+dialog {
+  border: none;
+  border-radius: 12px;
+  width: 520px;
+}
+
+input[type="text"],
+textarea,
+select {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  font-size: 14px;
+}

@@ -1,78 +1,69 @@
-<!doctype html>
-<html>
+<!DOCTYPE html>
+<html lang="en">
 <head>
   <meta charset="utf-8"/>
+  <link rel="stylesheet" href="./css/common.css">
+  <link rel="stylesheet" href="./css/options.css">
   <title>JDA — Settings</title>
-  <style>
-    body { font-family: -apple-system, Segoe UI, Roboto, sans-serif; margin: 20px; max-width: 1200px; min-width: 700px; }
-    h1, h2, h3 { margin: 0.6em 0; }
-    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
-    .card { border: 1px solid #e5e7eb; border-radius: 12px; padding: 16px; width: 100%; box-sizing: border-box; margin: 16px 0;}
-    .card_llm {background-color: #999e9e;}
-    .card_general {background-color: rgb(93, 95, 94);}
-    label { display:block; margin: 10px 0 6px; font-weight: 600; }
-    input[type=text], textarea, select { width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 14px; }
-    textarea { min-height: 150px; max-width: 98%;}
-    table { width: 100%; border-collapse: collapse; }
-    th, td { border-bottom: 1px solid #e5e7eb; padding: 8px; text-align: left; }
-    .btn { padding: 8px 12px; border-radius: 10px; border: 1px solid #0f766e; color: #0f766e; background:white; cursor:pointer; }
-    .btn.primary { background:#0f766e; color:white; border:none; }
-    .btn.danger { border-color:#b91c1c; color:#b91c1c; }
-    .muted { color:#6b7280; font-size: 12px; }
-    dialog { border: none; border-radius: 12px; width: 520px; }
-  </style>
 </head>
 <body>
-  <h1>Job description Analyzer — Settings</h1>
-  <div class="muted">Version <span id="version"></span> • <a id="helpLink" href="#" target="_blank">Help / GitHub</a></div>
+  <div class="options container ">
+    <h1>Job description Analyzer — Settings</h1>
+    <div class="grid mt-16">
+      <div class="card card_llm">
+        <h2>LLM settings</h2>
+        <h3>Provider settings</h3>
+        <p><button class="btn add-model" title="Add LLM provider" id="addProviderBtn">+ Add provider</button></p>
+          <table class="table" id="providersTable">
+          <thead><tr><th>Name</th><th>Base URL</th><th>Type</th><th>Key</th><th></th></tr></thead>
+          <tbody></tbody>
+        </table>
 
-  <div class="grid" style="margin-top:16px;">
-    <div class="card card_llm">
-      <h2>LLM settings</h2>
-      <h3>Provider settings</h3>
-      <p><button class="btn" id="addProviderBtn">+ Add provider</button></p>
-      <table id="providersTable">
-        <thead><tr><th>Name</th><th>Base URL</th><th>Type</th><th>Key</th><th></th></tr></thead>
-        <tbody></tbody>
-      </table>
-
-      <h3>Models</h3>
-      <p><button class="btn" id="addModelBtn">+ Add model</button></p>
-      <table id="modelsTable">
-        <thead><tr><th>Active</th><th>Display name</th><th>Provider</th><th>Model ID</th><th></th></tr></thead>
-        <tbody></tbody>
-      </table>
-      <label>Model-level system prompt (edit per model)</label>
-      <div class="muted">Open any model row to edit its system prompt.</div>
-    </div>
-
-    <div class="card card_general">
-      <h2>General</h2>
-      <label>CV</label>
-      <textarea id="cv"></textarea>
-
-      <label>System prompt template</label>
-      <textarea id="systemTemplate"></textarea>
-      <div class="muted">
-        Default included. See templates: <a href="https://github.com/andreykolygin" target="_blank">GitHub</a>.
+        <h3>Models</h3>
+        <p><button class="btn add-model" title="Add model for provider" id="addModelBtn">+ Add model</button></p>
+        <table class="table" id="modelsTable">
+          <thead><tr><th>Active</th><th>Display name</th><th>Provider</th><th>Model ID</th><th></th></tr></thead>
+          <tbody></tbody>
+        </table>
+        <label>Model-level system prompt (edit per model)</label>
+        <div class="muted">Open any model row to edit its system prompt.</div>
       </div>
 
-      <label>Result output template</label>
-      <textarea id="outputTemplate"></textarea>
+      <div class="card card_general">
+        <h2>General</h2>
+        <h3>CV</h3>
+        <textarea class="textInput" id="cv"></textarea>
 
-      <p>
-        <button class="btn danger" id="resetCacheBtn" disabled>Reset prompt cache</button>
-        <span class="muted" id="resetHint" style="margin-left:8px;"></span>
-      </p>
+        <h3>System prompt template</h3>
+        <textarea class="textInput" id="systemTemplate"></textarea>
+        <div class="muted">
+          Default included. See templates: <a href="https://github.com/andreykolygin" target="_blank">GitHub</a>.
+        </div>
 
-      <p><button class="btn primary" id="saveBtn">Save settings</button></p>
-      <div id="settingsIO" class="io-row" style="margin-top:12px; display:flex; gap:8px; flex-wrap:wrap;">
-        <button id="exportSettingsBtn" class="btn">Export settings (JSON)</button>
-        <button id="importSettingsBtn" class="btn">Import settings</button>
-        <input id="importSettingsFile" type="file" accept="application/json" style="display:none" />
-    </div>
+        <h3>Result output template</h3>
+        <textarea class="textInput" id="outputTemplate"></textarea>
+        
+        <!-- Кнопки сохранения и сбороса кэша -->
+        <div class="saveBtn">
+          <p>
+            <button class="btn danger" id="resetCacheBtn" disabled>Reset prompt cache</button>
+            <span class="muted ml-8" id="resetHint"></span>
+          </p>
+          <p><button class="btn primary" id="saveBtn">Save settings</button></p>
+        </div>
+        
+        
+        <!-- кнопки экспорта и импорта -->
+        <div id="settingsIO" class="io-row">
+          <button id="exportSettingsBtn" class="btn">Export settings (JSON)</button>
+          <button id="importSettingsBtn" class="btn">Import settings</button>
+          <input id="importSettingsFile" type="file" accept="application/json" class="hidden" />
+      </div>
+      </div>
     </div>
   </div>
+<div class="muted">Version <span id="version"></span> • <a id="helpLink" href="#" target="_blank">Help / GitHub</a></div>
+
 
   <!-- Add Provider Modal -->
   <dialog id="providerModal">
@@ -107,7 +98,6 @@
       </menu>
     </form>
   </dialog>
-
   <!-- Add Model Modal -->
   <dialog id="modelModal">
     <form method="dialog">
@@ -130,11 +120,11 @@
 
 
   <dialog id="modelPromptModal" class="modal">
-  <form method="dialog" class="modal-body" style="min-width:80%;max-width:80vw;">
+  <form method="dialog" class="modal-body">
     <h3>Edit system prompt</h3>
     <p class="hint">This prompt overrides the global System prompt template for this specific model. Leave empty to inherit the global template.</p>
-    <textarea id="modelPromptText" rows="12" style="width:100%; box-sizing:border-box; font-family:monospace;"></textarea>
-    <div class="modal-actions" style="margin-top:12px; display:flex; gap:8px; justify-content:flex-end;">
+    <textarea id="modelPromptText" rows="12" class="stretch mono"></textarea>
+    <div class="modal-actions">
       <button id="cancelModelPromptBtn" type="reset" class="btn">Cancel</button>
       <button id="saveModelPromptBtn" type="button" class="btn primary">Save</button>
     </div>

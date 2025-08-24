@@ -7,14 +7,28 @@ function $id(id) { const el = document.getElementById(id); if (!el) throw new Er
 function safeShowModal(dlg) { if (dlg && typeof dlg.showModal === "function") dlg.showModal(); else dlg?.setAttribute("open", "open"); }
 function maskKey(k){ if(!k) return ""; const last = String(k).slice(-6); return `...${last}`; }
 
+async function ensureHostPermission(baseUrl) {
+  try {
+    const u = new URL(baseUrl);
+    const pattern = `${u.protocol}//${u.host}/*`;
+    return await chrome.permissions.request({ origins: [pattern] });
+  } catch {
+    return false;
+  }
+}
+
 async function persistSettings(){
-  try { await chrome.runtime.sendMessage({ type: "SAVE_SETTINGS", payload: settings }); }
-  catch(e){ console.warn('[JDA] persist failed', e); }
+  try {
+    const clone = { ...settings };
+    delete clone.version; // исключаем версию из кеша
+    await chrome.runtime.sendMessage({ type: "SAVE_SETTINGS", payload: clone });
+  } catch(e){
+    console.warn('[JDA] persist failed', e);
+  }
 }
 
 function normalizeSettings(obj){
   const base = {
-    version: settings?.version || "0.0.2",
     general: { helpUrl: "https://github.com/AndreyKolygin/smja-extension" },
     providers: [],
     models: [],
@@ -30,16 +44,18 @@ function normalizeSettings(obj){
 
 async function exportSettings(){
   try {
-    const data = JSON.stringify(settings, null, 2);
+    const redacted = JSON.parse(JSON.stringify(settings || {}));
+    if (Array.isArray(redacted.providers)) {
+      for (const p of redacted.providers) { if (p) p.apiKey = ""; }
+    }
+    const data = JSON.stringify(redacted, null, 2);
     const blob = new Blob([data], { type: 'application/json' });
     const r = new FileReader();
     r.onload = async () => {
       await chrome.downloads.download({ url: r.result, filename: `jda_settings_${Date.now()}.json`, saveAs: true });
     };
     r.readAsDataURL(blob);
-  } catch(e){
-    alert('Export failed: ' + (e?.message || e));
-  }
+  } catch(e){ alert('Export failed: ' + (e?.message || e)); }
 }
 
 async function importSettingsFromFile(file){
@@ -47,6 +63,21 @@ async function importSettingsFromFile(file){
     const text = await file.text();
     let obj; try { obj = JSON.parse(text); } catch(e){ alert('Invalid JSON file.'); return; }
     const merged = normalizeSettings(obj);
+    // Preserve existing API keys if the import leaves them blank
+    try {
+      const current = settings || { providers: [] };
+      if (Array.isArray(merged.providers)) {
+        for (const mp of merged.providers) {
+          if (!mp) continue;
+          if (!mp.apiKey) {
+            // match by id first, fallback by (type+baseUrl)
+            const found = (current.providers||[]).find(cp => cp.id === mp.id) ||
+                          (current.providers||[]).find(cp => cp.type === mp.type && cp.baseUrl === mp.baseUrl);
+            if (found && found.apiKey) mp.apiKey = found.apiKey;
+          }
+        }
+      }
+    } catch {}
     settings = merged;
 
     // Перепривязать поля и таблицы
@@ -100,9 +131,12 @@ function setupAutosave(){
 
 async function loadSettings() {
   try { settings = await chrome.runtime.sendMessage({ type: "GET_SETTINGS" }); } catch { settings = null; }
-  if (!settings) { settings = { version: "0.0.2", general: { helpUrl: "https://github.com/AndreyKolygin/smja-extension" }, providers: [], models: [], cv: "", systemTemplate: "", outputTemplate: "" }; }
-  $id("version").textContent = settings.version || "0.0.2";
-  $id("helpLink").href = settings.general?.helpUrl || "https://github.com/AndreyKolygin/smja-extension";
+  if (!settings) { settings = { version: "0.1.0", general: { helpUrl: "https://github.com/AndreyKolygin/smja-extension" }, providers: [], models: [], cv: "", systemTemplate: "", outputTemplate: "" }; }
+  const verEl = document.getElementById("version");
+  if (verEl) verEl.textContent = "0.1.0"; // версия из кода
+
+  const helpLink = document.getElementById("helpLink");
+  if (helpLink) helpLink.href = settings.general?.helpUrl || "https://github.com/AndreyKolygin/smja-extension";
   $id("cv").value = settings.cv || "";
   $id("systemTemplate").value = settings.systemTemplate || "";
   $id("outputTemplate").value = settings.outputTemplate || "";
@@ -153,8 +187,8 @@ function renderProviders() {
       <td>${p.type ?? ""}</td>
       <td>${p.apiKey ? maskKey(p.apiKey) : ""}</td>
       <td>
-        <button class="btn edit">Edit</button>
-        <button class="btn danger delete">Delete</button>
+        <button class="btn edit" title="Edit LLM provider settings">Edit</button>
+        <button class="btn delete" title="Delete LLM provider">Delete</button>
       </td>`;
 
     // Edit handler
@@ -177,8 +211,9 @@ function renderModels() {
       <td>${provider?.name || "?"}</td>
       <td contenteditable="true">${m.modelId ?? ""}</td>
       <td>
-        <button class="btn edit">Edit</button>
-        <button class="btn">Edit system prompt</button>
+        <button class="btn edit" title="Edit model and settings">Edit</button>
+        <button class="btn edit-prompr" title="Edit system prompt for this model">Edit system prompt</button>
+        <button class="btn delete" title="Delete model">Delete</button>
       </td>`;
 
     tr.querySelector("input")?.addEventListener("change", async (e) => { m.active = e.target.checked; await persistSettings(); });
@@ -189,6 +224,11 @@ function renderModels() {
 
     tr.querySelector("button.edit")?.addEventListener("click", () => editModel(m));
     tr.querySelectorAll("button")[1]?.addEventListener("click", () => editModelSystemPrompt(m));
+    tr.querySelector("button.delete")?.addEventListener("click", async () => {
+      settings.models = settings.models.filter(x => x !== m);
+      renderModels();
+      await persistSettings();
+    });
 
     tbody.appendChild(tr);
   }
@@ -319,13 +359,17 @@ function editProvider(p){
 
   const saveBtn = document.getElementById("saveProviderBtn");
   const oldOnClick = saveBtn.onclick;
-  saveBtn.onclick = () => {
+  saveBtn.onclick = async () => {
     p.name = preset.options[preset.selectedIndex]?.text || p.name || "";
     p.type = preset.value || p.type || "custom";
     p.baseUrl = base.value.trim();
     p.apiKey = key.value.trim();
+    try {
+      const granted = await ensureHostPermission(p.baseUrl);
+      if (!granted) console.warn("[JDA] Host permission not granted for", p.baseUrl);
+    } catch {}
     renderProviders();
-    persistSettings();
+    await persistSettings();
     dlg.close?.();
     // restore previous handler (for Add flow)
     saveBtn.onclick = oldOnClick || null;
@@ -348,7 +392,7 @@ function wireModals() {
       anthropic: { type: "anthropic", baseUrl: "https://api.anthropic.com/v1", url: "https://console.anthropic.com" },
       azure: { type: "azure", baseUrl: "https://YOUR-RESOURCE-NAME.openai.azure.com", url: "https://portal.azure.com" },
       deepseek: { type: "deepseek", baseUrl: "https://api.deepseek.com/v1", url: "https://platform.deepseek.com" },
-      gemini: { type: "gemini", baseUrl: "https://generativelanguage.googleapis.com/v1beta/openai/", url: "https://aistudio.google.com/app/apikey" },
+      gemini: { type: "gemini", baseUrl: "https://generativelanguage.googleapis.com/v1beta", url: "https://aistudio.google.com/app/apikey" },
       huggingface: { type: "huggingface", baseUrl: "https://api-inference.huggingface.co", url: "https://huggingface.co/settings/tokens" },
       meta: { type: "meta", baseUrl: "https://api.meta.ai", url: "https://developers.facebook.com" },
       ollama: { type: "ollama", baseUrl: "http://localhost:11434", url: "https://ollama.com" },
@@ -360,11 +404,18 @@ function wireModals() {
     function applyPreset() { const p = presets[preset.value]; base.value = p.baseUrl; link.href = p.url; }
     preset.addEventListener("change", applyPreset); applyPreset();
     safeShowModal(dlg);
-    document.getElementById("saveProviderBtn").onclick = () => {
+    document.getElementById("saveProviderBtn").onclick = async () => {
       const id = (preset.value + "_" + Math.random().toString(36).slice(2,8));
-      settings.providers.push({ id, name: preset.options[preset.selectedIndex].text, type: presets[preset.value].type, baseUrl: base.value.trim(), apiKey: key.value.trim() });
+      const baseUrl = base.value.trim();
+      // request optional host permission for this provider domain
+      try {
+        const granted = await ensureHostPermission(baseUrl);
+        if (!granted) console.warn("[JDA] Host permission not granted for", baseUrl);
+      } catch {}
+
+      settings.providers.push({ id, name: preset.options[preset.selectedIndex].text, type: presets[preset.value].type, baseUrl, apiKey: key.value.trim() });
       renderProviders();
-      persistSettings();
+      await persistSettings();
       dlg.close?.();
     };
   });
@@ -407,24 +458,28 @@ function wireSave() {
 }
 
 function injectSingleColumnLayout() {
-  const style = document.createElement('style');
-  style.textContent = `.grid{display:block;} body{max-width:80vw;} .card{width:100%;box-sizing:border-box;}`;
-  document.head.appendChild(style);
+  try { document.body.classList.add('single-column'); } catch {}
 }
 function renameGeneralToCV() {
   const n = document.querySelector('#generalTitle, #general h2, .general h2, h2');
   if (n && /General/i.test(n.textContent || "")) n.textContent = "Your CV and Prompts";
 }
 
-function simplePromptAddProvider() {
+async function simplePromptAddProvider() {
   const name = prompt("Provider name (e.g., OpenAI, Ollama):", "OpenAI");
   if (name === null) return;
   const baseUrl = prompt("Base URL:", "https://api.openai.com/v1");
   if (baseUrl === null) return;
   const apiKey = prompt("API key (optional):", "");
   const id = (name.toLowerCase().replace(/\s+/g,'_') + '_' + Math.random().toString(36).slice(2,8));
-  settings.providers.push({ id, name, type: name.toLowerCase(), baseUrl: (baseUrl||'').trim(), apiKey: (apiKey||'').trim() });
+  const provider = { id, name, type: name.toLowerCase(), baseUrl: (baseUrl||'').trim(), apiKey: (apiKey||'').trim() };
+  try {
+    const granted = await ensureHostPermission(provider.baseUrl);
+    if (!granted) console.warn("[JDA] Host permission not granted for", provider.baseUrl);
+  } catch {}
+  settings.providers.push(provider);
   renderProviders();
+  persistSettings();
 }
 function simplePromptAddModel() {
   if (!settings.providers.length) { alert('Add a provider first.'); return; }

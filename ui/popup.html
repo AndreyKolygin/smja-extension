@@ -2,48 +2,54 @@
 <html>
 <head>
   <meta charset="utf-8"/>
+  <link rel="stylesheet" href="./css/common.css">
+  <link rel="stylesheet" href="./css/popup.css">
   <title>Job description Analyzer</title>
-  <style>
-    body { font-family: -apple-system, Segoe UI, Roboto, sans-serif; margin: 12px; width: 320px; background-color: #777a80;}
-    .row { display:flex; gap:8px; align-items:center; margin-bottom:10px; }
-    select, button, textarea, input { font-size: 12px; }
-    select, button { height: 40px; padding: 0 10px; border-radius:10px;}
-    textarea { width: 100%; height: 360px; resize: vertical; padding: 10px; border-radius:8px; border:1px solid #333; }
-    textarea#jobInput { height: 160px; }
-    .primary { background: #0f766e; color:white; border:none; border-radius:10px; padding:10px 16px; }
-    .secondary { background:#6b7280; color:white; border:none; border-radius:10px; padding:10px 16px; }
-    .ghost { background:white; border:1px solid #0f766e; color:#0f766e; border-radius:10px; padding:10px 16px; }
-    .result {height: 80px; }
-    .menu { margin-left:auto; background:white; border:none; font-size:24px; }
-    .muted { color:#000000; font-size:12px; }
-    .bar { display:flex; gap:12px; }
-  </style>
 </head>
 <body>
-  <div class="row">
-    <select id="modelSelect"></select>
-    <button id="menu" class="menu" title="Settings">☰</button>
+<div class="popup">
+  <div class="container">
+<!-- header -->
+      <div class="header">
+        <div class="row">
+
+            <select id="modelSelect" class="select input" title="Select your LLM"></select>
+            <button id="menu" class="menu" title="Settings">☰</button>
+
+        </div>
+      </div>
   </div>
-  <div class="row">
-    <button id="selectBtn" class="ghost">Select job description</button>
-    <button id="clearBtn" class="secondary">Clear</button>
-    <button id="analyzeBtn" class="primary">Analyze</button>
+
+
+<!-- body-->
+  <div class="body-analyzer">
+    <div class="row highligter">
+      <button id="selectBtn" class="btn highlight">Select job description</button>
+      <button id="clearBtn" class="btn secondary">Start over</button>
+    </div>
+    <div>
+      <button id="analyzeBtn" class="btn primary analyze" title="Start analyze">Analyze</button>
+    </div>
+    <!-- text blocks-->
+     <label for="jobInput" class="label popup-label">Job description:</label>
+     <textarea id="jobInput" class="result" placeholder="Paste or select a job description here..."></textarea>
+     <label for="jobOutput" class="label">Position matching result:</label>
+     <textarea id="result" class="result" placeholder="Result"></textarea>
+     <div class="progress" id="progress">Progress: 0 ms</div>
+
+    <!-- buttons -->
+    <div class="footer">
+      <div>
+        <button id="refreshBtn" class="btn primary" title="If you change description push this button to update the result">Refresh result</button>
+      </div>
+      <div>
+        <button id="copyBtn" class="btn ghost" title="Copy the result to the clipboard and paste it where you need it">Copy to clipboard</button>
+        <button id="saveBtn" class="btn ghost" title="Save the result to Markdown (*.md) file">Save to file</button>
+      </div>
+
+    </div>
   </div>
-  <div class="row">
-    <label for="jobInput" class="label" style="display:block; width:100%;">About the job</label>
-  </div>
-  <div class="row">
-    <textarea id="jobInput" rows="8" placeholder="Paste or select a job description here..." style="width:100%; box-sizing:border-box;"></textarea>
-  </div>
-  <div class="row">
-    <textarea id="result" class="result" placeholder="Result"></textarea>
-  </div>
-  <div class="row muted"><span id="progress">Progress: 0 ms</span></div>
-  <div class="row bar">
-    <button id="refreshBtn" class="primary">Refresh</button>
-    <button id="copyBtn" class="ghost">Copy to clipboard</button>
-    <button id="saveBtn" class="ghost">Save to file</button>
-  </div>
-  <script src="popup.js"></script>
+</div>
+<script type="module" src="popup.js"></script>
 </body>
 </html>

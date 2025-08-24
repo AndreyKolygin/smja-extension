@@ -249,11 +249,21 @@
             const doneMs = (resp && typeof resp.ms === 'number' ? resp.ms : elapsed);
             analyze.textContent = `Done: ${(doneMs/1000).toFixed(2)}s`;
             if (resp && resp.ok) {
+              // Switch Cancel → Show result with a fresh handler
+              try { clearBtn.removeEventListener('click', onCancel); } catch {}
+              clearBtn.textContent = 'Show result';
+              clearBtn.onclick = (e) => {
+                e?.preventDefault?.();
+                e?.stopPropagation?.();
+                try {
+                  chrome.runtime.sendMessage({ type: 'OPEN_POPUP' }, () => { /* ignore errors */ });
+                } catch {}
+                removeActionPanel();
+              };
               safeSendMessage({ type: 'LLM_RESULT', text: resp.text });
             } else if (resp && resp.error) {
               alert('LLM error: ' + resp.error);
             }
-            setTimeout(() => removeActionPanel(), 600);
           });
         } catch (e){
           if (timerId) { clearInterval(timerId); timerId = 0; }
@@ -264,12 +274,13 @@
     });
 
     const clearBtn = document.createElement('button');
-    clearBtn.textContent = 'Clear';
+    clearBtn.textContent = 'Cancel';
     Object.assign(clearBtn.style, {
       border: 'none', borderRadius: '8px', padding: '6px 10px',
       background: '#334155', color: '#fff', cursor: 'pointer', fontSize: '13px'
     });
-    clearBtn.addEventListener('click', (e) => { e.preventDefault(); e.stopPropagation(); clearAll(); });
+    const onCancel = (e) => { e.preventDefault(); e.stopPropagation(); clearAll(); };
+    clearBtn.addEventListener('click', onCancel);
 
     panel.appendChild(analyze);
     panel.appendChild(clearBtn);

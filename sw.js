@@ -1,7 +1,27 @@
 // sw.js — MV3 service worker (no DOM)
 const SETTINGS_KEY = "jdaSettings";
 
-async function nowMs() { return Date.now(); }
+function sanitizeText(t, max = 24000) {
+  if (typeof t !== "string") return "";
+  if (t.length <= max) return t;
+  return t.slice(0, max) + `\n\n[trimmed to ${max} chars]`;
+}
+
+function requireFields(obj, fields) {
+  for (const f of fields) {
+    const v = obj?.[f];
+    if (typeof v !== "string" || !v.trim()) throw new Error(`Invalid payload: ${f} is required`);
+  }
+}
+
+let __busy = false;
+async function guardedCall(fn) {
+  if (__busy) throw new Error("Busy: previous request in progress");
+  __busy = true;
+  try { return await fn(); } finally { __busy = false; }
+}
+
+function nowMs() { return Date.now(); }
 
 async function getSettings() {
   return new Promise((resolve) => {
@@ -9,7 +29,7 @@ async function getSettings() {
       let s = res.settings;
       if (!s) {
         s = {
-          version: "0.0.2",
+          version: "0.1.0",
           general: { helpUrl: "https://github.com/AndreyKolygin/smja-extension" },
           providers: [],
           models: [],
@@ -80,7 +100,15 @@ async function callGemini({ baseUrl, apiKey, model, sys, user }) {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ contents: [{ parts }] })
   });
-  if (!res.ok) throw new Error(`Gemini HTTP ${res.status}`);
+  if (!res.ok) {
+    const code = res.status;
+    let hint = "";
+    if (code === 404) {
+      hint = " (Check baseUrl is https://generativelanguage.googleapis.com/v1beta and modelId exists)";
+    }
+    const bodyText = await res.text().catch(() => "");
+    throw new Error(`Gemini HTTP ${code}${hint}: ${bodyText.slice(0, 200)}`);
+  }
   const json = await res.json();
   const txt = json.candidates?.[0]?.content?.parts?.map(p => p.text).join("") ?? "";
   return txt;
@@ -130,21 +158,29 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     if (message.type === "CALL_LLM") {
       try {
         const payload = message.payload || {};
-        const result = await callLLMRouter(payload);
-        // внутри CALL_LLM перед sendResponse(result)
-          if (result && result.ok) {
-            chrome.storage.local.set({ lastResult: {
-              text: result.text, ms: result.ms || 0, when: Date.now(),
-              providerId: payload.providerId || null, modelId: payload.modelId || null
-            }});
-          } else if (result && result.error) {
-            chrome.storage.local.set({ lastError: { error: result.error, when: Date.now() }});
+        requireFields(payload, ["modelId", "providerId"]);
+        payload.text = sanitizeText(payload.text || "");
+        const result = await guardedCall(() => callLLMRouter(payload));
+
+        // кэширование lastResult / lastError оставляем
+        try {
+          if (result?.ok) {
+            chrome.storage.local.set({
+              lastResult: {
+                text: result.text, ms: result.ms || 0, when: Date.now(),
+                providerId: payload.providerId || null, modelId: payload.modelId || null
+              }
+            });
+          } else if (result?.error) {
+            chrome.storage.local.set({ lastError: { error: result.error, when: Date.now() } });
           }
-        sendResponse(result); // {ok, text, ms}
+        } catch {}
+
+        sendResponse(result);
       } catch (err) {
         sendResponse({ ok: false, error: String(err?.message || err) });
       }
-      return;
+      return true;
     }
 
     if (message.type === "START_ANALYZE") {
@@ -169,6 +205,21 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         sendResponse({ ok: false, error: String(err?.message || err) });
       }
       return;
+    }
+
+    if (message.type === "OPEN_POPUP") {
+      try {
+        chrome.action.openPopup(() => {
+          const err = chrome.runtime.lastError;
+          sendResponse({
+            ok: !err,
+            error: err ? String(err.message || err) : undefined
+          });
+        });
+      } catch (e) {
+        sendResponse({ ok: false, error: String(e?.message || e) });
+      }
+      return true; // важно оставить, чтобы канал ответа не закрылся раньше времени
     }
   })();
   return true; // keep port open for async responses
