@@ -91,7 +91,7 @@
 /* поля можно тянуть по вертикали */
 #jobInput,
 #jobOutput {
-  min-height: 120px;
+  min-height: 80px;
   height: auto;
   resize: vertical;
   max-height: 70vh;
@@ -102,4 +102,63 @@
   height: auto; /* рост по контенту */
   resize: vertical; /* пользователь может растягивать */
   max-height: 70vh; /* но не выше 70% вьюпорта, чтобы не ломать layout */
+}
+
+.result-view {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 14px;
+  min-height: 140px;
+  max-height: 70vh; /* не выезжает за экран */
+  white-space: pre-line; /* скролл, если много текста */
+}
+
+/* простая «prose»-типографика */
+.prose {
+  line-height: 1.55;
+}
+.prose h1,
+.prose h2,
+.prose h3 {
+  margin: 0.7em 0 -1em;
+}
+.prose h1 {
+  font-size: 18px;
+  font-weight: 600;
+}
+.prose h2 {
+  font-size: 16px;
+  font-weight: 600;
+}
+.prose h3 {
+  font-size: 14px;
+  font-weight: 500;
+}
+.prose h4 {
+  font-size: 12px;
+  font-weight: 400;
+}
+.prose p {
+  margin: 0.45em 0;
+}
+.prose ul,
+.prose ol {
+  margin: 0.45em 0 0.45em 1em;
+}
+.prose li {
+  margin: 0.2em 0;
+}
+.prose code {
+  background: rgba(255, 255, 255, 0.06);
+  padding: 0 4px;
+  border-radius: 6px;
+}
+.prose {
+  background: rgba(255, 255, 255, 0.06);
+  /* border: 1px solid var(--border);
+  border-radius: 10px; */
+  /* padding: 10px; */
+  overflow: auto;
+  white-space: pre-line;
 }

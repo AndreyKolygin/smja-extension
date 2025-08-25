@@ -25,17 +25,17 @@
   <div class="body-analyzer">
     <div class="row highligter">
       <button id="selectBtn" class="btn highlight">Select job description</button>
-      <button id="clearBtn" class="btn secondary">Start over</button>
-    </div>
-    <div>
-      <button id="analyzeBtn" class="btn primary analyze" title="Start analyze">Analyze</button>
+      <button id="clearBtn" class="btn secondary">Clear and Start over</button>
     </div>
     <!-- text blocks-->
-     <label for="jobInput" class="label popup-label">Job description:</label>
-     <textarea id="jobInput" class="result" placeholder="Paste or select a job description here..."></textarea>
-     <label for="jobOutput" class="label">Position matching result:</label>
-     <textarea id="result" class="result" placeholder="Result"></textarea>
-     <div class="progress" id="progress">Progress: 0 ms</div>
+    <label for="jobInput" class="label popup-label">Job description:</label>
+    <textarea id="jobInput" class="result" placeholder="Paste or select a job description here..."></textarea>
+    <div class="row">
+      <button id="analyzeBtn" class="btn primary analyze" title="Start analyze">Analyze</button>
+    </div>
+    <label for="jobOutput" class="label">Position matching result:</label>
+    <div id="resultView" class="result-view prose" aria-live="polite"></div>
+    <div class="progress" id="progress">Progress: 0 ms</div>
 
     <!-- buttons -->
     <div class="footer">

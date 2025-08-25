@@ -29,7 +29,7 @@ async function getSettings() {
       let s = res.settings;
       if (!s) {
         s = {
-          version: "0.1.0",
+          version: "0.2.0",
           general: { helpUrl: "https://github.com/AndreyKolygin/smja-extension" },
           providers: [],
           models: [],

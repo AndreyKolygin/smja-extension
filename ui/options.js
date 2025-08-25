@@ -131,7 +131,7 @@ function setupAutosave(){
 
 async function loadSettings() {
   try { settings = await chrome.runtime.sendMessage({ type: "GET_SETTINGS" }); } catch { settings = null; }
-  if (!settings) { settings = { version: "0.1.0", general: { helpUrl: "https://github.com/AndreyKolygin/smja-extension" }, providers: [], models: [], cv: "", systemTemplate: "", outputTemplate: "" }; }
+  if (!settings) { settings = { version: "0.2.0", general: { helpUrl: "https://github.com/AndreyKolygin/smja-extension" }, providers: [], models: [], cv: "", systemTemplate: "", outputTemplate: "" }; }
   const verEl = document.getElementById("version");
   if (verEl) verEl.textContent = "0.1.0"; // версия из кода
 

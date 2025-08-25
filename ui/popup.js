@@ -42,7 +42,7 @@ async function init() {
 
   wireUI();
   state.settings = await fetchSettings();
-  populateModels();
+  await populateModels();
   warmLoadCaches();
 }
 document.addEventListener("DOMContentLoaded", init);
