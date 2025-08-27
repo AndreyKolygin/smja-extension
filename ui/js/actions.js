@@ -1,8 +1,12 @@
 // actions.js — Select/Clear/Analyze/Copy/Save
-import { state, setProgress, startTimer, stopTimer, setResult, setLastMeta } from "./state.js";
+import { state, setJobInput, setProgress, startTimer, stopTimer, setResult, setLastMeta } from "./state.js";
 
 let __anBtnTicker = 0;
 let __anBtnStart = 0;
+
+// content-extraction defaults
+const DEFAULT_EXTRACT_WAIT = 2500; // ms
+const DEFAULT_EXTRACT_POLL = 150;  // ms
 
 function startAnalyzeButtonTimer() {
   const btn = document.getElementById("analyzeBtn");
@@ -60,29 +64,199 @@ export function wireCopy() {
   });
 }
 
-document.getElementById("saveBtn")?.addEventListener("click", async () => {
-  const analysis = document.getElementById("resultView")?.innerText || "";
-  const jobDesc = document.getElementById("jobInput")?.value?.trim() || "";
+// --- utils: печать в консоль попапа с узнаваемым префиксом
+const dbg = (...a) => console.debug("[FastStart]", ...a);
 
-  let md = `# Position matching result\n\n`;
-  md += analysis ? analysis + "\n\n" : "_(no analysis result)_\n\n";
-  if (jobDesc) {
-    md += `---\n\n## Original job description\n\n${jobDesc}\n`;
+
+// Универсальный матчинг правил сайта
+function wildcardToRegExp(str, { anchor = true } = {}) {
+  const esc = String(str || "").replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const body = esc.replace(/\\\*/g, ".*").replace(/\\\?/g, ".");
+  return new RegExp((anchor ? "^" : "") + body + (anchor ? "$" : ""), "i");
+}
+
+function siteMatches(url, pattern) {
+  try {
+    const full = String(url || "");
+    const u = new URL(full);
+    const host = (u.hostname || "").toLowerCase();
+    let p = String(pattern || "").trim();
+    if (!p) return false;
+
+    // 0) Регэксп в виде /.../flags — матчим по ПОЛНОМУ URL
+    if (p.startsWith("/") && p.lastIndexOf("/") > 0) {
+      const last = p.lastIndexOf("/");
+      const body = p.slice(1, last);
+      const flags = p.slice(last + 1) || "i";
+      try { return new RegExp(body, flags).test(full); } catch { return false; }
+    }
+
+    // 1) Если шаблон содержит протокол — считаем это маской ПОЛНОГО URL
+    if (p.includes("://")) {
+      const rx = new RegExp(
+        String(p)
+          .replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
+          .replace(/\\\*/g, ".*")
+          .replace(/\\\?/g, "."),
+        "i"
+      );
+      return rx.test(full);
+    }
+
+    // 2) Разделяем шаблон на hostPart и pathPart
+    let hostPart = p;
+    let pathPart = "";
+    if (p.startsWith("/")) {
+      hostPart = "";
+      pathPart = p; // уже с ведущим /
+    } else if (p.includes("/")) {
+      const i = p.indexOf("/");
+      hostPart = p.slice(0, i);
+      pathPart = p.slice(i);
+    }
+
+    hostPart = hostPart.toLowerCase();
+
+    // 3) Матчим hostPart
+    if (hostPart) {
+      // 3a) Явный шаблон с подстановкой "*."
+      if (hostPart.startsWith("*.")) {
+        const bare = hostPart.slice(2); // после "*."
+        // допускаем bare сам по себе и любые поддомены
+        if (!(host === bare || host.endsWith("." + bare))) return false;
+      } else {
+        // 3b) «Голый» домен матчится и на сам домен, и на ЛЮБЫЕ поддомены
+        // (раньше требовалось точное совпадение — из-за этого и было "host mismatch")
+        if (!(host === hostPart || host.endsWith("." + hostPart))) return false;
+      }
+    }
+
+    // 4) Матчим pathPart (если задан) — якорим к началу pathname
+    if (pathPart) {
+      const rx = new RegExp(
+        "^" +
+          String(pathPart)
+            .replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
+            .replace(/\\\*/g, ".*")
+            .replace(/\\\?/g, "."),
+        "i"
+      );
+      return rx.test(u.pathname || "/");
+    }
+
+    // 5) Если pathPart пуст — считаем совпадение по хосту достаточным
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+export async function ensureContentScript(tabId) {
+  try {
+    await chrome.tabs.sendMessage(tabId, { type: "__PING__" }, { frameId: 0 });
+    return true; // уже на странице
+  } catch {
+    // попробуем внедрить
+    try {
+      await chrome.scripting.executeScript({
+        target: { tabId },
+        files: ["content/content.js"]
+      });
+      return true;
+    } catch (e) {
+      console.warn("[JDA] inject content failed:", e);
+      return false;
+    }
+  }
+}
+
+async function extractFromPage(tabId, selector, { waitMs = DEFAULT_EXTRACT_WAIT, pollMs = DEFAULT_EXTRACT_POLL } = {}) {
+  return new Promise((resolve) => {
+    try {
+      chrome.tabs.sendMessage(
+        tabId,
+        { type: "EXTRACT_SELECTOR", selector, waitMs, pollMs },
+        (resp) => {
+          const err = chrome.runtime.lastError;
+          if (err) {
+            resolve({ ok: false, error: err.message || "Chrome messaging error" });
+            return;
+          }
+          resolve(resp || { ok: false, error: "No response" });
+        }
+      );
+    } catch (e) {
+      resolve({ ok: false, error: String(e && e.message ? e.message : e) });
+    }
+  });
+}
+
+// показать/скрыть кнопку Fast start
+export async function detectAndToggleFastStart() {
+  const btn = document.getElementById("fastStartBtn");
+  if (!btn) return;
+
+  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+  if (!tab?.url) { btn.hidden = true; return; }
+
+  const rules = (state.settings?.sites || []).filter(r => r && (r.active === undefined || r.active));
+  dbg("url=", tab.url, "rules=", rules);
+
+  let match = null;
+  for (const r of rules) {
+    const pat = r.host || r.pattern || ""; // на всякий — если кто-то называл поле иначе
+    const ok = siteMatches(tab.url, pat);
+    dbg("test:", pat, "→", ok);
+    if (ok) { match = r; break; }
   }
 
-  const blob = new Blob([md], { type: "text/markdown" });
-  const reader = new FileReader();
-  reader.onload = async () => {
-    const url = reader.result;
-    await chrome.downloads.download({
-      url,
-      filename: `jda_result_${Date.now()}.md`,
-      saveAs: true
-    });
-  };
-  reader.readAsDataURL(blob);
-});
+  dbg("matched:", match);
+  if (!match) { btn.hidden = true; return; }
 
+  btn.hidden = false;
+  btn.classList.remove("hidden");
+  btn.dataset.selector = match.selector || "";
+  btn.onclick = async () => {
+    try {
+      const ready = await ensureContentScript(tab.id);
+      if (!ready) { alert("Cannot access page. Content script isn't available."); return; }
+
+      const selector = btn.dataset.selector || match.selector || "";
+      if (!selector) { alert("Selector is empty for this site rule."); return; }
+
+      // показываем краткий статус в Progress, если есть
+      setProgress?.("Grabbing description…");
+
+      const resp = await extractFromPage(tab.id, selector, { waitMs: DEFAULT_EXTRACT_WAIT, pollMs: DEFAULT_EXTRACT_POLL });
+
+      if (!resp?.ok) {
+        // типовые тексты ошибок — делаем дружелюбнее
+        const msg = /port closed|context invalidated/i.test(resp?.error || "")
+          ? "Page changed before we could read it. Try again."
+          : (resp?.error || "Nothing found by selector on this page.");
+        setProgress?.("");
+        alert("Extraction failed: " + msg);
+        return;
+      }
+
+      const text = String(resp.text || "").trim();
+      if (!text) {
+        setProgress?.("");
+        alert("Nothing found by selector on this page.");
+        return;
+      }
+
+      state.selectedText = text;
+      setJobInput(text);
+      try { chrome.storage.local.set({ lastSelection: text, lastSelectionWhen: Date.now() }); } catch {}
+      setProgress?.("Description grabbed ✔");
+      setTimeout(() => setProgress?.(""), 1500);
+    } catch (e) {
+      dbg("fastStart failed:", e);
+      alert("Extraction failed. Ensure content script is injected on this page.");
+    }
+  };
+}
 
 export function wireAnalyzeButtons() {
   const analyzeSelectedText = () => {

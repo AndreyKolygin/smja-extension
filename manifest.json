@@ -5,6 +5,7 @@
   "description": "Instant prescoring of job descriptions against your CV via local or cloud LLMs.",
   "icons": { "16": "icons/16.png", "48": "icons/48.png", "128": "icons/128.png" },
   "action": { "default_popup": "ui/popup.html", "default_title": "Job description Analyzer" },
+  "options_ui": { "page": "ui/options.html", "open_in_tab": true },
   "options_page": "ui/options.html",
   "permissions": ["storage","scripting","activeTab","downloads"],
   "host_permissions": [],
@@ -18,6 +19,13 @@
     "https://api.deepseek.com/*",
     "https://api-inference.huggingface.co/*",
     "http://localhost:11434/*"
+  ],
+  "content_scripts": [
+    {
+      "matches": ["http://*/*", "https://*/*"],
+      "js": ["content/content.js"],
+      "run_at": "document_idle"
+    }
   ],
   "background": { "service_worker": "sw.js", "type": "module" },
   "content_security_policy": {

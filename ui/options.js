@@ -32,6 +32,7 @@ function normalizeSettings(obj){
     general: { helpUrl: "https://github.com/AndreyKolygin/smja-extension" },
     providers: [],
     models: [],
+    sites: [],
     cv: "",
     systemTemplate: "",
     outputTemplate: ""
@@ -39,6 +40,7 @@ function normalizeSettings(obj){
   const s = Object.assign({}, base, obj || {});
   if (!Array.isArray(s.providers)) s.providers = [];
   if (!Array.isArray(s.models)) s.models = [];
+  if (!Array.isArray(s.sites)) s.sites = [];
   return s;
 }
 
@@ -61,34 +63,116 @@ async function exportSettings(){
 async function importSettingsFromFile(file){
   try {
     const text = await file.text();
-    let obj; try { obj = JSON.parse(text); } catch(e){ alert('Invalid JSON file.'); return; }
-    const merged = normalizeSettings(obj);
-    // Preserve existing API keys if the import leaves them blank
-    try {
-      const current = settings || { providers: [] };
-      if (Array.isArray(merged.providers)) {
-        for (const mp of merged.providers) {
-          if (!mp) continue;
-          if (!mp.apiKey) {
-            // match by id first, fallback by (type+baseUrl)
-            const found = (current.providers||[]).find(cp => cp.id === mp.id) ||
-                          (current.providers||[]).find(cp => cp.type === mp.type && cp.baseUrl === mp.baseUrl);
-            if (found && found.apiKey) mp.apiKey = found.apiKey;
+    let obj; 
+    try { obj = JSON.parse(text); } catch(e){ alert('Invalid JSON file.'); return; }
+
+    // Normalize both current (existing) and imported settings
+    const imported = normalizeSettings(obj);
+    const current  = normalizeSettings(settings);
+
+    // --- optional scope/mode support ---
+    // __import_scope: array of section names to import. If omitted => all sections present in file.
+    // __import_mode:  "replace_section" or "merge" (default).
+    const ALL_SECTIONS = ["providers","models","sites","cv","systemTemplate","outputTemplate","general"];
+    const scope = Array.isArray(obj.__import_scope) && obj.__import_scope.length
+      ? obj.__import_scope.filter(s => ALL_SECTIONS.includes(s))
+      : ALL_SECTIONS;
+    const mode = (obj.__import_mode === "replace_section") ? "replace_section" : "merge";
+
+    function mergeArrayBy(findFn, targetArr, incomingArr) {
+      if (!Array.isArray(incomingArr) || !incomingArr.length) return targetArr;
+      if (!Array.isArray(targetArr)) targetArr = [];
+      incomingArr.forEach(item => {
+        if (!item) return;
+        const idx = targetArr.findIndex(x => findFn(x, item));
+        if (idx >= 0) {
+          // update in place (do not overwrite apiKey with empty)
+          const merged = { ...targetArr[idx], ...item };
+          if ("apiKey" in item && (!item.apiKey || item.apiKey === "")) {
+            merged.apiKey = targetArr[idx].apiKey;
+          }
+          targetArr[idx] = merged;
+        } else {
+          // ensure apiKey exists (may be empty string)
+          if (!("apiKey" in item)) {
+            targetArr.push(item);
+          } else {
+            targetArr.push(item);
           }
         }
-      }
-    } catch {}
-    settings = merged;
+      });
+      return targetArr;
+    }
 
-    // Перепривязать поля и таблицы
+    // === Scalars ===
+    if (scope.includes("cv") && typeof imported.cv === "string" && imported.cv.trim()) current.cv = imported.cv;
+    if (scope.includes("systemTemplate") && typeof imported.systemTemplate === "string" && imported.systemTemplate.trim()) current.systemTemplate = imported.systemTemplate;
+    if (scope.includes("outputTemplate") && typeof imported.outputTemplate === "string" && imported.outputTemplate.trim()) current.outputTemplate = imported.outputTemplate;
+    if (scope.includes("general") && imported.general && typeof imported.general === "object") {
+      current.general = { ...current.general, ...imported.general };
+    }
+
+    // === Providers ===
+    if (scope.includes("providers")) {
+      if (mode === "replace_section") {
+        // Keep existing apiKeys if the incoming item has empty apiKey
+        const incoming = Array.isArray(imported.providers) ? imported.providers.map(p => {
+          const found = (current.providers || []).find(cp => cp && ((p.id && cp.id === p.id) || (p.type && p.baseUrl && cp.type === p.type && cp.baseUrl === p.baseUrl)));
+          if (found && (!p.apiKey || p.apiKey === "")) return { ...p, apiKey: found.apiKey || "" };
+          return p;
+        }) : [];
+        current.providers = incoming;
+      } else {
+        current.providers = mergeArrayBy(
+          (a,b) => (b.id && a.id === b.id) || (b.type && b.baseUrl && a.type === b.type && a.baseUrl === b.baseUrl),
+          current.providers,
+          imported.providers
+        );
+      }
+    }
+
+    // === Models ===
+    if (scope.includes("models")) {
+      if (mode === "replace_section") {
+        current.models = Array.isArray(imported.models) ? imported.models : [];
+      } else {
+        current.models = mergeArrayBy(
+          (a,b) =>
+            (b.id && a.id === b.id) ||
+            (b.providerId && b.modelId && a.providerId === b.providerId && a.modelId === b.modelId) ||
+            (b.modelId && b.displayName && a.modelId === b.modelId && a.displayName === b.displayName),
+          current.models,
+          imported.models
+        );
+      }
+    }
+
+    // === Sites ===
+    if (scope.includes("sites")) {
+      if (mode === "replace_section") {
+        current.sites = Array.isArray(imported.sites) ? imported.sites : [];
+      } else {
+        current.sites = mergeArrayBy(
+          (a,b) => (b.id && a.id === b.id) || (b.host && b.selector && a.host === b.host && a.selector === b.selector),
+          current.sites,
+          imported.sites
+        );
+      }
+    }
+
+    // Assign merged object back and refresh UI
+    settings = current;
+
+    // Re-bind fields and tables
     $id('cv').value = settings.cv || '';
     $id('systemTemplate').value = settings.systemTemplate || '';
     $id('outputTemplate').value = settings.outputTemplate || '';
     renderProviders();
     renderModels();
+    renderSites();
 
     await persistSettings();
-    alert('Settings imported successfully.');
+    alert('Settings merged successfully.');
   } catch(e){
     alert('Import failed: ' + (e?.message || e));
   }
@@ -130,20 +214,36 @@ function setupAutosave(){
 }
 
 async function loadSettings() {
-  try { settings = await chrome.runtime.sendMessage({ type: "GET_SETTINGS" }); } catch { settings = null; }
-  if (!settings) { settings = { version: "0.2.0", general: { helpUrl: "https://github.com/AndreyKolygin/smja-extension" }, providers: [], models: [], cv: "", systemTemplate: "", outputTemplate: "" }; }
+  try {
+    const raw = await chrome.runtime.sendMessage({ type: "GET_SETTINGS" });
+    settings = normalizeSettings(raw);
+  } catch {
+    settings = normalizeSettings(null);
+  }
+
   const verEl = document.getElementById("version");
   if (verEl) verEl.textContent = "0.1.0"; // версия из кода
 
   const helpLink = document.getElementById("helpLink");
   if (helpLink) helpLink.href = settings.general?.helpUrl || "https://github.com/AndreyKolygin/smja-extension";
+
+  // bind textareas
   $id("cv").value = settings.cv || "";
   $id("systemTemplate").value = settings.systemTemplate || "";
   $id("outputTemplate").value = settings.outputTemplate || "";
-  settings.providers = Array.isArray(settings.providers) ? settings.providers : [];
-  settings.models = Array.isArray(settings.models) ? settings.models : [];
-  renderProviders(); renderModels(); initPromptChangeTracking(); wireModals(); wireSave(); wireSettingsIO();
-  injectSingleColumnLayout(); renameGeneralToCV();
+
+  // tables
+  renderProviders();
+  renderModels();
+  renderSites();
+  wireSitesModals();
+  initPromptChangeTracking();
+  wireModals();
+  wireSave();
+  wireSettingsIO();
+
+  injectSingleColumnLayout();
+  renameGeneralToCV();
   setupAutosave();
 }
 
@@ -177,27 +277,204 @@ function initPromptChangeTracking() {
   });
 }
 
+function renderSites() {
+  const tbody = document.querySelector("#sitesTable tbody");
+  if (!tbody) return;
+  tbody.innerHTML = "";
+
+  for (const rule of (settings.sites || [])) {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td><input type="checkbox" ${rule.active ? "checked" : ""} data-act="toggle" data-id="${rule.id}"></td>
+      <td>${rule.host || ""}</td>
+      <td class="word-break">${rule.selector || ""}</td>
+      <td>${rule.comment || ""}</td>
+      <td class="actions">
+        <button class="btn outline" data-act="edit" data-id="${rule.id}">Edit</button>
+        <button class="btn danger" data-act="del" data-id="${rule.id}">Delete</button>
+      </td>
+    `;
+    tbody.appendChild(tr);
+  }
+
+  // делегированный обработчик ТОЛЬКО для таблицы сайтов
+  if (!tbody.__wired) {
+    tbody.__wired = true;
+
+    tbody.addEventListener("click", (e) => {
+      const btn = e.target.closest("button[data-act]");
+      if (!btn) return;
+      const id = btn.dataset.id;
+      const act = btn.dataset.act;
+      const idx = (settings.sites || []).findIndex(x => x && x.id === id);
+      if (idx < 0) return;
+      const rule = settings.sites[idx];
+
+      if (act === "edit") {
+        openSiteModal(rule);
+      } else if (act === "del") {
+        if (confirm(`Delete rule for “${rule.host}”?`)) {
+          settings.sites.splice(idx, 1);
+          renderSites();
+          persistSettings();
+        }
+      }
+    });
+
+    tbody.addEventListener("change", (e) => {
+      const cb = e.target.closest('input[type="checkbox"][data-act="toggle"]');
+      if (!cb) return;
+      const id = cb.dataset.id;
+      const rule = (settings.sites || []).find(x => x && x.id === id);
+      if (!rule) return;
+      rule.active = !!cb.checked;
+      persistSettings();
+    });
+  }
+}
+
 function renderProviders() {
-  const tbody = document.querySelector("#providersTable tbody"); if (!tbody) return; tbody.innerHTML = "";
+  const tbody = document.querySelector("#providersTable tbody");
+  tbody.innerHTML = "";
+
   for (const p of settings.providers) {
     const tr = document.createElement("tr");
     tr.innerHTML = `
-      <td>${p.name ?? ""}</td>
-      <td>${p.baseUrl ?? ""}</td>
-      <td>${p.type ?? ""}</td>
-      <td>${p.apiKey ? maskKey(p.apiKey) : ""}</td>
-      <td>
-        <button class="btn edit" title="Edit LLM provider settings">Edit</button>
-        <button class="btn delete" title="Delete LLM provider">Delete</button>
-      </td>`;
-
-    // Edit handler
-    tr.querySelector("button.edit")?.addEventListener("click", () => editProvider(p));
-    // Delete handler
-    tr.querySelector("button.delete")?.addEventListener("click", async () => { settings.providers = settings.providers.filter(x => x !== p); renderProviders(); await persistSettings(); });
-
+      <td>${p.name}</td>
+      <td>${p.baseUrl}</td>
+      <!-- <td>${p.type}</td> -->
+      <td>${p.apiKey ? "…" + (p.apiKey.slice(-6)) : ""}</td>
+      <td class="nowrap">
+        <button class="btn edit" data-action="edit-provider" data-id="${p.id}" title="Edit LLM provider settings">Edit</button>
+        <button class="btn danger" data-action="delete-provider" data-id="${p.id}">Delete</button>
+      </td>
+    `;
     tbody.appendChild(tr);
   }
+    // единоразовая привязка делегированного обработчика
+  const table = document.getElementById("providersTable");
+  if (!table.__wired) {
+    table.__wired = true;
+    table.addEventListener("click", (e) => {
+      const btn = e.target.closest("button[data-action]");
+      if (!btn) return;
+      const id = btn.dataset.id;
+      const action = btn.dataset.action;
+      const prov = settings.providers.find(x => x.id === id);
+      if (!prov) return;
+
+      if (action === "edit-provider") {
+        openProviderModal(prov);    // см. ниже
+      } else if (action === "delete-provider") {
+        if (confirm(`Delete provider “${prov.name}”?`)) {
+          settings.providers = settings.providers.filter(x => x.id !== id);
+          renderProviders();
+          // не забудь автосохранение/сохранение настроек
+          chrome.runtime.sendMessage({ type: "SAVE_SETTINGS", payload: settings });
+        }
+      }
+    });
+  }
+}
+
+  function wireSitesModals() {
+  const addBtn = document.getElementById("addSiteBtn");
+  if (addBtn) {
+    addBtn.addEventListener("click", () => {
+      openSiteModal(null);
+    });
+  }
+}
+
+function openSiteModal(rule) {
+  const dlg = document.getElementById("siteModal");
+  const host = document.getElementById("siteHost");
+  const sel  = document.getElementById("siteSelector");
+  const com  = document.getElementById("siteComment");
+  const act  = document.getElementById("siteActive");
+  const save = document.getElementById("saveSiteBtn");
+
+  if (!dlg || !host || !sel || !save) return;
+
+  // заполнение
+  if (rule) {
+    host.value = rule.host || "";
+    sel.value  = rule.selector || "";
+    com.value  = rule.comment || "";
+    act.checked = !!rule.active;
+  } else {
+    host.value = "";
+    sel.value  = "";
+    com.value  = "";
+    act.checked = true;
+  }
+
+  // показать модалку
+  if (typeof dlg.showModal === "function") dlg.showModal(); else dlg.setAttribute("open", "open");
+
+  const prev = save.onclick;
+  save.onclick = () => {
+    const data = {
+      id: rule?.id || ("site_" + Math.random().toString(36).slice(2,8)),
+      host: host.value.trim(),
+      selector: sel.value.trim(),
+      comment: com.value.trim(),
+      active: !!act.checked
+    };
+    if (!data.host || !data.selector) { alert("Site and selector are required."); return; }
+
+    if (rule) {
+      Object.assign(rule, data);
+    } else {
+      if (!Array.isArray(settings.sites)) settings.sites = [];
+      settings.sites.push(data);
+    }
+    renderSites();
+    persistSettings();
+    dlg.close?.();
+    save.onclick = prev || null;
+  };
+
+  const cancel = document.getElementById("cancelSiteBtn");
+  if (cancel) {
+    const prevC = cancel.onclick;
+    cancel.onclick = () => { dlg.close?.(); cancel.onclick = prevC || null; save.onclick = prev || null; };
+  }
+}
+
+function openProviderModal(provider) {
+  const dlg = document.getElementById("providerModal");
+  const preset = document.getElementById("providerPreset");
+  const base = document.getElementById("providerBaseUrl");
+  const key = document.getElementById("providerApiKey");
+  const link = document.getElementById("apiKeyLink");
+
+  // если используешь пресеты — можно подобрать preset по type
+  // иначе оставь как есть и просто заполни поля
+  base.value = provider.baseUrl || "";
+  key.value = provider.apiKey || "";
+  // справочная ссылка — из твоей карты пресетов
+  // link.href = ...
+
+  // показываем диалог
+  dlg.showModal();
+
+  // перезаписываем обработчик сохранения
+  const saveBtn = document.getElementById("saveProviderBtn");
+  saveBtn.onclick = async () => {
+    provider.baseUrl = base.value.trim();
+    provider.apiKey = key.value.trim();
+
+    // просят хост-пермишены для домена провайдера (если реализовано)
+    try {
+      await ensureHostPermission(provider.baseUrl);
+    } catch {}
+
+    renderProviders();
+    // автосейв
+    chrome.runtime.sendMessage({ type: "SAVE_SETTINGS", payload: settings });
+    dlg.close();
+  };
 }
 
 function renderModels() {
@@ -224,7 +501,12 @@ function renderModels() {
 
     tr.querySelector("button.edit")?.addEventListener("click", () => editModel(m));
     tr.querySelectorAll("button")[1]?.addEventListener("click", () => editModelSystemPrompt(m));
-    tr.querySelector("button.delete")?.addEventListener("click", async () => {
+    tr.querySelector("button.delete")?.addEventListener("click", async (e) => {
+      e.preventDefault();
+      if (e.stopPropagation) e.stopPropagation();
+      const label = (m.displayName || m.modelId || "this model");
+      const ok = confirm(`Delete model “${label}”?`);
+      if (!ok) return;
       settings.models = settings.models.filter(x => x !== m);
       renderModels();
       await persistSettings();
@@ -312,14 +594,6 @@ function editModelSystemPrompt(m){
   };
 }
 
-function editModelPrompt(model) {
-  const text = prompt("Edit system prompt for model (leave blank to inherit global):", model.systemPrompt || "");
-  if (text !== null) {
-    model.systemPrompt = text;
-    persistSettings();
-  }
-}
-
 function editProvider(p){
   // Try modal editor if markup exists, else fallback to prompts
   const dlg = document.getElementById("providerModal");
@@ -355,6 +629,18 @@ function editProvider(p){
   key.value = p.apiKey || "";
   // We keep existing link href from preset change; do not override if unknown
 
+  // Обновим ссылку/подсказку под выбранный preset, но не перезаписываем baseUrl
+  try {
+    const pp = presets[preset.value];
+    if (pp && link) {
+      link.href = pp.url || "#";
+      link.target = "_blank";
+      link.rel = "noopener noreferrer";
+    }
+    const helpEl = document.getElementById("apiKeyHelp");
+    if (helpEl) helpEl.textContent = providerHelp[preset.value] || "";
+  } catch {}
+
   safeShowModal(dlg);
 
   const saveBtn = document.getElementById("saveProviderBtn");
@@ -388,21 +674,57 @@ function wireModals() {
     if (!dlg || !preset || !base || !key || !link) { return simplePromptAddProvider(); }
 
     const presets = {
-      custom: { type: "custom", baseUrl: "", url: "#" },
-      anthropic: { type: "anthropic", baseUrl: "https://api.anthropic.com/v1", url: "https://console.anthropic.com" },
-      azure: { type: "azure", baseUrl: "https://YOUR-RESOURCE-NAME.openai.azure.com", url: "https://portal.azure.com" },
-      deepseek: { type: "deepseek", baseUrl: "https://api.deepseek.com/v1", url: "https://platform.deepseek.com" },
-      gemini: { type: "gemini", baseUrl: "https://generativelanguage.googleapis.com/v1beta", url: "https://aistudio.google.com/app/apikey" },
-      huggingface: { type: "huggingface", baseUrl: "https://api-inference.huggingface.co", url: "https://huggingface.co/settings/tokens" },
-      meta: { type: "meta", baseUrl: "https://api.meta.ai", url: "https://developers.facebook.com" },
-      ollama: { type: "ollama", baseUrl: "http://localhost:11434", url: "https://ollama.com" },
-      openai: { type: "openai", baseUrl: "https://api.openai.com/v1", url: "https://platform.openai.com/api-keys" },
-      openrouter: { type: "openrouter", baseUrl: "https://openrouter.ai/api/v1", url: "https://openrouter.ai/keys" },
-      perplexity: { type: "perplexity", baseUrl: "https://api.perplexity.ai", url: "https://www.perplexity.ai/settings/api" },
-      xai: { type: "xai", baseUrl: "https://api.x.ai/v1", url: "https://developer.x.ai/docs/getting-started" }
+      custom:      { type: "custom",     baseUrl: "",                                           url: "#" },
+      anthropic:   { type: "anthropic",  baseUrl: "https://api.anthropic.com/v1",               url: "https://console.anthropic.com/" },
+      azure:       { type: "azure",      baseUrl: "https://YOUR-RESOURCE-NAME.openai.azure.com",url: "https://portal.azure.com/" },
+      deepseek:    { type: "deepseek",   baseUrl: "https://api.deepseek.com/v1",                url: "https://platform.deepseek.com/api_keys" },
+      gemini:      { type: "gemini",     baseUrl: "https://generativelanguage.googleapis.com/v1beta", url: "https://aistudio.google.com/app/apikey" },
+      huggingface: { type: "huggingface",baseUrl: "https://api-inference.huggingface.co",       url: "https://huggingface.co/settings/tokens" },
+      meta:        { type: "meta",       baseUrl: "https://api.llama-api.com",                  url: "https://llama.developer.meta.com/docs/api-keys/" },
+      ollama:      { type: "ollama",     baseUrl: "http://localhost:11434",                     url: "https://ollama.com" },
+      openai:      { type: "openai",     baseUrl: "https://api.openai.com/v1",                  url: "https://platform.openai.com/api-keys" },
+      openrouter:  { type: "openrouter", baseUrl: "https://openrouter.ai/api/v1",               url: "https://openrouter.ai/keys" },
+      perplexity:  { type: "perplexity", baseUrl: "https://api.perplexity.ai",                  url: "https://docs.perplexity.ai/getting-started/quickstart" },
+      xai:         { type: "xai",        baseUrl: "https://api.x.ai/v1",                         url: "https://docs.x.ai/docs/get-started" }
     };
-    function applyPreset() { const p = presets[preset.value]; base.value = p.baseUrl; link.href = p.url; }
-    preset.addEventListener("change", applyPreset); applyPreset();
+    const providerHelp = {
+      custom:      "Enter provider-specific info manually.",
+      anthropic:   "Anthropic Console → API keys.",
+      azure:       "Azure Portal → your Azure OpenAI resource → Keys & Endpoint.",
+      deepseek:    "DeepSeek Platform → API Keys.",
+      gemini:      "Google AI Studio → API keys.",
+      huggingface: "Hugging Face → Settings → Access Tokens.",
+      meta:        "Meta Llama developers: request access and create API key.",
+      ollama:      "Local Ollama, API key not required.",
+      openai:      "OpenAI Platform → API Keys.",
+      openrouter:  "OpenRouter dashboard → Keys.",
+      perplexity:  "Perplexity docs/portal → API Keys.",
+      xai:         "X.AI docs → Get started (API keys)."
+    };
+
+    function applyPreset(opts) {
+      const p = presets[preset.value];
+      const preserveBase = opts && opts.preserveBase === true;
+
+      // baseUrl: при добавлении нового провайдера пишем из пресета,
+      // при редактировании — не затираем, если поле уже заполнено.
+      if (!preserveBase || !base.value) base.value = p.baseUrl || "";
+
+      // Ссылка "Get your API key here"
+      if (link) {
+        link.href = p.url || "#";
+        link.target = "_blank";
+        link.rel = "noopener noreferrer";
+      }
+
+      // Текст-подсказка под ссылкой (если есть <span id="apiKeyHelp"> в разметке)
+      const helpEl = document.getElementById("apiKeyHelp");
+      if (helpEl) helpEl.textContent = providerHelp[preset.value] || "";
+    }
+
+    // для «Add provider» нам нужно проставить baseUrl из пресета
+    preset.addEventListener("change", () => applyPreset({ preserveBase: false }));
+    applyPreset({ preserveBase: false });
     safeShowModal(dlg);
     document.getElementById("saveProviderBtn").onclick = async () => {
       const id = (preset.value + "_" + Math.random().toString(36).slice(2,8));

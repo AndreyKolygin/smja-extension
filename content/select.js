@@ -24,7 +24,6 @@
     if (!settings) return null;
     const models = (settings.models || []).filter(m => m && m.active);
     if (!models.length) return null;
-    // prefer explicitly chosen model if present in settings
     const chosenId = (settings.ui && settings.ui.chosenModel) || settings.chosenModel;
     const byChosen = chosenId ? models.find(m => m.id === chosenId) : null;
     return byChosen || models[0];
@@ -142,7 +141,9 @@
     for (let i=1;i<rects.length;i++){
       const r = rects[i];
       if (Math.abs(r.y - cur.y) < 1 && Math.abs(r.height - cur.height) < 1){
-        cur.width = (r.right - cur.left); // merge horizontally
+        cur.width = (r.right - r.left) + (cur.right - cur.left);
+        cur.x = Math.min(cur.x, r.x);
+        cur.width = (Math.max(cur.right, r.right) - Math.min(cur.left, r.left));
       } else {
         merged.push(cur);
         cur = new DOMRect(r.x, r.y, r.width, r.height);
@@ -164,11 +165,9 @@
     STATE.lastRanges = ranges;
   }
 
-  // Строгий reflow не пересчитывает прямоугольники (это дороже и ненадёжно на динамических страницах),
-  // а при сильных мутациях мы просто очищаем подсветку (см. MutationObserver).
   function reflowOverlays(){
     // Ничего не делаем — абсолютные координаты уже рассчитаны с учётом scrollX/scrollY.
-    // Если DOM «прыгнул» — сработает MutationObserver и подсветка будет снята.
+    // Если DOM «прыгнул» — сработает MutationObserver и подсветка будет снята пользователем вручную.
   }
 
   // ============ analyze button ============
@@ -206,6 +205,11 @@
       const text = (STATE.lastText || '').trim();
       if (!text) return;
       analyze.disabled = true;
+
+      // мгновенно закэшировать последний выбор и уведомить попап
+      try { chrome.storage.local.set({ lastSelection: text, lastSelectionWhen: Date.now() }); } catch {}
+      safeSendMessage({ type: 'SELECTION_ANALYZE', text });
+
       const t0 = performance.now();
       const fmt = (ms) => `Progress: ${(ms/1000).toFixed(2)}s`;
       analyze.textContent = fmt(0);
@@ -248,6 +252,8 @@
             const elapsed = performance.now() - t0;
             const doneMs = (resp && typeof resp.ms === 'number' ? resp.ms : elapsed);
             analyze.textContent = `Done: ${(doneMs/1000).toFixed(2)}s`;
+            setTimeout(() => { try { analyze.disabled = false; analyze.textContent = 'Start analyze'; } catch {} }, 5000);
+
             if (resp && resp.ok) {
               // Switch Cancel → Show result with a fresh handler
               try { clearBtn.removeEventListener('click', onCancel); } catch {}
@@ -261,12 +267,12 @@
                 removeActionPanel();
               };
               safeSendMessage({ type: 'LLM_RESULT', text: resp.text });
+              try { chrome.storage.local.set({ lastResult: { text: resp.text, when: Date.now(), ms: doneMs } }, ()=>{}); } catch {}
             } else if (resp && resp.error) {
               alert('LLM error: ' + resp.error);
             }
           });
         } catch (e){
-          if (timerId) { clearInterval(timerId); timerId = 0; }
           analyze.disabled = false; analyze.textContent = 'Start analyze';
           alert('Unexpected error: ' + (e && e.message ? e.message : e));
         }
@@ -324,7 +330,17 @@
       showActionPanel(x, y);
 
       safeSendMessage({ type: 'SELECTION_RESULT', text });
-      chrome.storage.local.set({ lastSelection: text, lastSelectionWhen: Date.now() })
+      try { chrome.storage.local.set({ lastSelection: text, lastSelectionWhen: Date.now() }) } catch {}
+    }
+  }
+
+  function handleKeydown(ev){
+    if (!STATE.active) return;
+    // Esc — отмена выделения
+    if (ev.key === "Escape") {
+      ev.preventDefault(); ev.stopPropagation();
+      clearAll();
+      disable();
     }
   }
 
@@ -340,12 +356,14 @@
     __lastMouseUpTs = 0;
     document.addEventListener('mouseup', handleMouseUp, true);
     document.addEventListener('mousemove', handleMouseMove, true);
+    document.addEventListener('keydown', handleKeydown, true);
   }
   function disable(){
     STATE.active = false;
     document.body.style.cursor = STATE.prevCursor || '';
     document.removeEventListener('mouseup', handleMouseUp, true);
     document.removeEventListener('mousemove', handleMouseMove, true);
+    document.removeEventListener('keydown', handleKeydown, true);
   }
   function clearAll(){
     clearOverlays();
@@ -361,10 +379,7 @@
   window.addEventListener('scroll', throttledReflow, { passive: true });
 
   const mo = new MutationObserver(throttle(() => {
-    // Не трогаем подсветку и панель действий после завершения выделения,
-    // иначе на динамичных SPA панель пропадает мгновенно. При необходимости
-    // пользователь может нажать Clear вручную.
-    // Когда STATE.active === true (в процессе выделения) — тоже ничего не делаем.
+    // На SPA ничего не ломаем автоматически.
   }, 250));
   try {
     mo.observe(document.body, { childList: true, subtree: true, attributes: true, characterData: false });

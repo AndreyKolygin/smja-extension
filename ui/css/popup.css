@@ -112,6 +112,7 @@
   min-height: 140px;
   max-height: 70vh; /* не выезжает за экран */
   white-space: pre-line; /* скролл, если много текста */
+  overflow: auto;
 }
 
 /* простая «prose»-типографика */
@@ -154,11 +155,32 @@
   padding: 0 4px;
   border-radius: 6px;
 }
-.prose {
+.prose pre {
   background: rgba(255, 255, 255, 0.06);
   /* border: 1px solid var(--border);
   border-radius: 10px; */
   /* padding: 10px; */
   overflow: auto;
   white-space: pre-line;
+}
+.prose blockquote {
+  margin: 0.5em 0;
+  padding-left: 1em;
+  border-left: 3px solid var(--border-dark);
+  color: var(--muted);
+  font-style: italic;
+}
+.prose u {
+  text-decoration: underline;
+}
+.hidden {
+  display: none !important;
+}
+.btn.success {
+  background: var(--red-deep-light);
+  color: #fff;
+}
+.btn.success:hover {
+  background: var(--red-deep-dark);
+  color: #fff;
 }

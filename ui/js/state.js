@@ -82,6 +82,11 @@ export function setResult(text) {
   if (el) el.innerHTML = mdToHtml(text || "");
 }
 
+export async function getActiveTab() {
+  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+  return tab || null;
+}
+
 export function setLastMeta(whenMs) {
   const el = document.getElementById("lastMeta");
   if (!el) return;

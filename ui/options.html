@@ -14,19 +14,42 @@
         <h2>LLM settings</h2>
         <h3>Provider settings</h3>
         <p><button class="btn add-model" title="Add LLM provider" id="addProviderBtn">+ Add provider</button></p>
+        <div class="table-wrapper">
           <table class="table" id="providersTable">
-          <thead><tr><th>Name</th><th>Base URL</th><th>Type</th><th>Key</th><th></th></tr></thead>
+          <thead><tr><th>Name</th><th>Base URL</th><!--<th>Type</th>--><th>Key</th><th></th></tr></thead>
           <tbody></tbody>
         </table>
-
+        </div>
         <h3>Models</h3>
         <p><button class="btn add-model" title="Add model for provider" id="addModelBtn">+ Add model</button></p>
+        <div class="table-wrapper">
         <table class="table" id="modelsTable">
           <thead><tr><th>Active</th><th>Display name</th><th>Provider</th><th>Model ID</th><th></th></tr></thead>
           <tbody></tbody>
         </table>
+        </div>
         <label>Model-level system prompt (edit per model)</label>
         <div class="muted">Open any model row to edit its system prompt.</div>
+      </div>
+      
+      <div class="card card_sites">
+        <h2>Auto-extract rules</h2>
+        <p class="muted">Добавьте сайты и CSS-селекторы, чтобы автоматически вытягивать описание вакансии.</p>
+        <p><button class="btn" id="addSiteBtn">+ Add site rule</button></p>
+        <div class="table-wrapper">
+          <table class="table" id="sitesTable">
+            <thead>
+              <tr>
+                <th>Active</th>
+                <th>Site</th>
+                <th class="word-break">Selector</th>
+                <th>Comment</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
       </div>
 
       <div class="card card_general">
@@ -62,11 +85,11 @@
       </div>
     </div>
   </div>
-<div class="muted">Version <span id="version"></span> • <a id="helpLink" href="#" target="_blank">Help / GitHub</a></div>
 
 
   <!-- Add Provider Modal -->
   <dialog id="providerModal">
+    <div class="form-row">
     <form method="dialog">
       <h3>Add provider</h3>
       <label>Choose a provider or create a custom one</label>
@@ -90,13 +113,14 @@
 
       <label>API key</label>
       <input id="providerApiKey" type="text" placeholder="sk-..."/>
-      <div class="muted"><a id="apiKeyLink" href="#" target="_blank">Get your API key here</a></div>
+      <div class="muted"><a id="apiKeyLink" href="#" target="_blank" rel="noopener noreferrer">Get your API key here</a><br><small id="apiKeyHelp" class="muted"></small></div>
 
       <menu>
         <button class="btn" value="cancel">Cancel</button>
         <button class="btn primary" id="saveProviderBtn" value="default">Save</button>
       </menu>
     </form>
+    </div>
   </dialog>
   <!-- Add Model Modal -->
   <dialog id="modelModal">
@@ -105,12 +129,15 @@
       <label>Provider</label>
       <select id="modelProvider"></select>
 
-      <label>Display name</label>
-      <input id="modelDisplay" type="text" placeholder="Gemini Flash"/>
+        <div class="form-row">
+          <label for="modelDisplay">Display name</label>
+          <input type="text" id="modelDisplay" />
+        </div>
 
-      <label>Model ID</label>
-      <input id="modelId" type="text" placeholder="gemini-2.0-flash-exp"/>
-
+        <div class="form-row">
+          <label for="modelId">Model ID</label>
+          <input type="text" id="modelId" />
+        </div>
       <menu>
         <button class="btn" value="cancel">Cancel</button>
         <button class="btn primary" id="saveModelBtn" value="default">Save</button>
@@ -118,6 +145,32 @@
     </form>
   </dialog>
 
+  <!-- Modal: add/edit site rule -->
+  <dialog id="siteModal">
+    <form method="dialog">
+      <h3>Site rule</h3>
+      <div class="form-row">
+        <label for="siteHost">Site (hostname, wildcard, or /regex/)</label>
+        <input type="text" id="siteHost" placeholder="linkedin.com  |  jobs.example.com  |  /(^|\\.)indeed\\.com$/">
+      </div>
+      <div class="form-row">
+        <label for="siteSelector">CSS selector</label>
+        <textarea type="text" rows="3" id="siteSelector" placeholder=".job-description, #content, article"></textarea>
+      </div>
+      <div class="form-row">
+        <label for="siteComment">Comment</label>
+        <input type="text" id="siteComment" placeholder="LinkedIn JD main panel">
+      </div>
+      <div class="form-row">
+        <label><input type="checkbox" id="siteActive" checked> Active</label>
+      </div>
+
+      <menu>
+        <button class="btn" value="cancel" id="cancelSiteBtn">Cancel</button>
+        <button class="btn primary" id="saveSiteBtn" value="default">Save</button>
+      </menu>
+    </form>
+  </dialog>
 
   <dialog id="modelPromptModal" class="modal">
   <form method="dialog" class="modal-body">

@@ -32,7 +32,7 @@ body.single-column {
   font-size: 12px;
 }
 
-.table {
+/* .table {
   width: 100%;
   border-collapse: collapse;
   background-color: var(--border);
@@ -43,7 +43,7 @@ body.single-column {
   border-bottom: 1px solid var(--border);
   padding: 10px;
   text-align: left;
-}
+} */
 
 .actions {
   display: flex;
@@ -68,9 +68,32 @@ body.single-column {
 }
 
 /* Modal layout */
-.modal .modal-body {
+/* .modal .modal-body {
   min-width: 80%;
   max-width: 80vw;
+} */
+.modal .modal-body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+/* Model modal: ограничение ширины полей */
+.modal #modelProvider,
+.modal #modelDisplay,
+.modal #modelId {
+  width: 100%;
+  max-width: 520px; /* можно 480–560 по вкусу */
+  min-width: 260px;
+  box-sizing: border-box;
+}
+/* Provider modal: ограничение ширины полей */
+.modal #providerPreset,
+.modal #providerBaseUrl,
+.modal #providerApiKey {
+  width: 100%;
+  max-width: 520px;
+  min-width: 260px;
+  box-sizing: border-box;
 }
 .modal .modal-actions {
   margin-top: 12px;
@@ -78,20 +101,43 @@ body.single-column {
   gap: 8px;
   justify-content: flex-end;
 }
+.modal .form-row {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.modal .form-row input[type="text"],
+.modal .form-row textarea {
+  width: 100%;
+  max-width: 400px; /* ограничение ширины */
+  min-width: 260px; /* минимальная длина для аккуратности */
+  box-sizing: border-box;
+  resize: vertical;
+}
+
+.modal .form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 16px;
+}
 
 /* Form helpers */
 .stretch {
   width: 100%;
   box-sizing: border-box;
+  resize: vertical;
 }
 .mono {
   font-family: monospace;
 }
 
-.table {
+/* .table {
   min-width: 800px;
   width: inherit;
-}
+} */
 
 .textInput {
   height: 14em;
@@ -102,6 +148,7 @@ body.single-column {
   padding: 12px;
   background: var(--panel);
   color: var(--text);
+  resize: vertical;
 }
 
 .saveBtn {
@@ -121,7 +168,19 @@ dialog {
   border-radius: 12px;
   width: 520px;
 }
+dialog menu {
+  display: flex;
+  justify-content: flex-end; /* выравнивание кнопок вправо */
+  gap: 8px; /* расстояние между кнопками */
+  margin-top: 16px;
+  padding: 0;
+}
 
+dialog menu button {
+  min-width: 80px;
+  padding: 6px 12px;
+  border-radius: 6px;
+}
 input[type="text"],
 textarea,
 select {
@@ -130,4 +189,52 @@ select {
   border: 1px solid #cbd5e1;
   border-radius: 8px;
   font-size: 14px;
+}
+
+.form-row {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 12px;
+}
+
+.form-row label {
+  font-size: 14px;
+  margin-bottom: 4px;
+  color: var(--text);
+}
+
+.form-row input[type="text"],
+.form-row textarea,
+.form-row select {
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  /* padding: 6px 8px; */
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 14px;
+}
+
+.table-wrapper {
+  overflow-x: auto;
+}
+.nowrap {
+  white-space: nowrap;
+}
+#apiKeyHelp {
+  color: var(--muted);
+  font-size: 12px;
+}
+.card_sites table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.card_sites th,
+.card_sites td {
+  border-bottom: 1px solid var(--border);
+  padding: 6px 8px;
+  vertical-align: top;
+}
+.card_sites td.actions {
+  white-space: nowrap;
 }

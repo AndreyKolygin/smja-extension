@@ -87,10 +87,14 @@ body {
 }
 
 .btn {
+  margin: 2px 0;
   border-radius: var(--radius);
   padding: 8px 10px;
   cursor: pointer;
   border: 1px solid var(--accent);
+}
+.btn:hover {
+  background: var(--bg-dark);
 }
 
 .btn.add-model {
@@ -209,6 +213,9 @@ textarea {
   border-bottom: 1px solid var(--border);
   padding: 10px;
   text-align: left;
+}
+.word-break {
+  word-break: break-all;
 }
 .table .actions {
   display: flex;

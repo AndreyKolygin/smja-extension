@@ -23,31 +23,63 @@ async function guardedCall(fn) {
 
 function nowMs() { return Date.now(); }
 
+// --- URL helpers (avoid double /api/... concatenation)
+function trimSlash(s){ return String(s||"").replace(/\/+$/,""); }
+function joinUrl(base, path){
+  const b = trimSlash(base);
+  const p = String(path||"");
+  return p.startsWith("/") ? (b + p) : (b + "/" + p);
+}
+
+// Ensure settings always have required arrays and fields
+function normalizeSettings(obj) {
+  const base = {
+    version: "0.2.0",
+    general: { helpUrl: "https://github.com/AndreyKolygin/smja-extension" },
+    providers: [],
+    models: [],
+    sites: [],      // ← important for Fast Start rules
+    cv: "",
+    systemTemplate: "",
+    outputTemplate: ""
+  };
+  const s = Object.assign({}, base, obj || {});
+  if (!Array.isArray(s.providers)) s.providers = [];
+  if (!Array.isArray(s.models))    s.models    = [];
+  if (!Array.isArray(s.sites))     s.sites     = [];
+  return s;
+}
+
 async function getSettings() {
   return new Promise((resolve) => {
     chrome.storage.local.get("settings", (res) => {
       let s = res.settings;
       if (!s) {
-        s = {
-          version: "0.2.0",
-          general: { helpUrl: "https://github.com/AndreyKolygin/smja-extension" },
-          providers: [],
-          models: [],
-          cv: "",
-          systemTemplate: "",
-          outputTemplate: ""
-        };
-        chrome.storage.local.set({ settings: s }, () => resolve(s));
-      } else {
-        resolve(s);
+        // first run — seed defaults
+        const seeded = normalizeSettings(null);
+        chrome.storage.local.set({ settings: seeded }, () => resolve(seeded));
+        return;
+      }
+      // migrate/normalize existing settings
+      const normalized = normalizeSettings(s);
+      // if anything changed (e.g., sites added), persist the normalized shape
+      try {
+        if (JSON.stringify(normalized) !== JSON.stringify(s)) {
+          chrome.storage.local.set({ settings: normalized }, () => resolve(normalized));
+        } else {
+          resolve(normalized);
+        }
+      } catch {
+        resolve(normalized);
       }
     });
   });
 }
 
 async function saveSettings(newSettings) {
+  const normalized = normalizeSettings(newSettings);
   return new Promise((resolve) => {
-    chrome.storage.local.set({ settings: newSettings }, () => resolve(true));
+    chrome.storage.local.set({ settings: normalized }, () => resolve(true));
   });
 }
 
@@ -77,17 +109,65 @@ async function callOpenAI({ baseUrl, apiKey, model, sys, user }) {
   return txt;
 }
 
-async function callOllama({ baseUrl, model, sys, user }) {
-  const url = `${baseUrl.replace(/\/$/, '')}/api/generate`;
-  const prompt = (sys ? sys + "\n\n" : "") + user;
-  const res = await fetch(url, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ model, prompt, stream: false })
-  });
-  if (!res.ok) throw new Error(`Ollama HTTP ${res.status}`);
-  const json = await res.json();
-  return json.response ?? "";
+// Ollama: use /api/chat with messages, no Authorization header
+async function callOllama({ baseUrl, model, sys, user, timeoutMs = 120_000 }) {
+  const root = baseUrl.replace(/\/$/, '');
+  const chatUrl = `${root}/api/chat`;
+  const genUrl  = `${root}/api/generate`;
+
+  const messages = [];
+  if (sys) messages.push({ role: 'system', content: sys });
+  messages.push({ role: 'user', content: user });
+
+  const controller = new AbortController();
+  const to = setTimeout(() => controller.abort(), Math.max(10_000, Number(timeoutMs) || 120_000));
+
+  async function doFetch(url, body) {
+    return fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+      signal: controller.signal
+    });
+  }
+
+  try {
+    let res = await doFetch(chatUrl, { model, messages, stream: false });
+
+    if (res.status === 404 || res.status === 405) {
+      const prompt = (sys ? sys + '\n\n' : '') + user;
+      res = await doFetch(genUrl, { model, prompt, stream: false });
+    }
+
+    if (!res.ok) {
+      if (res.status === 403) {
+        throw new Error(
+          `Ollama HTTP 403 (CORS). Проверь:\n` +
+          `• OLLAMA_ORIGINS включает chrome-extension://<твой_ID>\n` +
+          `• что именно этот процесс ollama serve запущен с этими переменными\n` +
+          `• baseUrl в настройках: ${root}`
+        );
+      }
+      const body = await res.text().catch(() => '');
+      throw new Error(`Ollama HTTP ${res.status}: ${body.slice(0, 200)}`);
+    }
+
+    const json = await res.json().catch(() => ({}));
+    return json?.message?.content ?? json?.response ?? '';
+  } catch (e) {
+    const msg = String(e && (e.message || e));
+    if (msg.includes('AbortError') || msg.includes('aborted')) {
+      throw new Error(`Request timed out after ${Math.round((Number(timeoutMs)||120000)/1000)}s. Увеличьте timeoutMs в провайдере Ollama или сократите запрос.`);
+    }
+    throw e;
+  } finally {
+    clearTimeout(to);
+  }
+}
+
+// Совместимость: alias для старых вызовов
+async function callOllamaChat(args) {
+  return callOllama(args);
 }
 
 async function callGemini({ baseUrl, apiKey, model, sys, user }) {
@@ -128,7 +208,13 @@ async function callLLMRouter(payload) {
       text = await callOpenAI({ baseUrl: provider.baseUrl, apiKey: provider.apiKey, model: payload.modelId, sys, user });
       break;
     case 'ollama':
-      text = await callOllama({ baseUrl: provider.baseUrl, model: payload.modelId, sys, user });
+      text = await callOllama({
+        baseUrl: provider.baseUrl,
+        model: payload.modelId,
+        sys,
+        user,
+        timeoutMs: provider.timeoutMs || 120_000
+      });
       break;
     case 'gemini':
       text = await callGemini({ baseUrl: provider.baseUrl, apiKey: provider.apiKey, model: payload.modelId, sys, user });
@@ -160,15 +246,24 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         const payload = message.payload || {};
         requireFields(payload, ["modelId", "providerId"]);
         payload.text = sanitizeText(payload.text || "");
+
+        // 💾 Кэшируем последний выбор, чтобы попап всегда мог подхватить Job description
+        try {
+          chrome.storage.local.set({ lastSelection: payload.text });
+        } catch {}
+
         const result = await guardedCall(() => callLLMRouter(payload));
 
-        // кэширование lastResult / lastError оставляем
+        // (как и раньше) кэшируем последний результат анализа
         try {
           if (result?.ok) {
             chrome.storage.local.set({
               lastResult: {
-                text: result.text, ms: result.ms || 0, when: Date.now(),
-                providerId: payload.providerId || null, modelId: payload.modelId || null
+                text: result.text,
+                ms: result.ms || 0,
+                when: Date.now(),
+                providerId: payload.providerId || null,
+                modelId: payload.modelId || null
               }
             });
           } else if (result?.error) {
@@ -180,7 +275,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       } catch (err) {
         sendResponse({ ok: false, error: String(err?.message || err) });
       }
-      return true;
+      return true; // оставить, чтобы порт ответа был открыт до завершения async
     }
 
     if (message.type === "START_ANALYZE") {
