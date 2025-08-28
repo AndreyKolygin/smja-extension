@@ -1,0 +1,67 @@
+// ui/js/options-main.js
+import {
+  $id, safeShowModal, maskKey,
+  normalizeSettings, persistSettings, ensureHostPermission,
+  SETTINGS_KEY
+} from './options-util.js';
+
+import { wireImportExport } from './options-io.js';
+import { renderProviders, wireProviderModals } from './options-providers.js';
+import { renderModels, wireModelModals } from './options-models.js';
+import { renderSites, wireSitesModals } from './options-sites.js';
+import { initPrompts, setupAutosave, renameGeneralToCV, injectSingleColumnLayout } from './options-prompts.js';
+
+export let settings = null;
+
+export async function loadSettings() {
+  try {
+    const raw = await chrome.runtime.sendMessage({ type: "GET_SETTINGS" });
+    settings = normalizeSettings(raw);
+  } catch {
+    settings = normalizeSettings(null);
+  }
+  // Версия/ссылки
+  const verEl = document.getElementById("version");
+  if (verEl) verEl.textContent = "0.1.0";
+  const helpLink = document.getElementById("helpLink");
+  if (helpLink) helpLink.href = settings.general?.helpUrl || "https://github.com/andreykolygin/smja-extension";
+
+  // Промпты
+  initPrompts(settings);
+
+  // Таблицы
+  renderProviders(settings);
+  renderModels(settings);
+  renderSites(settings);
+
+  // Провода
+  wireProviderModals(settings);
+  wireModelModals(settings);
+  wireSitesModals(settings);
+  wireImportExport(settings);
+
+  // UI-хелперы
+  injectSingleColumnLayout();
+  renameGeneralToCV();
+  setupAutosave(settings);
+
+  // Save кнопка (общая)
+  $id("saveBtn").addEventListener("click", async () => {
+    settings.cv = $id("cv").value;
+    settings.systemTemplate = $id("systemTemplate").value;
+    settings.outputTemplate = $id("outputTemplate").value;
+    await chrome.runtime.sendMessage({ type: "SAVE_SETTINGS", payload: settings });
+    alert("Saved.");
+    const btn = $id("resetCacheBtn");
+    const hint = $id("resetHint");
+    if (btn) btn.disabled = true;
+    if (hint) hint.textContent = "";
+  });
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  loadSettings().catch(e => {
+    console.error('[JDA options] init failed:', e);
+    alert('Settings UI failed to initialize. See DevTools console for details.');
+  });
+});
