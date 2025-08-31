@@ -40,10 +40,11 @@ export function renderProviders(settings){
     tr.innerHTML = `
       <td>${p.name}</td>
       <td>${p.baseUrl}</td>
-      <td>${p.apiKey ? "…" + (p.apiKey.slice(-6)) : ""}</td>
+      <td>${p.type || "custom"}</td>
+      <td>${maskKey(p.apiKey)}</td>
       <td class="nowrap">
-        <button class="btn edit" data-action="edit-provider" data-id="${p.id}" title="Edit LLM provider settings">Edit</button>
-        <button class="btn danger" data-action="delete-provider" data-id="${p.id}">Delete</button>
+        <button class="btn edit" data-action="edit-provider" data-id="${p.id}" data-i18n-title="options.title.editllmProvider" title="Edit LLM provider settings" data-i18n="options.btn.edit">Edit</button>
+        <button class="btn danger" data-action="delete-provider" data-id="${p.id}" data-i18n="options.btn.delete">Delete</button>
       </td>
     `;
     tbody.appendChild(tr);

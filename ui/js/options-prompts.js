@@ -1,5 +1,6 @@
 // ui/js/options-prompts.js
 import { $id, persistSettings } from './options-util.js';
+import { applyTranslations } from './i18n.js';
 
 let __autosaveTimer = null;
 
@@ -7,6 +8,8 @@ export function initPrompts(settings){
   $id("cv").value = settings.cv || "";
   $id("systemTemplate").value = settings.systemTemplate || "";
   $id("outputTemplate").value = settings.outputTemplate || "";
+
+  applyTranslations(document);
 
   const sys = $id("systemTemplate"), out = $id("outputTemplate"), btn = $id("resetCacheBtn"), hint = $id("resetHint"), cv = $id("cv");
   function markChanged() { if (btn) btn.disabled = false; if (hint) hint.textContent = "Prompts changed since last save."; }
@@ -54,5 +57,5 @@ export function injectSingleColumnLayout() {
 }
 export function renameGeneralToCV() {
   const n = document.querySelector('#generalTitle, #general h2, .general h2, h2');
-  if (n && /General/i.test(n.textContent || "")) n.textContent = "Your CV and Prompts";
+  if (n && /General/i.test(n.textContent || "")) n.setAttribute('data-i18n', 'your_cv_and_prompts');
 }

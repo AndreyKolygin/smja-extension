@@ -218,9 +218,9 @@ select {
 .table-wrapper {
   overflow-x: auto;
 }
-.nowrap {
+/* .nowrap {
   white-space: nowrap;
-}
+} */
 #apiKeyHelp {
   color: var(--muted);
   font-size: 12px;

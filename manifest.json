@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Job description Analyzer",
-  "version": "0.3.2",
+  "version": "0.4.0",
   "description": "Instant prescoring of job descriptions against your CV via local or cloud LLMs.",
   "icons": { "16": "icons/16.png", "48": "icons/48.png", "128": "icons/128.png" },
   "action": { "default_popup": "ui/popup.html", "default_title": "Job description Analyzer" },
@@ -30,5 +30,11 @@
   "background": { "service_worker": "sw.js", "type": "module" },
   "content_security_policy": {
     "extension_pages": "script-src 'self'; object-src 'self'; style-src 'self'"
-  }
+  },
+  "web_accessible_resources": [{
+    "resources": [
+      "ui/locales/*.json"
+    ],
+    "matches": ["<all_urls>"]
+  }]
 }

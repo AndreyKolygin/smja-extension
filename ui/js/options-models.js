@@ -1,6 +1,9 @@
 // ui/js/options-models.js
 import { $id, persistSettings, safeShowModal } from './options-util.js';
 
+// добавь импорт вверху файла
+import { applyTranslations, t } from './i18n.js';
+
 export function renderModels(settings){
   const tbody = document.querySelector("#modelsTable tbody");
   if (!tbody) return;
@@ -15,29 +18,50 @@ export function renderModels(settings){
       <td>${provider?.name || "?"}</td>
       <td contenteditable="true">${m.modelId ?? ""}</td>
       <td>
-        <button class="btn edit" title="Edit model and settings">Edit</button>
-        <button class="btn edit-prompr" title="Edit system prompt for this model">Edit system prompt</button>
-        <button class="btn delete" title="Delete model">Delete</button>
+        <button class="btn edit"
+                data-i18n="options.btn.edit"
+                data-i18n-attr-title="options.btn.editTitle"
+                title="Edit model and settings">Edit</button>
+
+        <button class="btn edit-prompt"
+                data-role="edit-sys-prompt"
+                data-i18n="options.btn.editSysPrompt"
+                data-i18n-attr-title="options.btn.editSysPromptTitle"
+                title="Edit system prompt for this model">Edit system prompt</button>
+
+        <button class="btn delete"
+                data-i18n="options.btn.delete"
+                data-i18n-attr-title="options.btn.deleteTitle"
+                title="Delete model">Delete</button>
       </td>`;
+
     // events
-    tr.querySelector("input")?.addEventListener("change", async (e) => { m.active = e.target.checked; await persistSettings(settings); });
+    tr.querySelector("input")?.addEventListener("change", async (e) => {
+      m.active = e.target.checked;
+      await persistSettings(settings);
+    });
     tr.children[1]?.addEventListener("input", (e) => m.displayName = e.target.textContent);
     tr.children[1]?.addEventListener("blur", () => persistSettings(settings));
     tr.children[3]?.addEventListener("input", (e) => m.modelId = e.target.textContent);
     tr.children[3]?.addEventListener("blur", () => persistSettings(settings));
 
     tr.querySelector("button.edit")?.addEventListener("click", () => editModel(settings, m));
-    tr.querySelectorAll("button")[1]?.addEventListener("click", () => editModelSystemPrompt(settings, m));
+    tr.querySelector('button[data-role="edit-sys-prompt"]')?.addEventListener("click", () => editModelSystemPrompt(settings, m));
     tr.querySelector("button.delete")?.addEventListener("click", async (e) => {
       e.preventDefault(); e.stopPropagation?.();
       const label = (m.displayName || m.modelId || "this model");
-      if (!confirm(`Delete model “${label}”?`)) return;
+      const promptText = t('options.confirm.deleteModel', `Delete model “${label}”?`)
+        .replace('{label}', label);
+      if (!confirm(promptText)) return;
       settings.models = settings.models.filter(x => x !== m);
       renderModels(settings);
       await persistSettings(settings);
     });
 
     tbody.appendChild(tr);
+
+    // ⟵ ВАЖНО: применяем переводы к только что добавленной строке
+    applyTranslations(tr);
   }
 }
 

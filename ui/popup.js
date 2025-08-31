@@ -3,6 +3,7 @@ import { state, fetchSettings } from "./js/state.js";
 import { populateModels, wireModelSelector } from "./js/models.js";
 import { startSelection, clearSelection, wireCopy, wireSave, wireAnalyzeButtons, wireJobInputSync, ensureContentScript, detectAndToggleFastStart } from "./js/actions.js";
 import { wireRuntimeMessages, warmLoadCaches } from "./js/messaging.js";
+import { loadLocale, applyTranslations, getSavedLang } from "./js/i18n.js";
 
 function wireUI() {
   const menu = document.getElementById("menu");
@@ -51,8 +52,23 @@ function wireUI() {
   wireRuntimeMessages();
 }
 
+// lightweight i18n bootstrap for the popup
+async function initI18nPopup() {
+  try {
+    const lang = await getSavedLang?.() || "en";
+    // load resources and apply translations to current DOM
+    const dict = await loadLocale(lang);
+    await applyTranslations(dict);
+    // No language selector in popup by design; controlled from Options.
+    console.debug("[POPUP] i18n applied:", lang);
+  } catch (e) {
+    console.debug("[POPUP] i18n init skipped/failed:", e && (e.message || e));
+  }
+}
+
 async function init() {
   console.debug("[POPUP] init()");
+  await initI18nPopup();
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
   console.debug("[POPUP] active tab =", tab?.url);
 
@@ -61,11 +77,11 @@ async function init() {
       <div class="container">
         <div class="header">
           <div class="select hidden" aria-hidden="true"></div>
-          <button id="menu" class="menu" title="Settings">☰</button>
+          <button id="menu" data-i18n="ui.menu.options" class="menu" title="Settings" data-i18n-title="ui.menu.optionsMenu" >☰</button>
         </div>
         <div class="row">
-          <p class="muted">Content cannot be analyzed.</p>
-          <p class="muted">Only http and https URLs are supported.</p>
+          <p class="muted" data-i18n="ui.popup.warning">Content cannot be analyzed.</p>
+          <p class="muted" data-i18n="ui.popup.warning2">Only http and https URLs are supported.</p>
         </div>
       </div>
     `;

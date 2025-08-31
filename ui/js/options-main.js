@@ -11,6 +11,31 @@ import { renderModels, wireModelModals } from './options-models.js';
 import { renderSites, wireSitesModals } from './options-sites.js';
 import { initPrompts, setupAutosave, renameGeneralToCV, injectSingleColumnLayout } from './options-prompts.js';
 
+import { loadLocale, applyTranslations, getSavedLang, setSavedLang } from './i18n.js';
+
+async function initI18n() {
+  let lang = await getSavedLang();
+  try {
+    await loadLocale(lang);
+  } catch (e) {
+    console.warn('[i18n] primary locale failed, fallback to en:', e);
+    lang = 'en';
+    try { await loadLocale('en'); } catch {}
+  }
+  applyTranslations(document);
+
+  const sel = document.getElementById('uiLang');
+  if (sel) {
+    sel.value = lang;
+    sel.addEventListener('change', async () => {
+      const newLang = sel.value || 'en';
+      await setSavedLang(newLang);
+      try { await loadLocale(newLang); } catch { /* уже будет en */ }
+      applyTranslations(document);
+    });
+  }
+}
+
 export let settings = null;
 
 export async function loadSettings() {
@@ -22,7 +47,7 @@ export async function loadSettings() {
   }
   // Версия/ссылки
   const verEl = document.getElementById("version");
-  if (verEl) verEl.textContent = "0.1.0";
+  if (verEl) verEl.textContent = "0.4.0";
   const helpLink = document.getElementById("helpLink");
   if (helpLink) helpLink.href = settings.general?.helpUrl || "https://github.com/andreykolygin/smja-extension";
 
@@ -33,6 +58,7 @@ export async function loadSettings() {
   renderProviders(settings);
   renderModels(settings);
   renderSites(settings);
+  applyTranslations(document);
 
   // Провода
   wireProviderModals(settings);
@@ -60,8 +86,13 @@ export async function loadSettings() {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-  loadSettings().catch(e => {
-    console.error('[JDA options] init failed:', e);
-    alert('Settings UI failed to initialize. See DevTools console for details.');
-  });
+  (async () => {
+    try {
+      await initI18n();     // 1) init language & apply translations
+      await loadSettings(); // 2) then build the rest of the page
+    } catch (e) {
+      console.error('[JDA options] init failed:', e);
+      alert('Settings UI failed to initialize. See DevTools console for details.');
+    }
+  })();
 });

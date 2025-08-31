@@ -8,42 +8,65 @@
 </head>
 <body>
   <div class="options container ">
-    <h1>Job description Analyzer — Settings</h1>
+    <h1 data-i18n="ui.app.title">Job description Analyzer — Settings</h1>
+        <div class="card">
+        <h2 data-i18n="options.title.lang"></h2>
+        <div class="form-row">
+          <label for="uiLang" data-i18n="options.lang.label">Interface language</label>
+            <select id="uiLang">
+            <option value="en">English</option>
+            <option value="ru">Русский</option>
+            <!-- добавляй другие языки -->
+          </select>
+          <p class="muted" data-i18n="options.lang.hint">Choose UI language (applies to popup & options)</p>
+        </div>
+    </div>
     <div class="grid mt-16">
       <div class="card card_llm">
-        <h2>LLM settings</h2>
-        <h3>Provider settings</h3>
-        <p><button class="btn add-model" title="Add LLM provider" id="addProviderBtn">+ Add provider</button></p>
+        <h2 data-i18n="options.title.llmSettings">LLM settings</h2>
+        <h3 data-i18n="options.title.providerSettings">Provider settings</h3>
+        <p><button class="btn add-model" title="Add LLM provider" id="addProviderBtn" data-i18n="options.btn.addProvider">+ Add provider</button></p>
         <div class="table-wrapper">
           <table class="table" id="providersTable">
-          <thead><tr><th>Name</th><th>Base URL</th><!--<th>Type</th>--><th>Key</th><th></th></tr></thead>
+          <thead><tr>
+            <th data-i18n="options.tbl.name">Name</th>
+            <th data-i18n="options.tbl.baseUrl">Base URL</th>
+            <!--<th>Type</th>-->
+            <th data-i18n="options.tbl.key">Key</th>
+            <th></th>
+          </tr></thead>
           <tbody></tbody>
         </table>
         </div>
-        <h3>Models</h3>
-        <p><button class="btn add-model" title="Add model for provider" id="addModelBtn">+ Add model</button></p>
+        <h3 data-i18n="options.title.models">Models</h3>
+        <p><button class="btn add-model" title="Add model for provider" id="addModelBtn" data-i18n="options.btn.addModel">+ Add model</button></p>
         <div class="table-wrapper">
         <table class="table" id="modelsTable">
-          <thead><tr><th>Active</th><th>Display name</th><th>Provider</th><th>Model ID</th><th></th></tr></thead>
+          <thead><tr>
+            <th data-i18n="options.tbl.active">Active</th>
+            <th data-i18n="options.tbl.displayName">Display name</th>
+            <th data-i18n="options.tbl.provider">Provider</th>
+            <th data-i18n="options.tbl.modelId">Model ID</th>
+            <th></th></tr></thead>
           <tbody></tbody>
         </table>
         </div>
-        <label>Model-level system prompt (edit per model)</label>
-        <div class="muted">Open any model row to edit its system prompt.</div>
+        <label data-i18n="options.hint.model1">Model-level system prompt (edit per model)</label>
+        <div class="muted" data-i18n="options.hint.model2">Open any model row to edit its system prompt.</div>
       </div>
       
       <div class="card card_sites">
-        <h2>Auto-extract rules</h2>
-        <p class="muted">Добавьте сайты и CSS-селекторы, чтобы автоматически вытягивать описание вакансии.</p>
-        <p><button class="btn" id="addSiteBtn">+ Add site rule</button></p>
+        <h2 data-i18n="options.title.autoExtract">Auto-extract rules</h2>
+        <p class="muted" data-i18n="options.title.">Добавьте сайты и CSS-селекторы, чтобы автоматически вытягивать описание вакансии.</p>
+        <p><button class="btn add-model" id="addSiteBtn" data-i18n="options.btn.addSiteRule">+ Add site rule</button></p>
         <div class="table-wrapper">
           <table class="table" id="sitesTable">
             <thead>
               <tr>
-                <th>Active</th>
-                <th>Site</th>
-                <th class="word-break">Selector</th>
-                <th>Comment</th>
+                <th data-i18n="options.tbl.active">Active</th>
+                <th data-i18n="options.tbl.site">Site</th>
+                <th data-i18n="options.tbl.selector" class="word-break">Selector</th>
+                <th data-i18n="options.tbl.comment">Comment</th>
                 <th></th>
               </tr>
             </thead>
@@ -53,37 +76,38 @@
       </div>
 
       <div class="card card_general">
-        <h2>General</h2>
-        <h3>CV</h3>
-        <textarea class="textInput" id="cv"></textarea>
+        <h2 data-i18n="options.title.general">General</h2>
+        <h3 data-i18n="options.title.cv">CV</h3>
+        <textarea class="textInput" id="cv" data-i18n-attr-placeholder="options.cv" placeholder="Your CV"></textarea>
 
-        <h3>System prompt template</h3>
+        <h3 data-i18n="options.title.systemPromptTempl">System prompt template</h3>
         <textarea class="textInput" id="systemTemplate"></textarea>
-        <div class="muted">
+        <div class="muted" data-i18n="options.title.">
           Default included. See templates: <a href="https://github.com/andreykolygin" target="_blank">GitHub</a>.
         </div>
 
-        <h3>Result output template</h3>
+        <h3 data-i18n="options.title.resultOutpTempl">Result output template</h3>
         <textarea class="textInput" id="outputTemplate"></textarea>
         
         <!-- Кнопки сохранения и сбороса кэша -->
         <div class="saveBtn">
           <p>
-            <button class="btn danger" id="resetCacheBtn" disabled>Reset prompt cache</button>
+            <button class="btn danger" id="resetCacheBtn" data-i18n="options.btn.resetPromptCache" disabled>Reset prompt cache</button>
             <span class="muted ml-8" id="resetHint"></span>
           </p>
-          <p><button class="btn primary" id="saveBtn">Save settings</button></p>
+          <p><button class="btn primary" id="saveBtn" data-i18n="options.btn.saveSettings">Save settings</button></p>
         </div>
         
         
         <!-- кнопки экспорта и импорта -->
         <div id="settingsIO" class="io-row">
-          <button id="exportSettingsBtn" class="btn">Export settings (JSON)</button>
-          <button id="importSettingsBtn" class="btn">Import settings</button>
+          <button id="exportSettingsBtn" class="btn" data-i18n="options.btn.exportSettings">Export settings (JSON)</button>
+          <button id="importSettingsBtn" class="btn" data-i18n="options.btn.importSettings">Import settings</button>
           <input id="importSettingsFile" type="file" accept="application/json" class="hidden" />
-      </div>
-      </div>
+        </div>
+      </div>    
     </div>
+  </div>
   </div>
 
 
@@ -116,8 +140,8 @@
       <div class="muted"><a id="apiKeyLink" href="#" target="_blank" rel="noopener noreferrer">Get your API key here</a><br><small id="apiKeyHelp" class="muted"></small></div>
 
       <menu>
-        <button class="btn" value="cancel">Cancel</button>
-        <button class="btn primary" id="saveProviderBtn" value="default">Save</button>
+        <button class="btn" value="cancel" data-i18n="options.btn.cancel">Cancel</button>
+        <button class="btn primary" id="saveProviderBtn" value="default" data-i18n="options.btn.save">Save</button>
       </menu>
     </form>
     </div>
@@ -139,8 +163,8 @@
           <input type="text" id="modelId" />
         </div>
       <menu>
-        <button class="btn" value="cancel">Cancel</button>
-        <button class="btn primary" id="saveModelBtn" value="default">Save</button>
+        <button class="btn" value="cancel" data-i18n="options.btn.cancel">Cancel</button>
+        <button class="btn primary" id="saveModelBtn" value="default" data-i18n="options.btn.save">Save</button>
       </menu>
     </form>
   </dialog>
@@ -166,8 +190,8 @@
       </div>
 
       <menu>
-        <button class="btn" value="cancel" id="cancelSiteBtn">Cancel</button>
-        <button class="btn primary" id="saveSiteBtn" value="default">Save</button>
+        <button class="btn" value="cancel" id="cancelSiteBtn" data-i18n="options.btn.cancel">Cancel</button>
+        <button class="btn primary" id="saveSiteBtn" value="default" data-i18n="options.btn.save">Save</button>
       </menu>
     </form>
   </dialog>
@@ -178,8 +202,8 @@
     <p class="hint">This prompt overrides the global System prompt template for this specific model. Leave empty to inherit the global template.</p>
     <textarea id="modelPromptText" rows="12" class="stretch mono"></textarea>
     <div class="modal-actions">
-      <button id="cancelModelPromptBtn" type="reset" class="btn">Cancel</button>
-      <button id="saveModelPromptBtn" type="button" class="btn primary">Save</button>
+      <button id="cancelModelPromptBtn" type="reset" class="btn" data-i18n="options.btn.cancel">Cancel</button>
+      <button id="saveModelPromptBtn" type="button" class="btn primary" data-i18n="options.btn.save">Save</button>
     </div>
   </form>
 </dialog>
