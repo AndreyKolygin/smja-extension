@@ -114,8 +114,23 @@ function editModel(settings, m){
   }
 
   safeShowModal(dlg);
+  applyTranslations(dlg);
+
   const saveBtn = document.getElementById('saveModelBtn');
   const restore = saveBtn.onclick;
+
+  const cancelBtn = document.getElementById('cancelModelBtn');
+  if (cancelBtn) {
+    const onCancel = (ev) => {
+      try { ev.preventDefault(); ev.stopPropagation?.(); } catch {}
+      // Force-close even if required fields exist
+      try { dlg.close?.(); } catch {}
+      // restore save handler if we modified it later
+      saveBtn.onclick = restore || null;
+    };
+    cancelBtn.onclick = onCancel;
+    dlg.addEventListener('cancel', onCancel, { once: true }); // Esc key
+  }
 
   saveBtn.onclick = () => {
     if (m) {
@@ -153,6 +168,7 @@ function editModelSystemPrompt(settings, m){
   }
   textarea.value = m.systemPrompt || '';
   safeShowModal(dlg);
+  applyTranslations(dlg);
 
   const oldSave = saveBtn.onclick, oldCancel = cancelBtn.onclick;
   saveBtn.onclick = () => { m.systemPrompt = textarea.value; persistSettings(settings); dlg.close?.(); saveBtn.onclick = oldSave||null; cancelBtn.onclick = oldCancel||null; };

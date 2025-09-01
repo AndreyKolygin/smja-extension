@@ -1,5 +1,6 @@
 // ui/js/options-providers.js
 import { $id, persistSettings, ensureHostPermission, safeShowModal, maskKey } from './options-util.js';
+import { applyTranslations } from './i18n.js';
 
 const PRESETS = {
   custom:      { type: "custom",     baseUrl: "",                                           url: "#" },
@@ -14,6 +15,20 @@ const PRESETS = {
   openrouter:  { type: "openrouter", baseUrl: "https://openrouter.ai/api/v1",               url: "https://openrouter.ai/keys" },
   perplexity:  { type: "perplexity", baseUrl: "https://api.perplexity.ai",                  url: "https://docs.perplexity.ai/getting-started/quickstart" },
   xai:         { type: "xai",        baseUrl: "https://api.x.ai/v1",                         url: "https://docs.x.ai/docs/get-started" }
+};
+const PROVIDER_HELP_KEY = {
+  custom:      'options.modal.provider.help.custom',
+  anthropic:   'options.modal.provider.help.anthropic',
+  azure:       'options.modal.provider.help.azure',
+  deepseek:    'options.modal.provider.help.deepseek',
+  gemini:      'options.modal.provider.help.gemini',
+  huggingface: 'options.modal.provider.help.huggingface',
+  meta:        'options.modal.provider.help.meta',
+  ollama:      'options.modal.provider.help.ollama',
+  openai:      'options.modal.provider.help.openai',
+  openrouter:  'options.modal.provider.help.openrouter',
+  perplexity:  'options.modal.provider.help.perplexity',
+  xai:         'options.modal.provider.help.xai'
 };
 const PROVIDER_HELP = {
   custom:      "Enter provider-specific info manually.",
@@ -38,7 +53,7 @@ export function renderProviders(settings){
   for (const p of settings.providers) {
     const tr = document.createElement("tr");
     tr.innerHTML = `
-      <td>${p.name}</td>
+      <td class="prov-name" contenteditable="true" title="Click to edit name">${p.name ?? ""}</td>
       <td>${p.baseUrl}</td>
       <td>${p.type || "custom"}</td>
       <td>${maskKey(p.apiKey)}</td>
@@ -48,6 +63,11 @@ export function renderProviders(settings){
       </td>
     `;
     tbody.appendChild(tr);
+
+    // inline edit: Name
+    const nameCell = tr.querySelector(".prov-name");
+    nameCell?.addEventListener("input", (e) => { p.name = e.currentTarget.textContent.trim(); });
+    nameCell?.addEventListener("blur", async () => { await persistSettings(settings); });
   }
 
   const table = document.getElementById("providersTable");
@@ -85,15 +105,36 @@ function openProviderModal(settings, provider) {
   const base = document.getElementById("providerBaseUrl");
   const key = document.getElementById("providerApiKey");
   const link = document.getElementById("apiKeyLink");
+  const nameI = document.getElementById("providerName");
   const helpEl = document.getElementById("apiKeyHelp");
-  if (!dlg || !preset || !base || !key || !link) return;
+  const form = dlg.querySelector('form');
+
+  // Disable native form validation entirely; we'll validate manually in JS.
+  if (form) form.setAttribute('novalidate', 'novalidate');
+  // Ensure Cancel never triggers required validation popups.
+  if (nameI) nameI.removeAttribute('required');
+
+  if (!dlg || !preset || !base || !key || !link) {
+       alert("Provider dialog markup is missing");
+       return;
+     }
+
+  // removed: if (nameI) { nameI.setAttribute('required',''); }
 
   // init presets
   function applyPreset(preserveBase){
     const p = PRESETS[preset.value];
     if (!preserveBase || !base.value) base.value = p.baseUrl || "";
-    link.href = p.url || "#"; link.target = "_blank"; link.rel = "noopener noreferrer";
-    if (helpEl) helpEl.textContent = PROVIDER_HELP[preset.value] || "";
+    link.href = p.url || "#"; 
+    link.target = "_blank"; 
+    link.rel = "noopener noreferrer";
+    if (helpEl) {
+      const key = PROVIDER_HELP_KEY[preset.value] || 'options.modal.provider.help';
+      helpEl.setAttribute('data-i18n', key);
+      helpEl.textContent = ''; // clear to let applyTranslations fill it
+    }
+    // re-translate the dialog after dynamic changes
+    applyTranslations(dlg);
   }
   preset.addEventListener("change", () => applyPreset(false));
 
@@ -104,22 +145,74 @@ function openProviderModal(settings, provider) {
     preset.value = type;
     base.value = provider.baseUrl || "";
     key.value = provider.apiKey || "";
+    if (nameI) {
+      nameI.value = provider.name || preset.options[preset.selectedIndex]?.text || "";
+    }
     applyPreset(true);
+    applyTranslations(dlg);
   } else {
     // add
     preset.value = 'openai';
     base.value = PRESETS.openai.baseUrl;
     key.value = '';
+    if (nameI) nameI.value = '';
     applyPreset(false);
+    applyTranslations(dlg);
   }
 
+  applyTranslations(dlg);
   safeShowModal(dlg);
+  applyTranslations(dlg);
   const saveBtn = document.getElementById("saveProviderBtn");
+  if (saveBtn) saveBtn.setAttribute('type','button');
+  if (form) {
+    form.addEventListener('submit', (ev) => { ev.preventDefault(); }, { once: true });
+  }
   const restore = saveBtn.onclick;
 
+  const cancelBtn = document.getElementById('cancelProviderBtn');
+  if (cancelBtn) {
+    cancelBtn.setAttribute('type','button');
+    cancelBtn.setAttribute('formnovalidate','true');
+    const prevCancel = cancelBtn.onclick;
+    cancelBtn.onclick = (e) => {
+      // Make Cancel behave like pressing Escape: just close, no validation.
+      e.preventDefault();
+      e.stopPropagation();
+      try { dlg.close?.(); } catch {}
+      // restore original save handler if any
+      saveBtn.onclick = restore || null;
+      if (prevCancel) { try { prevCancel(e); } catch {} }
+      return false;
+    };
+  }
+
+  // Ensure ESC closes the dialog without triggering validation
+  const onKeyDown = (ev) => {
+    if (ev.key === 'Escape') {
+      const form = dlg.querySelector('form');
+      if (form) {
+        const prevNV = form.noValidate;
+        form.noValidate = true;
+        try { dlg.close?.(); } catch {}
+        setTimeout(() => { form.noValidate = prevNV; }, 0);
+        ev.preventDefault();
+        ev.stopPropagation();
+      }
+    }
+  };
+  dlg.addEventListener('keydown', onKeyDown, { once: true });
+
   saveBtn.onclick = async () => {
+    const nameVal = (nameI?.value || '').trim();
+    if (!nameVal) {
+      if (nameI && nameI.reportValidity) nameI.reportValidity();
+      else alert('Please fill out the Name field.');
+      nameI?.focus();
+      return;
+    }
     if (provider) {
-      provider.name = preset.options[preset.selectedIndex].text;
+      provider.name = nameVal;
       provider.type = PRESETS[preset.value].type;
       provider.baseUrl = base.value.trim();
       provider.apiKey = key.value.trim();
@@ -127,7 +220,7 @@ function openProviderModal(settings, provider) {
       const id = (preset.value + "_" + Math.random().toString(36).slice(2,8));
       settings.providers.push({
         id,
-        name: preset.options[preset.selectedIndex].text,
+        name: nameVal,
         type: PRESETS[preset.value].type,
         baseUrl: base.value.trim(),
         apiKey: key.value.trim()

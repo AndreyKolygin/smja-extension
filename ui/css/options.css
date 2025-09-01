@@ -238,3 +238,24 @@ select {
 .card_sites td.actions {
   white-space: nowrap;
 }
+
+.drop-zone {
+  border: 2px dashed #bbb;
+  border-radius: 8px;
+  padding: 16px;
+  text-align: center;
+  color: #777;
+  margin-bottom: 12px;
+}
+.drop-zone.dragover {
+  border-color: #4caf50;
+  background: #f0fff0;
+}
+.preview-box {
+  background: #f9f9f9;
+  border: 1px solid #ddd;
+  padding: 8px;
+  max-height: 200px;
+  overflow-y: auto;
+  font-size: 12px;
+}

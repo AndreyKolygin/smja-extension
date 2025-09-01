@@ -9,29 +9,17 @@
 <body>
   <div class="options container ">
     <h1 data-i18n="ui.app.title">Job description Analyzer — Settings</h1>
-        <div class="card">
-        <h2 data-i18n="options.title.lang"></h2>
-        <div class="form-row">
-          <label for="uiLang" data-i18n="options.lang.label">Interface language</label>
-            <select id="uiLang">
-            <option value="en">English</option>
-            <option value="ru">Русский</option>
-            <!-- добавляй другие языки -->
-          </select>
-          <p class="muted" data-i18n="options.lang.hint">Choose UI language (applies to popup & options)</p>
-        </div>
-    </div>
     <div class="grid mt-16">
       <div class="card card_llm">
         <h2 data-i18n="options.title.llmSettings">LLM settings</h2>
         <h3 data-i18n="options.title.providerSettings">Provider settings</h3>
-        <p><button class="btn add-model" title="Add LLM provider" id="addProviderBtn" data-i18n="options.btn.addProvider">+ Add provider</button></p>
+        <p><button class="btn add-model" id="addProviderBtn" title="Add LLM provider" data-i18n="options.btn.addProvider">+ Add Provider</button></p>
         <div class="table-wrapper">
           <table class="table" id="providersTable">
           <thead><tr>
             <th data-i18n="options.tbl.name">Name</th>
             <th data-i18n="options.tbl.baseUrl">Base URL</th>
-            <!--<th>Type</th>-->
+            <th>Type</th>
             <th data-i18n="options.tbl.key">Key</th>
             <th></th>
           </tr></thead>
@@ -39,7 +27,7 @@
         </table>
         </div>
         <h3 data-i18n="options.title.models">Models</h3>
-        <p><button class="btn add-model" title="Add model for provider" id="addModelBtn" data-i18n="options.btn.addModel">+ Add model</button></p>
+        <p><button class="btn add-model" id="addModelBtn" title="Add model for provider" data-i18n="options.btn.addModel">+ Add Model</button></p>
         <div class="table-wrapper">
         <table class="table" id="modelsTable">
           <thead><tr>
@@ -56,9 +44,9 @@
       </div>
       
       <div class="card card_sites">
-        <h2 data-i18n="options.title.autoExtract">Auto-extract rules</h2>
-        <p class="muted" data-i18n="options.title.">Добавьте сайты и CSS-селекторы, чтобы автоматически вытягивать описание вакансии.</p>
-        <p><button class="btn add-model" id="addSiteBtn" data-i18n="options.btn.addSiteRule">+ Add site rule</button></p>
+        <h2 data-i18n="options.title.autoExtract">Auto-extraction Rules</h2>
+        <p class="muted" data-i18n="options.section.description">Add websites and CSS selectors to automatically extract job descriptions.</p>
+        <p><button class="btn add-model" id="addSiteBtn" data-i18n="options.btn.addSiteRule">+ Add Site</button></p>
         <div class="table-wrapper">
           <table class="table" id="sitesTable">
             <thead>
@@ -78,13 +66,13 @@
       <div class="card card_general">
         <h2 data-i18n="options.title.general">General</h2>
         <h3 data-i18n="options.title.cv">CV</h3>
-        <textarea class="textInput" id="cv" data-i18n-attr-placeholder="options.cv" placeholder="Your CV"></textarea>
+        <textarea class="textInput" id="cv" data-i18n-attr-placeholder="options.title.cv" placeholder="Your CV"></textarea>
 
         <h3 data-i18n="options.title.systemPromptTempl">System prompt template</h3>
         <textarea class="textInput" id="systemTemplate"></textarea>
-        <div class="muted" data-i18n="options.title.">
+        <!-- <div class="muted" data-i18n="options.title.systemPromptTempl.help">
           Default included. See templates: <a href="https://github.com/andreykolygin" target="_blank">GitHub</a>.
-        </div>
+        </div> -->
 
         <h3 data-i18n="options.title.resultOutpTempl">Result output template</h3>
         <textarea class="textInput" id="outputTemplate"></textarea>
@@ -105,63 +93,106 @@
           <button id="importSettingsBtn" class="btn" data-i18n="options.btn.importSettings">Import settings</button>
           <input id="importSettingsFile" type="file" accept="application/json" class="hidden" />
         </div>
-      </div>    
+      </div> 
+      <!-- Settings group -->
+      <div class="card">
+        <h2 data-i18n="options.title.lang">Settings</h2>
+        <div class="form-row">
+          <label for="uiLang" data-i18n="options.lang.label">Interface language</label>
+            <select id="uiLang">
+            <option value="en">English</option>
+            <option value="ru">Русский</option>
+            <!-- добавляй другие языки -->
+          </select>
+          <p class="muted" data-i18n="options.lang.hint">Choose UI language (applies to popup & options)</p>
+        </div>
+      </div>   
     </div>
   </div>
   </div>
 
 
-  <!-- Add Provider Modal -->
+  <!-- Add / Edit Provider Modal -->
   <dialog id="providerModal">
-    <div class="form-row">
     <form method="dialog">
-      <h3>Add provider</h3>
-      <label>Choose a provider or create a custom one</label>
-      <select id="providerPreset">
-        <option value="custom">Custom</option>
-        <option value="anthropic">Anthropic</option>
-        <option value="azure">Azure OpenAI</option>
-        <option value="deepseek">DeepSeek</option>
-        <option value="gemini">Google Gemini</option>
-        <option value="huggingface">Hugging Face</option>
-        <option value="meta">Meta</option>
-        <option value="ollama">Ollama</option>
-        <option value="openai">OpenAI</option>
-        <option value="openrouter">OpenRouter</option>
-        <option value="perplexity">Perplexity</option>
-        <option value="xai">XAI</option>
-      </select>
+      <h3 data-i18n="options.modal.provider.title">Provider</h3>
 
-      <label>Base URL</label>
-      <input id="providerBaseUrl" type="text" placeholder="https://api.example.com"/>
+      <div class="form-row">
+        <label for="providerName" data-i18n="options.modal.provider.name">Name</label>
+        <input id="providerName" type="text"
+               placeholder="Display name (required)"
+               data-i18n-attr-placeholder="options.modal.provider.namePh"
+               required />
+      </div>
 
-      <label>API key</label>
-      <input id="providerApiKey" type="text" placeholder="sk-..."/>
-      <div class="muted"><a id="apiKeyLink" href="#" target="_blank" rel="noopener noreferrer">Get your API key here</a><br><small id="apiKeyHelp" class="muted"></small></div>
+      <div class="form-row">
+        <label for="providerPreset" data-i18n="options.modal.provider.preset">Preset</label>
+        <select id="providerPreset">
+          <option value="custom" data-i18n="options.modal.provider.help.custom">Custom</option>
+          <option value="anthropic">Anthropic</option>
+          <option value="azure">Azure OpenAI</option>
+          <option value="deepseek">DeepSeek</option>
+          <option value="gemini">Google Gemini</option>
+          <option value="huggingface">Hugging Face</option>
+          <option value="meta">Meta</option>
+          <option value="ollama">Ollama</option>
+          <option value="openai">OpenAI</option>
+          <option value="openrouter">OpenRouter</option>
+          <option value="perplexity">Perplexity</option>
+          <option value="xai">XAI</option>
+        </select>
+      </div>
+
+      <div class="form-row">
+        <label for="providerBaseUrl" data-i18n="options.modal.provider.baseUrl">Base URL</label>
+        <input id="providerBaseUrl" type="text"
+               placeholder="https://…"
+               data-i18n-attr-placeholder="options.modal.provider.baseUrlPh" />
+      </div>
+
+      <div class="form-row">
+        <label for="providerApiKey" data-i18n="options.modal.provider.apiKey">API key</label>
+        <input id="providerApiKey" type="text"
+               placeholder="Paste key (optional)"
+               data-i18n-attr-placeholder="options.modal.provider.apiKeyPh" />
+      </div>
+
+      <div class="muted">
+        <a id="apiKeyLink" href="#" target="_blank" rel="noopener noreferrer" data-i18n="options.modal.provider.getKey">Get your API key here</a>
+        <br/>
+        <small id="apiKeyHelp" class="muted" data-i18n="options.modal.provider.help">Choose preset to see how to get an API key.</small>
+      </div>
 
       <menu>
         <button class="btn" value="cancel" data-i18n="options.btn.cancel">Cancel</button>
         <button class="btn primary" id="saveProviderBtn" value="default" data-i18n="options.btn.save">Save</button>
       </menu>
     </form>
-    </div>
   </dialog>
-  <!-- Add Model Modal -->
+  <!-- Add / Edit Model Modal -->
   <dialog id="modelModal">
     <form method="dialog">
-      <h3>Add model</h3>
-      <label>Provider</label>
-      <select id="modelProvider"></select>
+      <h3 data-i18n="options.modal.model.title">Model</h3>
 
-        <div class="form-row">
-          <label for="modelDisplay">Display name</label>
-          <input type="text" id="modelDisplay" />
-        </div>
+      <div class="form-row">
+        <label for="modelProvider" data-i18n="options.modal.model.provider">Provider</label>
+        <select id="modelProvider"></select>
+      </div>
 
-        <div class="form-row">
-          <label for="modelId">Model ID</label>
-          <input type="text" id="modelId" />
-        </div>
+      <div class="form-row">
+        <label for="modelDisplay" data-i18n="options.modal.model.display">Display name</label>
+        <input type="text" id="modelDisplay"
+               placeholder="How the model is shown in the UI"
+               data-i18n-attr-placeholder="options.modal.model.displayPh" />
+      </div>
+
+      <div class="form-row">
+        <label for="modelId" data-i18n="options.modal.model.id">Model ID</label>
+        <input type="text" id="modelId"
+               placeholder="e.g. gpt-4o-mini"
+               data-i18n-attr-placeholder="options.modal.model.idPh" />
+      </div>
+
       <menu>
         <button class="btn" value="cancel" data-i18n="options.btn.cancel">Cancel</button>
         <button class="btn primary" id="saveModelBtn" value="default" data-i18n="options.btn.save">Save</button>
@@ -172,21 +203,31 @@
   <!-- Modal: add/edit site rule -->
   <dialog id="siteModal">
     <form method="dialog">
-      <h3>Site rule</h3>
+      <h3 data-i18n="options.modal.site.title">Auto-extract rule</h3>
+
       <div class="form-row">
-        <label for="siteHost">Site (hostname, wildcard, or /regex/)</label>
-        <input type="text" id="siteHost" placeholder="linkedin.com  |  jobs.example.com  |  /(^|\\.)indeed\\.com$/">
+        <label for="siteHost" data-i18n="options.modal.site.host">*Site (hostname, wildcard, or /regex/)</label>
+        <input type="text" id="siteHost"
+               placeholder="e.g. example.com/jobs* or /https:\/\/foo\.bar\/pfx.*/i"
+               data-i18n-attr-placeholder="options.modal.site.hostPh" required>
       </div>
+
       <div class="form-row">
-        <label for="siteSelector">CSS selector</label>
-        <textarea type="text" rows="3" id="siteSelector" placeholder=".job-description, #content, article"></textarea>
+        <label for="siteSelector" data-i18n="options.modal.site.selector">*CSS selector</label>
+        <textarea rows="3" id="siteSelector"
+                  placeholder=".job-description, [data-role=&quot;jd&quot;]"
+                  data-i18n-attr-placeholder="options.modal.site.selectorPh" required></textarea>
       </div>
+
       <div class="form-row">
-        <label for="siteComment">Comment</label>
-        <input type="text" id="siteComment" placeholder="LinkedIn JD main panel">
+        <label for="siteComment" data-i18n="options.modal.site.comment">Comment</label>
+        <input type="text" id="siteComment"
+               placeholder="Optional note"
+               data-i18n-attr-placeholder="options.modal.site.commentPh">
       </div>
+
       <div class="form-row">
-        <label><input type="checkbox" id="siteActive" checked> Active</label>
+        <label><input type="checkbox" id="siteActive" checked> <span data-i18n="options.tbl.active">Active</span></label>
       </div>
 
       <menu>
@@ -198,13 +239,75 @@
 
   <dialog id="modelPromptModal" class="modal">
   <form method="dialog" class="modal-body">
-    <h3>Edit system prompt</h3>
-    <p class="hint">This prompt overrides the global System prompt template for this specific model. Leave empty to inherit the global template.</p>
+    <h3 data-i18n="options.modal.modelPrompt.title">System prompt (per model)</h3>
+    <p class="hint" data-i18n="options.modal.modelPrompt.textPh">Leave blank to inherit global system template…</p>
     <textarea id="modelPromptText" rows="12" class="stretch mono"></textarea>
     <div class="modal-actions">
       <button id="cancelModelPromptBtn" type="reset" class="btn" data-i18n="options.btn.cancel">Cancel</button>
       <button id="saveModelPromptBtn" type="button" class="btn primary" data-i18n="options.btn.save">Save</button>
     </div>
+  </form>
+</dialog>
+
+<!-- Import Settings Modal -->
+<dialog id="importModal">
+  <form method="dialog">
+    <h3 data-i18n="options.import.title">Import settings</h3>
+
+    <fieldset class="mt-8">
+      <legend data-i18n="options.import.mode">Import mode</legend>
+      <label class="row">
+        <input type="radio" name="importMode" value="merge" checked>
+        <span data-i18n="options.import.mode.merge">Merge / add (preserve existing)</span>
+      </label>
+      <label class="row">
+        <input type="radio" name="importMode" value="replace">
+        <span data-i18n="options.import.mode.replace">Replace selected groups</span>
+      </label>
+    </fieldset>
+
+    <fieldset class="mt-12">
+      <legend data-i18n="options.import.groups">Groups to import</legend>
+      <label class="row">
+        <input type="checkbox" name="grp" value="providers" checked>
+        <span data-i18n="options.section.llm">Providers and models</span>
+      </label>
+      <label class="row">
+        <input type="checkbox" name="grp" value="models" checked>
+        <span data-i18n="options.title.models">Models</span>
+      </label>
+      <label class="row">
+        <input type="checkbox" name="grp" value="sites" checked>
+        <span data-i18n="options.section.rules">Auto-extraction Rules</span>
+      </label>
+      <label class="row">
+        <input type="checkbox" name="grp" value="prompts" checked>
+        <span data-i18n="options.section.prompts">CV and Templates</span>
+      </label>
+    </fieldset>
+
+    <!-- Drop zone (clickable) -->
+    <div id="dropZone" class="drop-zone" tabindex="0" role="button" aria-label="Choose JSON file by click or drop">
+      <p data-i18n="options.modal.import.drop">Drag & drop a JSON file here or click to choose…</p>
+    </div>
+    <!-- hidden file input used by drop zone click -->
+    <input id="importFileInput" type="file" accept="application/json" hidden />
+
+    <p data-i18n="options.modal.import.paste">Paste JSON code below</p>
+    <textarea id="importText" rows="10" class="stretch mono"></textarea>
+
+    <!-- Preview
+    <h4 data-i18n="options.modal.import.preview">Preview</h4>
+    <pre id="importPreview" class="preview-box muted"></pre> -->
+
+    <p class="muted mt-12" data-i18n="options.import.note">
+      Only selected groups will be applied. Merge preserves existing items and updates by ID.
+    </p>
+
+    <menu>
+      <button class="btn" id="cancelImportBtn" data-i18n="options.btn.cancel">Cancel</button>
+      <button class="btn primary" id="doImportBtn" data-i18n="options.btn.importSettings">Import settings</button>
+    </menu>
   </form>
 </dialog>
 

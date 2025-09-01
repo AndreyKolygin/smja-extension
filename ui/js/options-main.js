@@ -47,7 +47,7 @@ export async function loadSettings() {
   }
   // Версия/ссылки
   const verEl = document.getElementById("version");
-  if (verEl) verEl.textContent = "0.4.0";
+  if (verEl) verEl.textContent = "0.4.2";
   const helpLink = document.getElementById("helpLink");
   if (helpLink) helpLink.href = settings.general?.helpUrl || "https://github.com/andreykolygin/smja-extension";
 

@@ -1,140 +1,224 @@
 // ui/js/options-io.js
-import { $id, persistSettings, normalizeSettings } from './options-util.js';
+import { normalizeSettings, persistSettings } from './options-util.js';
 import { renderProviders } from './options-providers.js';
 import { renderModels } from './options-models.js';
 import { renderSites } from './options-sites.js';
 
-export function wireImportExport(settingsRef){
-  $id('exportSettingsBtn')?.addEventListener('click', () => exportSettings(settingsRef));
-  const fileInput = $id('importSettingsFile');
-  $id('importSettingsBtn')?.addEventListener('click', () => fileInput?.click());
-  fileInput?.addEventListener('change', async (e) => {
-    const f = e.target?.files?.[0];
+// утилита: merge массива по id, с опцией сохранить существующие (по умолчанию true)
+function mergeById(existing = [], incoming = [], { preserveExisting = true, onMerge = null } = {}) {
+  const map = new Map();
+  for (const x of existing) if (x?.id) map.set(x.id, { ...x });
+  for (const y of incoming) {
+    if (!y || !y.id) continue;
+    if (map.has(y.id) && preserveExisting) {
+      const merged = { ...map.get(y.id), ...y };
+      if (onMerge) onMerge(merged, map.get(y.id), y);
+      map.set(y.id, merged);
+    } else {
+      map.set(y.id, { ...y });
+    }
+  }
+  return Array.from(map.values());
+}
+
+// специальная логика: не затирать API key пустым значением
+function preserveApiKeys(mergedProviders = [], prevProviders = []) {
+  const prevMap = new Map(prevProviders.filter(p => p?.id).map(p => [p.id, p]));
+  for (const p of mergedProviders) {
+    const prev = prevMap.get(p.id);
+    if (prev && (!p.apiKey || p.apiKey === '')) {
+      p.apiKey = prev.apiKey || '';
+    }
+  }
+  return mergedProviders;
+}
+
+async function applyImport(settings, imported, { mode = 'merge', groups = [] } = {}) {
+  const src = normalizeSettings(imported);
+  const tgt = settings;
+
+  const want = (g) => groups.length === 0 || groups.includes(g);
+
+  // Providers
+  if (want('providers')) {
+    if (mode === 'replace') {
+      tgt.providers = preserveApiKeys(src.providers || [], []);
+    } else {
+      const merged = mergeById(tgt.providers || [], src.providers || [], {
+        preserveExisting: true,
+        onMerge: (mergedItem, prevItem, newItem) => {
+          // если новый apiKey пустой — оставляем старый
+          if (!newItem.apiKey) mergedItem.apiKey = prevItem.apiKey || '';
+        }
+      });
+      tgt.providers = preserveApiKeys(merged, tgt.providers || []);
+    }
+  }
+
+  // Models
+  if (want('models')) {
+    if (mode === 'replace') {
+      tgt.models = src.models || [];
+    } else {
+      tgt.models = mergeById(tgt.models || [], src.models || [], { preserveExisting: true });
+    }
+  }
+
+  // Sites (auto-extract rules)
+  if (want('sites')) {
+    if (mode === 'replace') {
+      tgt.sites = src.sites || [];
+    } else {
+      tgt.sites = mergeById(tgt.sites || [], src.sites || [], { preserveExisting: true });
+    }
+  }
+
+  // Prompts (cv/systemTemplate/outputTemplate)
+  if (want('prompts')) {
+    if (mode === 'replace') {
+      tgt.cv = src.cv || '';
+      tgt.systemTemplate = src.systemTemplate || '';
+      tgt.outputTemplate = src.outputTemplate || '';
+    } else {
+      // merge: заполняем только непустыми значениями
+      if (src.cv) tgt.cv = src.cv;
+      if (src.systemTemplate) tgt.systemTemplate = src.systemTemplate;
+      if (src.outputTemplate) tgt.outputTemplate = src.outputTemplate;
+    }
+  }
+
+  await persistSettings(tgt);
+
+  // перерисуем таблицы/поля
+  renderProviders(tgt);
+  renderModels(tgt);
+  renderSites(tgt);
+  const cv = document.getElementById('cv');
+  const sys = document.getElementById('systemTemplate');
+  const out = document.getElementById('outputTemplate');
+  if (cv) cv.value = tgt.cv || '';
+  if (sys) sys.value = tgt.systemTemplate || '';
+  if (out) out.value = tgt.outputTemplate || '';
+}
+
+async function doExport(settings) {
+  const redacted = JSON.parse(JSON.stringify(settings || {}));
+  if (Array.isArray(redacted.providers)) {
+    for (const p of redacted.providers) { if (p) p.apiKey = ''; }
+  }
+  const data = JSON.stringify(redacted, null, 2);
+  const blob = new Blob([data], { type: 'application/json' });
+  const r = new FileReader();
+  r.onload = async () => {
+    await chrome.downloads.download({
+      url: r.result,
+      filename: `jda_settings_${Date.now()}.json`,
+      saveAs: true
+    });
+  };
+  r.readAsDataURL(blob);
+}
+
+function setupDropZone() {
+  const dropZone = document.getElementById('dropZone');
+  const textArea = document.getElementById('importText');
+  const fileInput = document.getElementById('importFileInput');
+  if (!dropZone || !textArea || !fileInput) return;
+
+  // Click / keyboard to open file picker
+  const openPicker = () => { try { fileInput.click(); } catch {} };
+  dropZone.addEventListener('click', openPicker);
+  dropZone.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openPicker(); }
+  });
+
+  // Drag & drop
+  dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('dragover'); });
+  dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
+  dropZone.addEventListener('drop', (e) => {
+    e.preventDefault();
+    dropZone.classList.remove('dragover');
+    const f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
     if (!f) return;
-    await importSettingsFromFile(f, settingsRef);
-    e.target.value = '';
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        const obj = JSON.parse(String(reader.result || ''));
+        textArea.value = JSON.stringify(obj, null, 2);
+      } catch (err) {
+        alert('Invalid JSON: ' + (err && err.message ? err.message : err));
+      }
+    };
+    reader.readAsText(f);
+  });
+
+  // Hidden input change → load into textarea
+  fileInput.addEventListener('change', async (e) => {
+    const f = e.target && e.target.files && e.target.files[0];
+    if (!f) return;
+    try {
+      const txt = await f.text();
+      const obj = JSON.parse(txt);
+      textArea.value = JSON.stringify(obj, null, 2);
+    } catch (err) {
+      alert('Invalid JSON: ' + (err && err.message ? err.message : err));
+    } finally {
+      fileInput.value = '';
+    }
   });
 }
 
-async function exportSettings(settings){
-  try {
-    const redacted = JSON.parse(JSON.stringify(settings || {}));
-    if (Array.isArray(redacted.providers)) {
-      for (const p of redacted.providers) { if (p) p.apiKey = ""; }
+document.addEventListener("DOMContentLoaded", setupDropZone);
+
+function openImportDialog(settings) {
+  const dlg = document.getElementById('importModal');
+  const fileInput = document.getElementById('importFileInput');
+  if (!dlg || !fileInput) return;
+
+  // безопасно открыть
+  try { dlg.showModal(); } catch { dlg.setAttribute('open', 'open'); }
+
+  const cancelBtn = document.getElementById('cancelImportBtn');
+  const doImportBtn = document.getElementById('doImportBtn');
+
+  const onCancel = () => {
+    dlg.close?.();
+    cleanup();
+  };
+  const onChoose = async (e) => {
+    e?.preventDefault?.();
+    const mode = (dlg.querySelector('input[name="importMode"]:checked')?.value) || 'merge';
+    const groups = Array.from(dlg.querySelectorAll('input[name="grp"]:checked')).map(x => x.value);
+    const ta = document.getElementById('importText');
+    const raw = (ta && ta.value || '').trim();
+    if (!raw) { alert('Paste JSON first or drop a file.'); return; }
+    try {
+      const obj = JSON.parse(raw);
+      await applyImport(settings, obj, { mode, groups });
+      alert('Settings imported successfully.');
+      if (ta) ta.value = '';
+      if (fileInput) fileInput.value = '';
+      dlg.close?.();
+    } catch (err) {
+      alert('Import failed: ' + (err && err.message ? err.message : err));
+    } finally {
+      cleanup();
     }
-    const data = JSON.stringify(redacted, null, 2);
-    const blob = new Blob([data], { type: 'application/json' });
-    const r = new FileReader();
-    r.onload = async () => {
-      await chrome.downloads.download({ url: r.result, filename: `jda_settings_${Date.now()}.json`, saveAs: true });
-    };
-    r.readAsDataURL(blob);
-  } catch(e){ alert('Export failed: ' + (e?.message || e)); }
+  };
+
+  function cleanup() {
+    cancelBtn?.removeEventListener('click', onCancel);
+    doImportBtn?.removeEventListener('click', onChoose);
+  }
+
+  cancelBtn?.addEventListener('click', onCancel);
+  doImportBtn?.addEventListener('click', onChoose);
 }
 
-export async function importSettingsFromFile(file, settings){
-  try {
-    const text = await file.text();
-    let obj;
-    try { obj = JSON.parse(text); } catch(e){ alert('Invalid JSON file.'); return; }
+export function wireImportExport(settings) {
+  const exportBtn = document.getElementById('exportSettingsBtn');
+  const importBtn = document.getElementById('importSettingsBtn');
 
-    const imported = normalizeSettings(obj);
-    const current  = normalizeSettings(settings);
-
-    const ALL_SECTIONS = ["providers","models","sites","cv","systemTemplate","outputTemplate","general"];
-    const scope = Array.isArray(obj.__import_scope) && obj.__import_scope.length
-      ? obj.__import_scope.filter(s => ALL_SECTIONS.includes(s))
-      : ALL_SECTIONS;
-    const mode = (obj.__import_mode === "replace_section") ? "replace_section" : "merge";
-
-    function mergeArrayBy(findFn, targetArr, incomingArr) {
-      if (!Array.isArray(incomingArr) || !incomingArr.length) return targetArr || [];
-      if (!Array.isArray(targetArr)) targetArr = [];
-      incomingArr.forEach(item => {
-        if (!item) return;
-        const idx = targetArr.findIndex(x => findFn(x, item));
-        if (idx >= 0) {
-          const merged = { ...targetArr[idx], ...item };
-          if ("apiKey" in item && (!item.apiKey || item.apiKey === "")) {
-            merged.apiKey = targetArr[idx].apiKey;
-          }
-          targetArr[idx] = merged;
-        } else {
-          targetArr.push(item);
-        }
-      });
-      return targetArr;
-    }
-
-    // scalars
-    if (scope.includes("cv") && typeof imported.cv === "string" && imported.cv.trim()) current.cv = imported.cv;
-    if (scope.includes("systemTemplate") && typeof imported.systemTemplate === "string" && imported.systemTemplate.trim()) current.systemTemplate = imported.systemTemplate;
-    if (scope.includes("outputTemplate") && typeof imported.outputTemplate === "string" && imported.outputTemplate.trim()) current.outputTemplate = imported.outputTemplate;
-    if (scope.includes("general") && imported.general && typeof imported.general === "object") {
-      current.general = { ...current.general, ...imported.general };
-    }
-
-    // providers
-    if (scope.includes("providers")) {
-      if (mode === "replace_section") {
-        const incoming = Array.isArray(imported.providers) ? imported.providers.map(p => {
-          const found = (current.providers || []).find(cp => cp && ((p.id && cp.id === p.id) || (p.type && p.baseUrl && cp.type === p.type && cp.baseUrl === p.baseUrl)));
-          if (found && (!p.apiKey || p.apiKey === "")) return { ...p, apiKey: found.apiKey || "" };
-          return p;
-        }) : [];
-        current.providers = incoming;
-      } else {
-        current.providers = mergeArrayBy(
-          (a,b) => (b.id && a.id === b.id) || (b.type && b.baseUrl && a.type === b.type && a.baseUrl === b.baseUrl),
-          current.providers,
-          imported.providers
-        );
-      }
-    }
-
-    // models
-    if (scope.includes("models")) {
-      if (mode === "replace_section") {
-        current.models = Array.isArray(imported.models) ? imported.models : [];
-      } else {
-        current.models = mergeArrayBy(
-          (a,b) =>
-            (b.id && a.id === b.id) ||
-            (b.providerId && b.modelId && a.providerId === b.providerId && a.modelId === b.modelId) ||
-            (b.modelId && b.displayName && a.modelId === b.modelId && a.displayName === b.displayName),
-          current.models,
-          imported.models
-        );
-      }
-    }
-
-    // sites
-    if (scope.includes("sites")) {
-      if (mode === "replace_section") {
-        current.sites = Array.isArray(imported.sites) ? imported.sites : [];
-      } else {
-        current.sites = mergeArrayBy(
-          (a,b) => (b.id && a.id === b.id) || (b.host && b.selector && a.host === b.host && a.selector === b.selector),
-          current.sites,
-          imported.sites
-        );
-      }
-    }
-
-    // apply
-    Object.assign(settings, current);
-
-    // refresh UI
-    $id('cv').value = settings.cv || '';
-    $id('systemTemplate').value = settings.systemTemplate || '';
-    $id('outputTemplate').value = settings.outputTemplate || '';
-    renderProviders(settings);
-    renderModels(settings);
-    renderSites(settings);
-
-    await persistSettings(settings);
-    alert('Settings merged successfully.');
-  } catch(e){
-    alert('Import failed: ' + (e?.message || e));
-  }
+  exportBtn?.addEventListener('click', () => doExport(settings));
+  importBtn?.addEventListener('click', () => openImportDialog(settings));
 }

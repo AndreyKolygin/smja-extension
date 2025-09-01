@@ -1,5 +1,6 @@
 // ui/js/options-sites.js
 import { $id, persistSettings, safeShowModal } from './options-util.js';
+import { applyTranslations } from './i18n.js';
 
 /** Normalize host/pattern input:
  * - trim
@@ -64,6 +65,8 @@ export function renderSites(settings){
       </td>`;
     tbody.appendChild(tr);
   }
+
+  try { applyTranslations(tbody); } catch { /* no i18n yet */ }
 
   if (!tbody.__wired) {
     tbody.__wired = true;
@@ -137,6 +140,8 @@ function openSiteModal(settings, rule){
   com.addEventListener('keydown', onKey);
 
   safeShowModal(dlg);
+
+  try { applyTranslations(dlg); } catch {}
 
   const prev = save.onclick;
   save.onclick = () => {
