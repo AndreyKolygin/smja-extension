@@ -4,6 +4,44 @@ import { applyTranslations } from './i18n.js';
 
 let __autosaveTimer = null;
 
+// ——— helpers for cache notice & storage ———
+function ensureNoticeHost() {
+  let host = document.getElementById('cacheNotice');
+  if (!host) {
+    host = document.createElement('div');
+    host.id = 'cacheNotice';
+    host.setAttribute('role', 'status');
+    host.setAttribute('aria-live', 'polite');
+    host.className = 'notice success muted';
+    const hint = document.getElementById('resetHint');
+    if (hint && hint.parentNode) {
+      hint.parentNode.insertBefore(host, hint.nextSibling);
+    } else {
+      document.body.appendChild(host);
+    }
+  }
+  return host;
+}
+
+function showCacheNotice(message){
+  const host = ensureNoticeHost();
+  host.textContent = message || 'Cache cleared.';
+  host.hidden = false;
+  clearTimeout(showCacheNotice.__tid);
+  showCacheNotice.__tid = setTimeout(() => { host.hidden = true; }, 4000);
+}
+
+function storageGet(keys){
+  return new Promise((resolve) => {
+    try {
+      if (!chrome?.storage?.local?.get) return resolve({});
+      chrome.storage.local.get(keys, (res) => resolve(res || {}));
+    } catch {
+      resolve({});
+    }
+  });
+}
+
 export function initPrompts(settings){
   $id("cv").value = settings.cv || "";
   $id("systemTemplate").value = settings.systemTemplate || "";
@@ -12,6 +50,11 @@ export function initPrompts(settings){
   applyTranslations(document);
 
   const sys = $id("systemTemplate"), out = $id("outputTemplate"), btn = $id("resetCacheBtn"), hint = $id("resetHint"), cv = $id("cv");
+  // ensure Clear Cache is clickable regardless of initial HTML attribute
+  if (btn) {
+    btn.disabled = false;           // override any static disabled
+    btn.removeAttribute('disabled');
+  }
   function markChanged() { if (btn) btn.disabled = false; if (hint) hint.textContent = "Prompts changed since last save."; }
   sys.addEventListener("input", markChanged); out.addEventListener("input", markChanged);
 
@@ -25,7 +68,24 @@ export function initPrompts(settings){
   out.addEventListener("paste", () => { setTimeout(() => { settings.outputTemplate = out.value; persistSettings(settings); }, 0); });
   out.addEventListener("blur", () => { settings.outputTemplate = out.value; persistSettings(settings); });
 
-  btn?.addEventListener("click", () => { btn.disabled = true; if (hint) hint.textContent = "Prompt cache reset."; });
+  btn?.addEventListener("click", async () => {
+    console.debug('[JDA options] Reset cache clicked');
+    btn.disabled = true;
+    if (hint) hint.textContent = 'Prompt cache reset.';
+
+    const KEYS = ['lastResult', 'lastError', 'lastSelection', 'lastExport'];
+    let removedList = [];
+    try {
+      const before = await storageGet(KEYS);
+      await safeRemoveLocal(KEYS);
+      removedList = KEYS.filter(k => typeof before[k] !== 'undefined');
+    } catch {}
+
+    const message = removedList.length
+      ? `Cache cleared: ${removedList.join(', ')}.`
+      : 'Cache cleared: nothing to remove.';
+    showCacheNotice(message);
+  });
 
   window.addEventListener('beforeunload', () => {
     if (__autosaveTimer) { clearTimeout(__autosaveTimer); __autosaveTimer = null; }
@@ -58,4 +118,13 @@ export function injectSingleColumnLayout() {
 export function renameGeneralToCV() {
   const n = document.querySelector('#generalTitle, #general h2, .general h2, h2');
   if (n && /General/i.test(n.textContent || "")) n.setAttribute('data-i18n', 'your_cv_and_prompts');
+}
+
+async function safeRemoveLocal(keys){
+  return new Promise((resolve) => {
+    try {
+      if (!chrome?.storage?.local?.remove) return resolve();
+      chrome.storage.local.remove(keys, () => resolve());
+    } catch { resolve(); }
+  });
 }

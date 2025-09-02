@@ -81,7 +81,14 @@ export async function loadSettings() {
     const btn = $id("resetCacheBtn");
     const hint = $id("resetHint");
     if (btn) btn.disabled = true;
-    if (hint) hint.textContent = "";
+    if (hint) {
+      hint.textContent = "Cache cleared: prompts and temporary results were removed.";
+      hint.style.color = "green";
+      setTimeout(() => {
+        hint.textContent = "";
+        hint.style.color = "";
+      }, 4000);
+    }
   });
 }
 

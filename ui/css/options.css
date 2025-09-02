@@ -259,3 +259,7 @@ select {
   overflow-y: auto;
   font-size: 12px;
 }
+
+#cacheNotice {
+  margin-top: 8px;
+}
