@@ -58,8 +58,8 @@ export function renderProviders(settings){
       <td>${p.type || "custom"}</td>
       <td>${maskKey(p.apiKey)}</td>
       <td class="nowrap">
-        <button class="btn edit icon-left i-pen" data-action="edit-provider" data-id="${p.id}" data-i18n-title="options.title.editllmProvider" title="Edit LLM provider settings" data-i18n="options.btn.edit">Edit</button>
-        <button class="btn danger icon-left i-paperbin" data-action="delete-provider" data-id="${p.id}" data-i18n="options.btn.delete">Delete</button>
+        <button class="btn edit icon-left i-pen" data-action="edit-provider" data-id="${p.id}" data-i18n-title="options.title.editllmProvider" title="Edit LLM provider settings" data-i18n="options.btn.edit"></button>
+        <button class="btn delete icon-left i-paperbin" data-action="delete-provider" data-id="${p.id}" data-i18n="options.btn.delete"></button>
       </td>
     `;
     tbody.appendChild(tr);

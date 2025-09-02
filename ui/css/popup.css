@@ -6,9 +6,26 @@
   justify-content: flex-start;
   align-items: center;
   width: 400px;
+  /* Glassmorphism */
+  background: linear-gradient(
+    to bottom right,
+    rgba(255, 255, 255, 0.12),
+    rgba(255, 255, 255, 0.04)
+  );
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 12px;
+  backdrop-filter: blur(10px) saturate(140%);
+  -webkit-backdrop-filter: blur(10px) saturate(140%);
+  overflow: hidden; /* clip inner corners to radius */
+}
+
+/* Make popup window background transparent so glass shows through */
+html,
+body {
+  background: transparent !important;
 }
 .container {
-  background: var(--bg);
+  /* background: var(--bg); */
   width: 380px;
   display: flex;
   flex-direction: row;
@@ -31,10 +48,10 @@
   border: 1px solid var(--border);
   color: var(--text);
   border-radius: 8px;
-  padding: 8px 10px;
+  padding: 10px 10px;
   position: absolute;
   margin: 4px;
-  top: 8px;
+  top: 0px;
   right: 8px;
 }
 .row.highligter {

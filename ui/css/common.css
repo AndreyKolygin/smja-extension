@@ -193,7 +193,8 @@ textarea {
   display: block;
 }
 .row {
-  margin: 10px 0;
+  margin: 5px 0;
+  display: flex;
 }
 
 .card {
@@ -202,6 +203,18 @@ textarea {
   border-radius: 12px;
   padding: 16px;
   box-shadow: var(--shadow);
+}
+
+/* Glassmorphism variant for cards */
+.card.glass {
+  background: linear-gradient(
+    to bottom right,
+    rgba(255, 255, 255, 0.12),
+    rgba(255, 255, 255, 0.04)
+  );
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  backdrop-filter: blur(10px) saturate(140%);
+  -webkit-backdrop-filter: blur(10px) saturate(140%);
 }
 
 .table {
@@ -224,6 +237,12 @@ textarea {
 
 .hidden {
   display: none;
+}
+
+/* Fieldset styling */
+fieldset {
+  border-radius: 8px;
+  border: 1px solid #b6b8bb;
 }
 
 /* --- Icon utilities (SVG from ../../icons) --- */
@@ -250,37 +269,98 @@ textarea {
   -webkit-mask: var(--icon) center / contain no-repeat;
 }
 
-.icon-14 { --icon-size: 14px; }
-.icon-16 { --icon-size: 16px; }
-.icon-18 { --icon-size: 18px; }
-.icon-20 { --icon-size: 20px; }
-.icon-24 { --icon-size: 24px; }
+.icon-center {
+  justify-content: center;
+}
+
+.icon-14 {
+  --icon-size: 14px;
+}
+.icon-16 {
+  --icon-size: 16px;
+}
+.icon-18 {
+  --icon-size: 18px;
+}
+.icon-20 {
+  --icon-size: 20px;
+}
+.icon-24 {
+  --icon-size: 24px;
+}
 
 /* Icon mappings */
-.i-copy      { --icon: url('../../icons/copy-svgrepo-com.svg'); }
-.i-save      { --icon: url('../../icons/file-download-svgrepo-com.svg'); }
-.i-download  { --icon: url('../../icons/download-svgrepo-com.svg'); }
-.i-link      { --icon: url('../../icons/link-minimalistic-svgrepo-com.svg'); }
-.i-file      { --icon: url('../../icons/file-svgrepo-com.svg'); }
-.i-magic     { --icon: url('../../icons/magic-stick-3-svgrepo-com.svg'); }
-.i-check     { --icon: url('../../icons/check-square-svgrepo-com.svg'); }
-.i-add       { --icon: url('../../icons/add-square-svgrepo-com.svg'); }
-.i-chat      { --icon: url('../../icons/chat-dots-svgrepo-com.svg'); }
-.i-eraser    { --icon: url('../../icons/eraser-svgrepo-com.svg'); }
-.i-cursor    { --icon: url('../../icons/cursor-square-svgrepo-com.svg'); }
-.i-select    { --icon: url('../../icons/cursor-square-svgrepo-com.svg'); }
-.i-menu      { --icon: url('../../icons/menu-dots-svgrepo-com.svg'); }
-.i-settings  { --icon: url('../../icons/settings-minimalistic-svgrepo-com.svg'); }
-.i-archive   { --icon: url('../../icons/archive-down-minimlistic-svgrepo-com.svg'); }
-.i-undo      { --icon: url('../../icons/undo-left-square-svgrepo-com.svg'); }
-.i-trash     { --icon: url('../../icons/trash-bin-trash-svgrepo-com.svg'); }
-.i-broom     { --icon: url('../../icons/broom-svgrepo-com.svg'); }
-.i-paperclip { --icon: url('../../icons/paperclip-2-svgrepo-com.svg'); }
+.i-copy {
+  --icon: url("../../icons/copy-svgrepo-com.svg");
+}
+.i-save {
+  --icon: url("../../icons/check-square-svgrepo-com.svg");
+}
+.i-download {
+  --icon: url("../../icons/download-svgrepo-com.svg");
+}
+.i-link {
+  --icon: url("../../icons/link-minimalistic-svgrepo-com.svg");
+}
+.i-file {
+  --icon: url("../../icons/file-svgrepo-com.svg");
+}
+.i-magic {
+  --icon: url("../../icons/magic-stick-3-svgrepo-com.svg");
+}
+.i-check {
+  --icon: url("../../icons/check-square-svgrepo-com.svg");
+}
+.i-add {
+  --icon: url("../../icons/add-square-svgrepo-com.svg");
+}
+.i-chat {
+  --icon: url("../../icons/chat-dots-svgrepo-com.svg");
+}
+.i-eraser {
+  --icon: url("../../icons/eraser-svgrepo-com.svg");
+}
+.i-cursor {
+  --icon: url("../../icons/cursor-square-svgrepo-com.svg");
+}
+.i-select {
+  --icon: url("../../icons/cursor-square-svgrepo-com.svg");
+}
+.i-menu {
+  --icon: url("../../icons/settings-svgrepo-com.svg");
+}
+.i-settings {
+  --icon: url("../../icons/settings-minimalistic-svgrepo-com.svg");
+}
+.i-archive {
+  --icon: url("../../icons/archive-down-minimlistic-svgrepo-com.svg");
+}
+.i-undo {
+  --icon: url("../../icons/undo-left-square-svgrepo-com.svg");
+}
+.i-refresh {
+  --icon: url("../../icons/revote-svgrepo-com.svg");
+}
+.i-trash {
+  --icon: url("../../icons/trash-bin-trash-svgrepo-com.svg");
+}
+.i-broom {
+  --icon: url("../../icons/broom-svgrepo-com.svg");
+}
+.i-paperclip {
+  --icon: url("../../icons/paperclip-2-svgrepo-com.svg");
+}
 
 /* Extra icons for Options actions */
-.i-paperbin  { --icon: url('../../icons/paper-bin-svgrepo-com.svg'); }
-.i-doc-add   { --icon: url('../../icons/document-add-svgrepo-com.svg'); }
-.i-pen       { --icon: url('../../icons/pen-new-square-svgrepo-com.svg'); }
+.i-paperbin {
+  --icon: url("../../icons/paper-bin-svgrepo-com.svg");
+}
+.i-doc-add {
+  --icon: url("../../icons/document-add-svgrepo-com.svg");
+}
+.i-pen {
+  --icon: url("../../icons/pen-new-square-svgrepo-com.svg");
+}
 
 /* Optional: icon-only buttons */
 .btn.icon-only {

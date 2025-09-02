@@ -240,12 +240,12 @@ select {
 }
 
 .drop-zone {
-  border: 2px dashed #bbb;
+  border: 1px dashed #3c9089;
   border-radius: 8px;
   padding: 16px;
   text-align: center;
-  color: #777;
-  margin-bottom: 12px;
+  color: #0f766e;
+  margin: 10px 3px;
 }
 .drop-zone.dragover {
   border-color: #4caf50;

@@ -33,23 +33,35 @@ function mdToHtml(md) {
   s = s.replace(/^##\s+(.*)$/gm, '<h2>$1</h2>');
   s = s.replace(/^#\s+(.*)$/gm, '<h1>$1</h1>');
 
-  // Списки (простые)
-  // Сначала группируем ul-блоки
-  s = s.replace(/(^|\n)(?:-\s+.*(?:\n|$))+?/g, (block) => {
-    const items = block.trim().split('\n').map(line => line.replace(/^-+\s+/, '').trim());
-    const lis = items.map(it => `<li>${it}</li>`).join('');
+  // Списки (ul): корректно группируем подряд идущие пункты.
+  // Поддерживаем маркеры: -, *, •, –, — и опциональную кавычку перед маркером.
+  s = s.replace(/(?:^|\n)((?:\s*(?:["“”])?[-*•–—]\s+.*(?:\n|$))+)/g, (m, block) => {
+    const lis = block
+      .trim()
+      .split('\n')
+      .map(line => {
+        const mm = line.match(/^\s*(["“”]?)[-*•–—]\s+(.*)$/);
+        if (!mm) return '';
+        const [, quote, text] = mm;
+        return `<li>${quote}${text.trim()}</li>`;
+      })
+      .filter(Boolean)
+      .join('');
     return `\n<ul>${lis}</ul>\n`;
   });
 
-  // Нумерованные списки (ol)
-  // Группируем ol-блоки
-  s = s.replace(/(^|\n)((?:\d+\.\s+.*(?:\n|$))+)/g, (m, p1, block) => {
-    const items = block.trim().split('\n').filter(Boolean);
-    if (items.length === 0) return m;
-    // Проверяем, что каждая строка начинается с "1. "
-    if (!items.every(line => /^\d+\.\s+/.test(line))) return m;
-    const lis = items.map(line => `<li>${line.replace(/^\d+\.\s+/, '').trim()}</li>`).join('');
-    return `\n<ol>${lis}</ol>\n`;
+  // Нумерованные списки (ol): жадно группируем блоки 1. 2. 3. ...
+  s = s.replace(/(?:^|\n)((?:\d+\.\s+.*(?:\n|$))+)/g, (m, block) => {
+    const lis = String(block || '')
+      .trim()
+      .split('\n')
+      .map(line => {
+        const mm = line.match(/^\s*\d+\.\s+(.*)$/);
+        return mm ? `<li>${mm[1].trim()}</li>` : '';
+      })
+      .filter(Boolean)
+      .join('');
+    return lis ? `\n<ol>${lis}</ol>\n` : m;
   });
 
   // Inline стили: **bold**, *italic*, `code`, __underline__
@@ -124,4 +136,3 @@ export function setJobInput(text) {
   const el = document.getElementById("jobInput");
   if (el) el.value = text ?? "";
 }
-
