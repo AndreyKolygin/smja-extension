@@ -60,8 +60,8 @@ export function renderSites(settings){
       <td class="word-break monospace">${rule.selector || ""}</td>
       <td class="word-break">${rule.comment || ""}</td>
       <td class="actions nowrap">
-        <button class="btn outline" data-act="edit" data-id="${rule.id}" data-i18n="options.btn.edit" title="Edit">Edit</button>
-        <button class="btn danger" data-act="del" data-id="${rule.id}" data-i18n="options.btn.delete" title="Delete">Delete</button>
+        <button class="btn edit icon-left i-pen" data-act="edit" data-id="${rule.id}" data-i18n="options.btn.edit" title="Edit">Edit</button>
+        <button class="btn danger icon-left i-paperbin" data-act="del" data-id="${rule.id}" data-i18n="options.btn.delete" title="Delete">Delete</button>
       </td>`;
     tbody.appendChild(tr);
   }

@@ -34,7 +34,7 @@ function joinUrl(base, path){
 // Ensure settings always have required arrays and fields
 function normalizeSettings(obj) {
   const base = {
-    version: "0.4.0",
+    version: "0.4.3",
     general: { helpUrl: "https://github.com/AndreyKolygin/smja-extension" },
     providers: [],
     models: [],

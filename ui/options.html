@@ -13,7 +13,7 @@
       <div class="card card_llm">
         <h2 data-i18n="options.title.llmSettings">LLM settings</h2>
         <h3 data-i18n="options.title.providerSettings">Provider settings</h3>
-        <p><button class="btn add-model" id="addProviderBtn" title="Add LLM provider" data-i18n="options.btn.addProvider">+ Add Provider</button></p>
+        <p><button class="btn add-model icon-left i-add" id="addProviderBtn" title="Add LLM provider" data-i18n="options.btn.addProvider">+ Add Provider</button></p>
         <div class="table-wrapper">
           <table class="table" id="providersTable">
           <thead><tr>
@@ -27,7 +27,7 @@
         </table>
         </div>
         <h3 data-i18n="options.title.models">Models</h3>
-        <p><button class="btn add-model" id="addModelBtn" title="Add model for provider" data-i18n="options.btn.addModel">+ Add Model</button></p>
+        <p><button class="btn add-model icon-left i-add" id="addModelBtn" title="Add model for provider" data-i18n="options.btn.addModel">+ Add Model</button></p>
         <div class="table-wrapper">
         <table class="table" id="modelsTable">
           <thead><tr>
@@ -46,7 +46,7 @@
       <div class="card card_sites">
         <h2 data-i18n="options.title.autoExtract">Auto-extraction Rules</h2>
         <p class="muted" data-i18n="options.section.description">Add websites and CSS selectors to automatically extract job descriptions.</p>
-        <p><button class="btn add-model" id="addSiteBtn" data-i18n="options.btn.addSiteRule">+ Add Site</button></p>
+        <p><button class="btn add-model icon-left i-add" id="addSiteBtn" data-i18n="options.btn.addSiteRule">+ Add Site</button></p>
         <div class="table-wrapper">
           <table class="table" id="sitesTable">
             <thead>
@@ -80,17 +80,17 @@
         <!-- Кнопки сохранения и сбороса кэша -->
         <div class="saveBtn">
           <p>
-            <button class="btn danger" id="resetCacheBtn" data-i18n="options.btn.resetPromptCache" disabled>Reset prompt cache</button>
+            <button class="btn danger icon-left i-eraser" id="resetCacheBtn" data-i18n="options.btn.resetPromptCache" disabled>Reset prompt cache</button>
             <span class="muted ml-8" id="resetHint"></span>
           </p>
-          <p><button class="btn primary" id="saveBtn" data-i18n="options.btn.saveSettings">Save settings</button></p>
+          <p><button class="btn primary icon-left i-save" id="saveBtn" data-i18n="options.btn.saveSettings">Save settings</button></p>
         </div>
         
         
         <!-- кнопки экспорта и импорта -->
         <div id="settingsIO" class="io-row">
-          <button id="exportSettingsBtn" class="btn" data-i18n="options.btn.exportSettings">Export settings (JSON)</button>
-          <button id="importSettingsBtn" class="btn" data-i18n="options.btn.importSettings">Import settings</button>
+          <button id="exportSettingsBtn" class="btn icon-left i-download" data-i18n="options.btn.exportSettings">Export settings (JSON)</button>
+          <button id="importSettingsBtn" class="btn icon-left i-file" data-i18n="options.btn.importSettings">Import settings</button>
           <input id="importSettingsFile" type="file" accept="application/json" class="hidden" />
         </div>
       </div> 
@@ -164,8 +164,8 @@
       </div>
 
       <menu>
-        <button class="btn" value="cancel" data-i18n="options.btn.cancel">Cancel</button>
-        <button class="btn primary" id="saveProviderBtn" value="default" data-i18n="options.btn.save">Save</button>
+        <button class="btn icon-left i-undo" value="cancel" data-i18n="options.btn.cancel">Cancel</button>
+        <button class="btn primary icon-left i-check" id="saveProviderBtn" value="default" data-i18n="options.btn.save">Save</button>
       </menu>
     </form>
   </dialog>
@@ -194,8 +194,8 @@
       </div>
 
       <menu>
-        <button class="btn" value="cancel" data-i18n="options.btn.cancel">Cancel</button>
-        <button class="btn primary" id="saveModelBtn" value="default" data-i18n="options.btn.save">Save</button>
+        <button class="btn icon-left i-undo" value="cancel" data-i18n="options.btn.cancel">Cancel</button>
+        <button class="btn primary icon-left i-check" id="saveModelBtn" value="default" data-i18n="options.btn.save">Save</button>
       </menu>
     </form>
   </dialog>
@@ -231,8 +231,8 @@
       </div>
 
       <menu>
-        <button class="btn" value="cancel" id="cancelSiteBtn" data-i18n="options.btn.cancel">Cancel</button>
-        <button class="btn primary" id="saveSiteBtn" value="default" data-i18n="options.btn.save">Save</button>
+        <button class="btn icon-left i-undo" value="cancel" id="cancelSiteBtn" data-i18n="options.btn.cancel">Cancel</button>
+        <button class="btn primary icon-left i-check" id="saveSiteBtn" value="default" data-i18n="options.btn.save">Save</button>
       </menu>
     </form>
   </dialog>
@@ -243,8 +243,8 @@
     <p class="hint" data-i18n="options.modal.modelPrompt.textPh">Leave blank to inherit global system template…</p>
     <textarea id="modelPromptText" rows="12" class="stretch mono"></textarea>
     <div class="modal-actions">
-      <button id="cancelModelPromptBtn" type="reset" class="btn" data-i18n="options.btn.cancel">Cancel</button>
-      <button id="saveModelPromptBtn" type="button" class="btn primary" data-i18n="options.btn.save">Save</button>
+      <button id="cancelModelPromptBtn" type="reset" class="btn icon-left i-undo" data-i18n="options.btn.cancel">Cancel</button>
+      <button id="saveModelPromptBtn" type="button" class="btn primary icon-left i-check" data-i18n="options.btn.save">Save</button>
     </div>
   </form>
 </dialog>
@@ -305,12 +305,18 @@
     </p>
 
     <menu>
-      <button class="btn" id="cancelImportBtn" data-i18n="options.btn.cancel">Cancel</button>
-      <button class="btn primary" id="doImportBtn" data-i18n="options.btn.importSettings">Import settings</button>
+      <button class="btn icon-left i-undo" id="cancelImportBtn" data-i18n="options.btn.cancel">Cancel</button>
+      <button class="btn primary icon-left i-file" id="doImportBtn" data-i18n="options.btn.importSettings">Import settings</button>
     </menu>
   </form>
 </dialog>
 
   <script type="module" src="./js/options-main.js"></script>
+  
+  <!-- Simple footer with dynamic version and help link -->
+  <div class="container muted" style="margin-top: 12px;">
+    <span>Version: <span id="version"></span></span>
+    <span class="ml-8">· <a id="helpLink" href="#" target="_blank" rel="noopener">Help</a></span>
+  </div>
 </body>
 </html>

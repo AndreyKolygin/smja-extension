@@ -18,18 +18,18 @@ export function renderModels(settings){
       <td>${provider?.name || "?"}</td>
       <td contenteditable="true">${m.modelId ?? ""}</td>
       <td>
-        <button class="btn edit"
+        <button class="btn edit icon-left i-pen"
                 data-i18n="options.btn.edit"
                 data-i18n-attr-title="options.btn.editTitle"
                 title="Edit model and settings">Edit</button>
 
-        <button class="btn edit-prompt"
+        <button class="btn edit-prompt icon-left i-doc-add"
                 data-role="edit-sys-prompt"
                 data-i18n="options.btn.editSysPrompt"
                 data-i18n-attr-title="options.btn.editSysPromptTitle"
                 title="Edit system prompt for this model">Edit system prompt</button>
 
-        <button class="btn delete"
+        <button class="btn delete icon-left i-paperbin"
                 data-i18n="options.btn.delete"
                 data-i18n-attr-title="options.btn.deleteTitle"
                 title="Delete model">Delete</button>
