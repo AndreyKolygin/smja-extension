@@ -53,6 +53,12 @@ body.single-column {
 .mt-16 {
   margin-top: 16px;
 }
+.mt-12 {
+  margin-top: 12px;
+}
+.mt-8 {
+  margin-top: 8px;
+}
 .ml-8 {
   margin-left: 8px;
 }
