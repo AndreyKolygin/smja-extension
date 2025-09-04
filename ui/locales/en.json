@@ -37,6 +37,7 @@
   "options.btn.saveSettings": "Save Settings",
   "options.btn.exportSettings": "Export Settings",
   "options.btn.importSettings": "Import Settings",
+  "options.btn.resetDefaults": "Reset to defaults",
   "options.tbl.name": "Name",
   "options.tbl.baseUrl": "URL",
   "options.tbl.key": "API Key",
@@ -49,6 +50,8 @@
   "options.tbl.comment": "Comment",
   "options.title.general": "General Settings",
   "options.title.llmSettings": "LLM Settings",
+  "options.title.language": "Language",
+  "options.title.importExport": "Import / Export",
   "options.title.editllmProvider": "Edit LLM provider settings",
   "options.title.providerSettings": "Provider Settings",
   "options.title.models": "Models",
@@ -105,5 +108,21 @@
   "options.import.mode.merge": "Merge / add (preserve existing)",
   "options.import.mode.replace": "Replace selected groups",
   "options.import.groups": "Groups to import",
-  "options.import.note": "Only selected groups will be applied. Merge preserves existing items and updates by ID."
+  "options.import.note": "Only selected groups will be applied. Merge preserves existing items and updates by ID.",
+
+  "options.modal.reset.title": "Reset settings",
+  "options.modal.reset.desc": "This will replace providers, models, site rules, and templates with default values.",
+  "options.modal.reset.keepKeys": "Keep API keys",
+  "options.modal.reset.apply": "Reset",
+
+  "options.export.title": "Export settings",
+  "options.export.groups": "Groups to export",
+  "options.export.providers": "Provider Settings",
+  "options.export.providersKeys": "Include API keys",
+  "options.export.models": "Models",
+  "options.export.sites": "Auto-extraction Rules",
+  "options.export.cv": "CV",
+  "options.export.system": "System Prompt Template",
+  "options.export.output": "Result Output Template",
+  "options.export.start": "Export Selected"
 }

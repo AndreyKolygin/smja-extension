@@ -73,6 +73,32 @@ body.single-column {
   flex-wrap: wrap;
 }
 
+/* Settings split: two columns 50/50 */
+.settings-grid {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+}
+.settings-col {
+  flex: 1 1 50%;
+  min-width: 280px;
+}
+
+/* Drag handle for Models reorder */
+#modelsTable th.col-drag,
+#modelsTable td.drag {
+  width: 32px;
+}
+.drag-handle {
+  cursor: grab;
+  border: none;
+  width: 32px;
+  height: 24px;
+}
+#modelsTable tr.dragging {
+  opacity: 0.7;
+}
+
 /* Modal layout */
 /* .modal .modal-body {
   min-width: 80%;
@@ -268,4 +294,26 @@ select {
 
 #cacheNotice {
   margin-top: 8px;
+}
+.twoColumn {
+  width: 100%;
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: stretch; /* equalize column heights */
+  gap: 32px; /* nice spacing between cards */
+}
+.twoColumn .flex-items {
+  flex: 1 1 0%; /* share space equally (≈50/50) until min-width kicks in */
+  min-width: 400px; /* stack to 1 column when container is too narrow */
+  box-sizing: border-box;
+  display: flex; /* allow inner .card to stretch */
+}
+.twoColumn .flex-items > .card {
+  margin: 0; /* avoid extra vertical offset that breaks equal height */
+  height: 100%;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
 }

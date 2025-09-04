@@ -37,6 +37,7 @@
   "options.btn.saveSettings": "Сохранить настройки",
   "options.btn.exportSettings": "Экспорт настроек",
   "options.btn.importSettings": "Импорт настроек",
+  "options.btn.resetDefaults": "Сбросить к дефолтным",
   "options.tbl.name": "Название",
   "options.tbl.baseUrl": "Ссылка",
   "options.tbl.key": "API ключ",
@@ -49,6 +50,8 @@
   "options.tbl.comment": "Комментарий",
   "options.title.general": "Общие настройки",
   "options.title.llmSettings": "Настройки LLM",
+  "options.title.language": "Язык",
+  "options.title.importExport": "Импорт / Экспорт",
   "options.title.editllmProvider": "Изменить настройки LLM провайдера",
   "options.title.providerSettings": "Настройки провайдеров",
   "options.title.models": "Модели",
@@ -105,5 +108,21 @@
   "options.import.mode.merge": "Объединить / добавить (сохранить существующие)",
   "options.import.mode.replace": "Заменить выбранные группы",
   "options.import.groups": "Группы для импорта",
-  "options.import.note": "Будут применены только отмеченные группы. В режиме объединения существующие элементы сохраняются и обновляются по ID."
+  "options.import.note": "Будут применены только отмеченные группы. В режиме объединения существующие элементы сохраняются и обновляются по ID.",
+
+  "options.modal.reset.title": "Сброс настроек",
+  "options.modal.reset.desc": "Будут восстановлены значения по умолчанию для провайдеров, моделей, правил сайтов и шаблонов.",
+  "options.modal.reset.keepKeys": "Сохранить API ключи",
+  "options.modal.reset.apply": "Сбросить",
+
+  "options.export.title": "Экспорт настроек",
+  "options.export.groups": "Группы для экспорта",
+  "options.export.providers": "Настройки провайдеров",
+  "options.export.providersKeys": "Экспортировать API ключи",
+  "options.export.models": "Модели",
+  "options.export.sites": "Правила автоизвлечения",
+  "options.export.cv": "Резюме (CV)",
+  "options.export.system": "Шаблон системного промпта",
+  "options.export.output": "Шаблон вывода результата",
+  "options.export.start": "Экспортировать выбранное"
 }

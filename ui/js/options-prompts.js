@@ -62,8 +62,16 @@ export function initPrompts(settings){
   sys.addEventListener("blur", () => { settings.systemTemplate = sys.value; persistSettings(settings); });
 
   if (cv) {
-    cv.addEventListener("paste", () => { setTimeout(() => { settings.cv = cv.value; persistSettings(settings); }, 0); });
-    cv.addEventListener("blur", () => { settings.cv = cv.value; persistSettings(settings); });
+    cv.addEventListener("paste", () => {
+      setTimeout(() => {
+        const v = (cv.value || "").trim();
+        if (v) { settings.cv = v; persistSettings(settings); }
+      }, 0);
+    });
+    cv.addEventListener("blur", () => {
+      const v = (cv.value || "").trim();
+      if (v) { settings.cv = v; persistSettings(settings); }
+    });
   }
   out.addEventListener("paste", () => { setTimeout(() => { settings.outputTemplate = out.value; persistSettings(settings); }, 0); });
   out.addEventListener("blur", () => { settings.outputTemplate = out.value; persistSettings(settings); });
@@ -103,7 +111,10 @@ export function setupAutosave(settings){
 
   document.addEventListener('input', (e) => {
     if (e.target && (e.target.closest('#providerModal') || e.target.closest('#modelModal') || e.target.closest('#modelPromptModal'))) return;
-    if (e.target && e.target.id === 'cv') settings.cv = e.target.value;
+    if (e.target && e.target.id === 'cv') {
+      const v = (e.target.value || '').trim();
+      if (v) settings.cv = v; // do not persist empty CV
+    }
     if (e.target && e.target.id === 'systemTemplate') settings.systemTemplate = e.target.value;
     if (e.target && e.target.id === 'outputTemplate') settings.outputTemplate = e.target.value;
     debouncePersist();

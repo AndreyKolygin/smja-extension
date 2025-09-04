@@ -101,12 +101,37 @@ async function applyImport(settings, imported, { mode = 'merge', groups = [] } =
   if (out) out.value = tgt.outputTemplate || '';
 }
 
-async function doExport(settings) {
-  const redacted = JSON.parse(JSON.stringify(settings || {}));
-  if (Array.isArray(redacted.providers)) {
-    for (const p of redacted.providers) { if (p) p.apiKey = ''; }
+async function doExport(settings, { groups = [], includeProviderKeys = false } = {}) {
+  // pick-only selected groups; when empty, export them all
+  const want = (g) => groups.length === 0 || groups.includes(g);
+
+  const src = settings || {};
+  const out = {};
+
+  if (want('providers')) {
+    const list = Array.isArray(src.providers) ? JSON.parse(JSON.stringify(src.providers)) : [];
+    if (!includeProviderKeys) {
+      for (const p of list) { if (p) p.apiKey = ''; }
+    }
+    out.providers = list;
   }
-  const data = JSON.stringify(redacted, null, 2);
+  if (want('models')) {
+    out.models = Array.isArray(src.models) ? JSON.parse(JSON.stringify(src.models)) : [];
+  }
+  if (want('sites')) {
+    out.sites = Array.isArray(src.sites) ? JSON.parse(JSON.stringify(src.sites)) : [];
+  }
+  if (want('cv')) {
+    out.cv = src.cv || '';
+  }
+  if (want('systemTemplate')) {
+    out.systemTemplate = src.systemTemplate || '';
+  }
+  if (want('outputTemplate')) {
+    out.outputTemplate = src.outputTemplate || '';
+  }
+
+  const data = JSON.stringify(out, null, 2);
   const blob = new Blob([data], { type: 'application/json' });
   const r = new FileReader();
   r.onload = async () => {
@@ -218,7 +243,40 @@ function openImportDialog(settings) {
 export function wireImportExport(settings) {
   const exportBtn = document.getElementById('exportSettingsBtn');
   const importBtn = document.getElementById('importSettingsBtn');
-
-  exportBtn?.addEventListener('click', () => doExport(settings));
+  
+  exportBtn?.addEventListener('click', () => openExportDialog(settings));
   importBtn?.addEventListener('click', () => openImportDialog(settings));
+}
+
+function openExportDialog(settings){
+  const dlg = document.getElementById('exportModal');
+  if (!dlg) { doExport(settings); return; }
+
+  try { dlg.showModal(); } catch { dlg.setAttribute('open','open'); }
+
+  const cancelBtn = document.getElementById('cancelExportBtn');
+  const doBtn = document.getElementById('doExportBtn');
+
+  const onCancel = () => { try { dlg.close?.(); } catch {}; cleanup(); };
+  const onDo = async (e) => {
+    e?.preventDefault?.();
+    const groups = Array.from(dlg.querySelectorAll('input[name="exgrp"]:checked')).map(x => x.value);
+    const includeProviderKeys = !!dlg.querySelector('input[name="exprovkeys"]')?.checked;
+    try {
+      await doExport(settings, { groups, includeProviderKeys });
+      dlg.close?.();
+    } catch (err) {
+      alert('Export failed: ' + String(err && (err.message || err)));
+    } finally {
+      cleanup();
+    }
+  };
+
+  function cleanup(){
+    cancelBtn?.removeEventListener('click', onCancel);
+    doBtn?.removeEventListener('click', onDo);
+  }
+
+  cancelBtn?.addEventListener('click', onCancel);
+  doBtn?.addEventListener('click', onDo);
 }

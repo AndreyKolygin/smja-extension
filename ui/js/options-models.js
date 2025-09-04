@@ -12,11 +12,13 @@ export function renderModels(settings){
   for (const m of settings.models) {
     const provider = settings.providers.find(p => p.id === m.providerId);
     const tr = document.createElement("tr");
+    tr.dataset.id = m.id;
     tr.innerHTML = `
-      <td><input type="checkbox" ${m.active ? "checked" : ""}></td>
-      <td contenteditable="true">${m.displayName ?? ""}</td>
+      <td class="drag" title="Drag to reorder"><button class="icon-only icon-left i-grab drag-handle" draggable="true" aria-label="Drag"></button></td>
+      <td><input type="checkbox" data-role="active" ${m.active ? "checked" : ""}></td>
+      <td contenteditable="true" data-role="display">${m.displayName ?? ""}</td>
       <td>${provider?.name || "?"}</td>
-      <td contenteditable="true">${m.modelId ?? ""}</td>
+      <td contenteditable="true" data-role="modelId">${m.modelId ?? ""}</td>
       <td>
         <button class="btn edit icon-left i-pen"
                 data-i18n="options.btn.edit"
@@ -36,14 +38,14 @@ export function renderModels(settings){
       </td>`;
 
     // events
-    tr.querySelector("input")?.addEventListener("change", async (e) => {
+    tr.querySelector('input[type="checkbox"][data-role="active"]')?.addEventListener("change", async (e) => {
       m.active = e.target.checked;
       await persistSettings(settings);
     });
-    tr.children[1]?.addEventListener("input", (e) => m.displayName = e.target.textContent);
-    tr.children[1]?.addEventListener("blur", () => persistSettings(settings));
-    tr.children[3]?.addEventListener("input", (e) => m.modelId = e.target.textContent);
-    tr.children[3]?.addEventListener("blur", () => persistSettings(settings));
+    tr.querySelector('[data-role="display"]')?.addEventListener("input", (e) => m.displayName = e.target.textContent);
+    tr.querySelector('[data-role="display"]')?.addEventListener("blur", () => persistSettings(settings));
+    tr.querySelector('[data-role="modelId"]')?.addEventListener("input", (e) => m.modelId = e.target.textContent);
+    tr.querySelector('[data-role="modelId"]')?.addEventListener("blur", () => persistSettings(settings));
 
     tr.querySelector("button.edit")?.addEventListener("click", () => editModel(settings, m));
     tr.querySelector('button[data-role="edit-sys-prompt"]')?.addEventListener("click", () => editModelSystemPrompt(settings, m));
@@ -63,6 +65,8 @@ export function renderModels(settings){
     // ⟵ ВАЖНО: применяем переводы к только что добавленной строке
     applyTranslations(tr);
   }
+
+  wireModelReorder(settings);
 }
 
 export function wireModelModals(settings){
@@ -173,4 +177,69 @@ function editModelSystemPrompt(settings, m){
   const oldSave = saveBtn.onclick, oldCancel = cancelBtn.onclick;
   saveBtn.onclick = () => { m.systemPrompt = textarea.value; persistSettings(settings); dlg.close?.(); saveBtn.onclick = oldSave||null; cancelBtn.onclick = oldCancel||null; };
   cancelBtn.onclick = () => { dlg.close?.(); saveBtn.onclick = oldSave||null; cancelBtn.onclick = oldCancel||null; };
+}
+
+// ------- Drag & Drop reorder -------
+function wireModelReorder(settings){
+  const tbody = document.querySelector('#modelsTable tbody');
+  if (!tbody || tbody.__reorderWired) return;
+  tbody.__reorderWired = true;
+
+  let draggingId = null;
+
+  tbody.addEventListener('dragstart', (ev) => {
+    const handle = ev.target.closest('.drag-handle');
+    if (!handle) return;
+    const tr = handle.closest('tr');
+    if (!tr) return;
+    draggingId = tr.dataset.id || null;
+    try {
+      ev.dataTransfer.effectAllowed = 'move';
+      ev.dataTransfer.setData('text/plain', draggingId || '');
+    } catch {}
+    tr.classList.add('dragging');
+  });
+
+  tbody.addEventListener('dragend', (ev) => {
+    const tr = ev.target.closest('tr');
+    tr?.classList.remove('dragging');
+    draggingId = null;
+  });
+
+  tbody.addEventListener('dragover', (ev) => {
+    if (!draggingId) return;
+    ev.preventDefault();
+  });
+
+  tbody.addEventListener('drop', async (ev) => {
+    if (!draggingId) return;
+    ev.preventDefault();
+    const afterEl = getRowAfterY(tbody, ev.clientY);
+    const ids = Array.from(tbody.querySelectorAll('tr')).map(r => r.dataset.id);
+    const from = settings.models.findIndex(x => x.id === draggingId);
+    if (from < 0) return;
+    let to = settings.models.length; // default append to end
+    if (afterEl) {
+      const targetId = afterEl.dataset.id;
+      to = ids.findIndex(id => id === targetId);
+    } else {
+      // drop to the end → keep to as length (append)
+    }
+    // moving before 'afterEl': compute insert index
+    if (to > from) to -= 1; // account for removal shift
+    if (from === to) return; // no change
+
+    const item = settings.models.splice(from, 1)[0];
+    settings.models.splice(Math.max(0, to), 0, item);
+    renderModels(settings);
+    await persistSettings(settings);
+  });
+}
+
+function getRowAfterY(tbody, y){
+  const rows = [...tbody.querySelectorAll('tr:not(.dragging)')];
+  return rows.find(row => {
+    const rect = row.getBoundingClientRect();
+    return y < rect.top + rect.height / 2;
+  }) || null;
 }

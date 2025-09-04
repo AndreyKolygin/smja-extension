@@ -72,6 +72,7 @@ export async function loadSettings() {
   wireModelModals(settings);
   wireSitesModals(settings);
   wireImportExport(settings);
+  wireResetDefaults();
 
   // UI-хелперы
   injectSingleColumnLayout();
@@ -80,7 +81,13 @@ export async function loadSettings() {
 
   // Save кнопка (общая)
   $id("saveBtn").addEventListener("click", async () => {
-    settings.cv = $id("cv").value;
+    const cvVal = ($id("cv").value || "").trim();
+    if (!cvVal) {
+      try { $id("cv").focus(); } catch {}
+      alert("CV is required. Please fill it in before saving.");
+      return;
+    }
+    settings.cv = cvVal;
     settings.systemTemplate = $id("systemTemplate").value;
     settings.outputTemplate = $id("outputTemplate").value;
     await chrome.runtime.sendMessage({ type: "SAVE_SETTINGS", payload: settings });
@@ -110,3 +117,36 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   })();
 });
+
+function wireResetDefaults(){
+  const btn = document.getElementById('resetDefaultsBtn');
+  if (!btn) return;
+  const dlg = document.getElementById('resetDefaultsModal');
+  const keep = document.getElementById('keepApiKeys');
+  const doBtn = document.getElementById('doResetDefaultsBtn');
+  const cancelBtn = document.getElementById('cancelResetDefaultsBtn');
+
+  btn.addEventListener('click', () => {
+    try { if (keep) keep.checked = true; } catch {}
+    safeShowModal(dlg);
+    try { applyTranslations(dlg); } catch {}
+  });
+
+  cancelBtn?.addEventListener('click', (e) => {
+    e?.preventDefault?.();
+    try { dlg?.close?.(); } catch {}
+  });
+
+  doBtn?.addEventListener('click', async (e) => {
+    e?.preventDefault?.();
+    try {
+      const resp = await chrome.runtime.sendMessage({ type: 'RESET_DEFAULTS', payload: { keepApiKeys: !!(keep?.checked ?? true) } });
+      if (!resp?.ok) { alert('Reset failed: ' + (resp?.error || 'Unknown')); return; }
+      try { dlg?.close?.(); } catch {}
+      await loadSettings();
+      alert('Defaults restored.');
+    } catch (err) {
+      alert('Reset failed: ' + String(err && (err.message || err)));
+    }
+  });
+}

@@ -1,4 +1,5 @@
 // sw.js — MV3 service worker (no DOM)
+import { getDefaultSettings } from './shared/defaults.js';
 const SETTINGS_KEY = "jdaSettings";
 
 function sanitizeText(t, max = 24000) {
@@ -34,7 +35,7 @@ function joinUrl(base, path){
 // Ensure settings always have required arrays and fields
 function normalizeSettings(obj) {
   const base = {
-    version: "0.4.4",
+    // Do not store extension version in settings; read from manifest when needed
     general: { helpUrl: "https://github.com/AndreyKolygin/smja-extension" },
     providers: [],
     models: [],
@@ -56,7 +57,7 @@ async function getSettings() {
       let s = res.settings;
       if (!s) {
         // first run — seed defaults
-        const seeded = normalizeSettings(null);
+        const seeded = normalizeSettings(getDefaultSettings());
         chrome.storage.local.set({ settings: seeded }, () => resolve(seeded));
         return;
       }
@@ -276,6 +277,37 @@ async function callLLMRouter(payload) {
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   (async () => {
+    if (message.type === "RESET_DEFAULTS") {
+      try {
+        const keep = !!(message.payload?.keepApiKeys ?? true);
+        const current = await getSettings();
+        const next = normalizeSettings(getDefaultSettings());
+
+        if (keep) {
+          const prevMap = new Map((current?.providers || []).filter(p => p?.id).map(p => [p.id, p]));
+          for (const p of next.providers) {
+            const prev = prevMap.get(p.id);
+            if (prev) {
+              // preserve secrets and timeouts if present previously
+              if (prev.apiKey) p.apiKey = prev.apiKey;
+              if (prev.orgId) p.orgId = prev.orgId;
+              if (prev.projectId) p.projectId = prev.projectId;
+              if (prev.timeoutMs) p.timeoutMs = prev.timeoutMs;
+            }
+          }
+        }
+
+        // Clear ephemeral caches
+        try { await new Promise(r => chrome.storage.local.remove(['lastResult','lastError','lastSelection','lastExport'], () => r())); } catch {}
+
+        await saveSettings(next);
+        sendResponse({ ok: true });
+      } catch (e) {
+        sendResponse({ ok: false, error: String(e?.message || e) });
+      }
+      return;
+    }
+
     if (message.type === "GET_SETTINGS") {
       const s = await getSettings();
       sendResponse(s);

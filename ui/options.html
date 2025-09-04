@@ -31,6 +31,7 @@
         <div class="table-wrapper">
         <table class="table" id="modelsTable">
           <thead><tr>
+            <th class="col-drag" title="Drag to reorder">⇅</th>
             <th data-i18n="options.tbl.active">Active</th>
             <th data-i18n="options.tbl.displayName">Display name</th>
             <th data-i18n="options.tbl.provider">Provider</th>
@@ -66,7 +67,7 @@
       <div class="card glass card_general">
         <h2 data-i18n="options.title.general">General</h2>
         <h3 data-i18n="options.title.cv">CV</h3>
-        <textarea class="textInput" id="cv" data-i18n-attr-placeholder="options.title.cv" placeholder="Your CV"></textarea>
+        <textarea class="textInput" id="cv" data-i18n-attr-placeholder="options.title.cv" placeholder="Your CV" required aria-required="true"></textarea>
 
         <h3 data-i18n="options.title.systemPromptTempl">System prompt template</h3>
         <textarea class="textInput" id="systemTemplate"></textarea>
@@ -83,28 +84,47 @@
             <button class="btn danger icon-left i-eraser" id="resetCacheBtn" data-i18n="options.btn.resetPromptCache" disabled>Reset prompt cache</button>
             <span class="muted ml-8" id="resetHint"></span>
           </p>
-          <p><button class="btn primary icon-left i-save" id="saveBtn" data-i18n="options.btn.saveSettings">Save settings</button></p>
-        </div>
-        
-        
-        <!-- кнопки экспорта и импорта -->
-        <div id="settingsIO" class="io-row">
-          <button id="exportSettingsBtn" class="btn icon-left i-download" data-i18n="options.btn.exportSettings">Export settings (JSON)</button>
-          <button id="importSettingsBtn" class="btn icon-left i-file" data-i18n="options.btn.importSettings">Import settings</button>
-          <input id="importSettingsFile" type="file" accept="application/json" class="hidden" />
+          <p>
+            <button class="btn primary icon-left i-check" id="saveBtn" data-i18n="options.btn.saveSettings">Save settings</button>
+          </p>
         </div>
       </div> 
       <!-- Settings group -->
-      <div class="card glass">
-        <h2 data-i18n="options.title.lang">Settings</h2>
-        <div class="form-row">
-          <label for="uiLang" data-i18n="options.lang.label">Interface language</label>
-            <select id="uiLang">
-            <option value="en">English</option>
-            <option value="ru">Русский</option>
-            <!-- добавляй другие языки -->
-          </select>
-          <p class="muted" data-i18n="options.lang.hint">Choose UI language (applies to popup & options)</p>
+      <div class="twoColumn">
+        <div class="flex-items">
+          <div class="card glass">
+          <h2 data-i18n="options.title.language">Language</h2>
+          <div class="settings-grid">
+            <div class="settings-col">
+              <div class="form-row">
+                <label for="uiLang" data-i18n="options.lang.label">Interface language</label>
+                <select id="uiLang">
+                  <option value="en">English</option>
+                  <option value="ru">Русский</option>
+                  <!-- добавляй другие языки -->
+                </select>
+                <p class="muted" data-i18n="options.lang.hint">Choose UI language (applies to popup &amp; settings)</p>
+              </div>
+            </div>
+          </div>
+          </div>
+        </div>
+        <div class="flex-items">
+          <div class="card glass">
+          <h2 data-i18n="options.title.importExport">Import / Export </h2>
+          <div class="settings-grid">
+            <div class="settings-col">
+              <div id="settingsIO" class="io-row">
+                <button id="exportSettingsBtn" class="btn secondary icon-left i-export" data-i18n="options.btn.exportSettings">Export Settings</button>
+                <button id="importSettingsBtn" class="btn icon-left i-import" data-i18n="options.btn.importSettings">Import Settings</button>
+                <input id="importSettingsFile" type="file" accept="application/json" class="hidden" />
+              </div>
+              <p class="mt-8">
+                <button class="btn danger icon-left i-default" id="resetDefaultsBtn" data-i18n="options.btn.resetDefaults">Reset to defaults</button>
+              </p>
+            </div>
+          </div>
+          </div>
         </div>
       </div>   
     </div>
@@ -311,12 +331,74 @@
   </form>
 </dialog>
 
-  <script type="module" src="./js/options-main.js"></script>
+  <!-- Export Settings Modal -->
+  <dialog id="exportModal">
+    <form method="dialog">
+      <h3 data-i18n="options.export.title">Export settings</h3>
+
+      <fieldset class="mt-12">
+        <legend data-i18n="options.export.groups">Groups to export</legend>
+        <label class="row">
+          <input type="checkbox" name="exgrp" value="providers" checked>
+          <span data-i18n="options.export.providers">Provider Settings</span>
+        </label>
+        <label class="row ml-8">
+          <input type="checkbox" name="exprovkeys" id="exprovkeys">
+          <span data-i18n="options.export.providersKeys">Include API keys</span>
+        </label>
+        <label class="row">
+          <input type="checkbox" name="exgrp" value="models" checked>
+          <span data-i18n="options.export.models">Models</span>
+        </label>
+        <label class="row">
+          <input type="checkbox" name="exgrp" value="sites" checked>
+          <span data-i18n="options.export.sites">Auto-extraction Rules</span>
+        </label>
+        <label class="row">
+          <input type="checkbox" name="exgrp" value="cv" checked>
+          <span data-i18n="options.export.cv">CV</span>
+        </label>
+        <label class="row">
+          <input type="checkbox" name="exgrp" value="systemTemplate" checked>
+          <span data-i18n="options.export.system">System Prompt Template</span>
+        </label>
+        <label class="row">
+          <input type="checkbox" name="exgrp" value="outputTemplate" checked>
+          <span data-i18n="options.export.output">Result Output Template</span>
+        </label>
+      </fieldset>
+
+      <menu>
+        <button class="btn icon-left i-undo" id="cancelExportBtn" data-i18n="options.btn.cancel">Cancel</button>
+        <button class="btn primary icon-left i-download" id="doExportBtn" data-i18n="options.export.start">Export Selected</button>
+      </menu>
+    </form>
+  </dialog>
+
+  <!-- Reset to Defaults Modal -->
+  <dialog id="resetDefaultsModal">
+    <form method="dialog">
+      <h3 data-i18n="options.modal.reset.title">Reset settings</h3>
+      <p class="muted" data-i18n="options.modal.reset.desc">This will replace providers, models, site rules, and templates with default values.</p>
+
+      <label class="row">
+        <input type="checkbox" id="keepApiKeys" checked>
+        <span data-i18n="options.modal.reset.keepKeys">Keep API keys</span>
+      </label>
+
+      <menu>
+        <button class="btn icon-left i-undo" id="cancelResetDefaultsBtn" value="cancel" data-i18n="options.btn.cancel">Cancel</button>
+        <button class="btn danger icon-left i-eraser" id="doResetDefaultsBtn" value="default" data-i18n="options.modal.reset.apply">Reset</button>
+      </menu>
+    </form>
+  </dialog>
   
   <!-- Simple footer with dynamic version and help link -->
   <div class="container muted mt-12">
     <span>Version: <span id="version"></span></span>
     <span class="ml-8">· <a id="helpLink" href="#" target="_blank" rel="noopener">Help</a></span>
   </div>
+
+    <script type="module" src="./js/options-main.js"></script>
 </body>
 </html>

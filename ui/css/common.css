@@ -294,7 +294,7 @@ fieldset {
   --icon: url("../../icons/copy-svgrepo-com.svg");
 }
 .i-save {
-  --icon: url("../../icons/check-square-svgrepo-com.svg");
+  --icon: url("../../icons/file-download-svgrepo-com.svg");
 }
 .i-download {
   --icon: url("../../icons/download-svgrepo-com.svg");
@@ -360,6 +360,21 @@ fieldset {
 }
 .i-pen {
   --icon: url("../../icons/pen-new-square-svgrepo-com.svg");
+}
+.i-import {
+  --icon: url("../../icons/upload-square.svg");
+}
+
+.i-default {
+  --icon: url("../../icons/send-square.svg");
+}
+
+.i-export {
+  --icon: url("../../icons/download-square.svg");
+}
+
+.i-grab {
+  --icon: url("../../icons/menu-dots-svgrepo-com.svg");
 }
 
 /* Optional: icon-only buttons */
