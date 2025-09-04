@@ -201,3 +201,4 @@
 - [GitHub проекта](https://github.com/AndreyKolygin/smja-extension)
 - [Issues / багрепорты](https://github.com/AndreyKolygin/smja-extension/issues)
 - [Changelog](CHANGELOG.md)
+
