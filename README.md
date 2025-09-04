@@ -167,7 +167,7 @@
 ![Popup Screenshot](docs/images/popup.png)
 
 ### Веление описания вакансии
-![Popup Screenshot](docs/images/select.png.png)
+![Popup Screenshot](docs/images/select.png)
 
 ### Интерфейс настроек
 ![Options Screenshot](docs/images/options.png)
