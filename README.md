@@ -169,9 +169,6 @@
 ### Веление описания вакансии
 ![Popup Screenshot](docs/images/select.png)
 
-### Интерфейс настроек
-![Options Screenshot](docs/images/options.png)
-
 ### Настройки LLM
 ![LLM Settings Screenshot](docs/images/llm-settings.png)
 
