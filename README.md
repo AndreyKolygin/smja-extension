@@ -1,156 +1,130 @@
-# SMJA Extension
+# JDA Extension
 
-**SMJA (Smart Job Analyzer)** — это расширение для браузера, которое помогает:
-- сравнивать описание вакансий с вашим резюме,
-- быстро находить совпадения и пробелы,
-- получать структурированный отчёт в удобном формате.
+JDA (Job Description Analyzer) is a browser extension that helps you:
+- compare job descriptions with your CV,
+- quickly find matches and gaps,
+- get a clean, structured report.
 
-Работает локально в браузере. Данные резюме не отправляются в облако. Ключи API никогда не экспортируются, если вы явно не разрешите это при экспорте настроек.
-
----
-
-## 🔧 Установка пошагово
-
-1. Скачайте [последний релиз](https://github.com/AndreyKolygin/smja-extension/releases).
-2. Распакуйте архив в любую папку.
-3. В Chrome / Chromium:
-   - Откройте `chrome://extensions/`.
-   - Включите **Режим разработчика** (Developer mode).
-   - Нажмите **Load unpacked** и выберите папку расширения.
-4. После этого иконка появится в панели браузера.
-
-> 💡 Совместимо с Chrome, Brave, Edge.
+Everything runs locally in your browser. Your CV is not sent to the cloud. API keys are never exported unless you explicitly allow it in the Export dialog.
 
 ---
 
-## ⚙️ Первичная настройка (c дефолтами)
+## 🔧 Installation
 
-Откройте **Options** (настройки). С первого запуска расширение уже содержит готовый набор дефолтов:
+1) Download the latest release from GitHub.
+2) Unzip to any folder.
+3) In Chrome/Chromium:
+   - Open `chrome://extensions/`
+   - Enable Developer mode
+   - Click “Load unpacked” and select the extension folder
+4) The extension icon appears in the toolbar.
 
-- Провайдеры:
-  - `Ollama Local` (`http://localhost:11434`)
-  - `Google Gemini` (`https://generativelanguage.googleapis.com/v1beta`)
-  - `OpenAI` (`https://api.openai.com/v1`)
-- Модели:
-  - `Llama 3 (Ollama)` — активна по умолчанию (локально, без ключей)
-  - `Gemini 1.5 Flash` — активна (нужен API‑ключ Gemini)
-  - `GPT‑4o mini` — неактивна (включите при наличии ключа OpenAI)
-- Автоправила сайтов (включены): LinkedIn, hh.ru, Indeed
-- Глобальные шаблоны: установлен системный промпт и шаблон Markdown вывода
-
-Что стоит сделать сразу:
-- Вставьте своё **CV** в раздел General → CV
-- При необходимости укажите API‑ключи для Gemini / OpenAI
-- При желании подправьте System Prompt / Output Template
-
-Все изменения сохраняются автоматически (автосейв) и/или кнопкой Save.
+Compatible with Chrome, Brave, Edge.
 
 ---
 
-## 🛠 Полная настройка Options
+## ⚙️ First‑Run Defaults
 
-В разделе **Options** доступны следующие вкладки и блоки с подробной функциональностью:
+Open Options. On first launch the extension is preconfigured with sensible defaults:
 
-### Провайдеры (Providers)
-- **Добавление** новых провайдеров с указанием имени, базового URL и API-ключа.
-- **Редактирование** существующих провайдеров, включая обновление API-ключей.
-- **Удаление** провайдеров при необходимости.
-- Настройка **Host Permissions** — указание разрешённых доменов, где провайдер может использоваться.
-- Подсказки и рекомендации по заполнению API-ключей для популярных сервисов.
+- Providers:
+  - Ollama Local (`http://localhost:11434`)
+  - Google Gemini (`https://generativelanguage.googleapis.com/v1beta`)
+  - OpenAI (`https://api.openai.com/v1`)
+- Models:
+  - Llama 3 (Ollama) — active by default (local, no API key needed)
+  - Gemini 1.5 Flash — active (requires Gemini API key)
+  - GPT‑4o mini — inactive (enable if you have OpenAI access)
+- Site rules (enabled): LinkedIn, hh.ru, Indeed
+- Global templates: system prompt and Markdown output template
 
-### Модели (Models)
-- Отображение списка моделей с их **отображаемым именем** и уникальным **ID**.
-- Привязка каждой модели к выбранному провайдеру.
-- Возможность **переопределения системного промпта** для конкретной модели.
-- Включение или отключение моделей для использования в анализе.
+Recommended first steps:
+- Paste your CV into General → CV
+- If needed, add API keys for Gemini / OpenAI
+- Tune System Prompt / Output Template to your style
 
-### Резюме и шаблоны (CV & Templates)
-- Поле для вставки или редактирования собственного резюме (CV).
-- Глобальный **System Prompt**, определяющий, как модель будет анализировать данные.
-- Настройка **Output Template** — шаблона для итогового отчёта.
-- Автоматическое сохранение всех изменений.
-- Кнопка для **сброса кэша промптов**, чтобы обновить настройки при необходимости.
+Changes are autosaved; you can also press Save.
 
-### Правила авто-выкачки (Auto-extract Rules)
-- Управление правилами для автоматического извлечения описания вакансии с сайтов.
-- Поддержка различных шаблонов сайтов: домены, подстановочные знаки (wildcard), регулярные выражения (regex).
-- Настройка CSS-селекторов для точного выбора текста вакансии.
-- Возможность **редактировать**, **удалять** и **включать/выключать** отдельные правила.
-  - **Примеры возможных шаблонов:**
-    - Домен: `linkedin.com`
-    - Подстановочные знаки (wildcard): `www.stepstone.de/jobs--*`
-    - Регулярные выражения: `/^https:\/\/de\.indeed\.com\/jobs/`
-    - CSS-селекторы: `[data-at="header-job-title"]`, `div.jobsearch-JobComponent`
-  - Правила не чувствительны к регистру.
+---
 
-### Общие настройки (General)
-- Импорт и экспорт настроек в JSON.
-- Автосохранение при изменениях.
-- Индикатор версии.
+## 🛠 Options Overview
 
-#### Language + Import/Export (новая раскладка)
-- Блок **Language** (слева) — выбор языка интерфейса (применяется к попапу и настройкам)
-- Блок **Import / Export** (справа):
-  - Export Settings → модалка выбора групп для экспорта:
-    - Provider Settings (отдельный чекбокс Include API keys для экспорта ключей)
+### Providers
+- Add providers with name, Base URL, API key
+- Edit and delete providers
+- Helpful hints for popular services
+
+### Models
+- List of models (display name + ID)
+- Each model is linked to a provider
+- Optional per‑model system prompt override
+- Enable/disable models for use
+- Reorder via drag handle in the first column
+
+### CV & Templates
+- Paste and maintain your CV locally
+- Global System Prompt that controls analysis style
+- Output Template (Markdown skeleton)
+- Autosave
+- Clear prompt cache button
+
+### Auto‑extraction Rules
+- Manage job‑text extraction rules per site
+- Support host patterns, wildcards, full‑URL masks, and regex
+- Provide CSS selectors to extract job description blocks
+- Enable/disable, edit, delete rules
+
+### General (Language + Import/Export)
+- Language: choose UI language (applies to popup and settings)
+- Import / Export:
+  - Export Settings → modal to pick groups:
+    - Provider Settings (separate checkbox “Include API keys”)
     - Models
-    - Auto-extraction Rules
+    - Auto‑extraction Rules
     - CV
     - System Prompt Template
     - Result Output Template
-  - Import Settings → модалка с режимами Merge/Replace и галочками групп
-  - Reset to defaults → восстановление стандартных значений (см. ниже)
+  - Import Settings → Merge/Replace modes and group selection
+  - Reset to defaults → restore preconfigured defaults (see below)
 
 ---
 
-## 📊 Как использовать
+## 📊 How to Use
 
-1. Откройте страницу вакансии.
-2. Выделите описание должности.
-3. Нажмите на иконку расширения → **Analyze**.
-4. Всплывающее окно покажет отчёт:
-   - Оценка соответствия (1–100).
-   - Требования к языку.
-   - Основные задачи.
-   - Ключевые требования.
-   - Несоответствия между CV и вакансией.
-   - Рекомендации.
+1) Open a job posting page
+2) Select the job description
+3) Click the extension icon → Analyze
+4) The popup renders a report:
+   - Match score
+   - Requirements
+   - Main responsibilities
+   - Key qualifications
+   - Gaps between CV and posting
+   - Actionable suggestions
 
-Если для сайта есть правило авто-выкачки, можно нажать **Auto-grab** для мгновенной подстановки описания вакансии в форму.
-
-Вы можете скопировать результат или сохранить его в систему.
+If a site rule exists, click Auto‑grab to automatically pull the description into the input.
 
 ---
 
-## 💾 Импорт и экспорт
+## 💾 Import & Export
 
-- **Export** — сохраняет выбранные группы настроек в JSON. По умолчанию API‑ключи не включаются; их можно явно добавить галочкой “Include API keys”.
-- **Import** — загрузка настроек из файла с режимами:
-  - Merge / add (обновляет по ID и сохраняет существующие)
-  - Replace выбранные группы
-  Можно импортировать как весь набор, так и отдельные группы. Пустые API‑ключи при мердже не затирают существующие.
+- Export: save selected groups to JSON. API keys are excluded by default; include them with the “Include API keys” checkbox.
+- Import: load settings with modes:
+  - Merge / add (updates by ID, preserves existing)
+  - Replace selected groups
+  Empty API keys during merge will not overwrite existing keys.
 
-## ♻️ Сброс к дефолтам
+## ♻️ Reset to Defaults
 
-- Кнопка **Reset to defaults** в блоке Import / Export.
-- При сбросе появляется модалка с опцией **Keep API keys** (включена по умолчанию) — позволяет оставить ваши ключи в дефолтном профиле.
-- Временный кэш результатов и промптов очищается.
+- Reset to defaults in the Import / Export block
+- Confirmation modal includes “Keep API keys” (enabled by default) to retain your keys
+- Clears temporary caches of prompts/results
 
----
-
-## 🗑 Управление
-
-- **Провайдеры**: можно редактировать или удалять.
-- **Модели**: можно включать/выключать, редактировать системный промпт, удалять.
-- **Автосохранение** работает при любом изменении.
-
----
-
-## 🔑 Поддерживаемые провайдеры
+## 🔑 Supported Providers
 
 - Google Gemini  
 - OpenAI  
-- Ollama (локальные модели)  
+- Ollama (local)  
 - Hugging Face  
 - Anthropic  
 - Perplexity  
@@ -161,44 +135,42 @@
 
 ---
 
-## 🖼 Скриншоты
+## 🖼 Screenshots
 
-### Анализ вакансии
+### Analyze
 ![Popup Screenshot](docs/images/popup.png)
 
-### Веление описания вакансии
-![Popup Screenshot](docs/images/select.png)
+### Select job description
+![Select Screenshot](docs/images/select.png)
 
-### Настройки LLM
+### LLM Settings
 ![LLM Settings Screenshot](docs/images/llm-settings.png)
 
-### Правила автоизвлечения
+### Auto‑extraction Rules
 ![Auto-extraction Rules Screenshot](docs/images/auto-extraction.png)
 
-### Общие настройки
+### General Settings
 ![General Settings Screenshot](docs/images/general-settings.png)
 
 ---
 
 ## ❓ FAQ
 
-**В: Хранится ли CV в облаке?**  
-О: Нет, все данные сохраняются локально в браузере.
+Q: Is my CV stored in the cloud?
+A: No, all data is stored locally in your browser.
 
-**В: Можно ли использовать несколько провайдеров?**  
-О: Да, можно добавить несколько и переключаться между моделями.
+Q: Can I use multiple providers?
+A: Yes. Add several and switch models freely.
 
-**В: Чувствительны ли правила авто-выкачки к регистру?**  
-О: Нет, домены и пути обрабатываются без учёта регистра.
+Q: Are site rules case‑sensitive?
+A: No, host and path matching is case‑insensitive.
 
-**В: Экспортируются ли API‑ключи?**  
-О: Только если в модалке экспорта включить галочку “Include API keys”. По умолчанию ключи не экспортируются.
+Q: Are API keys exported?
+A: Only if you check “Include API keys” in the Export dialog. By default, keys are not exported.
 
----
+## 📎 Links
 
-## 📎 Ссылки
-
-- [GitHub проекта](https://github.com/AndreyKolygin/smja-extension)
-- [Issues / багрепорты](https://github.com/AndreyKolygin/smja-extension/issues)
-- [Changelog](CHANGELOG.md)
+- Project on GitHub: https://github.com/AndreyKolygin/smja-extension
+- Issues: https://github.com/AndreyKolygin/smja-extension/issues
+- Changelog: CHANGELOG.md
 
