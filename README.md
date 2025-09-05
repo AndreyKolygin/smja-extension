@@ -32,9 +32,9 @@ Open Options. On first launch the extension is preconfigured with sensible defau
   - Google Gemini (`https://generativelanguage.googleapis.com/v1beta`)
   - OpenAI (`https://api.openai.com/v1`)
 - Models:
-  - Llama 3 (Ollama) — active by default (local, no API key needed)
-  - Gemini 1.5 Flash — active (requires Gemini API key)
-  - GPT‑4o mini — inactive (enable if you have OpenAI access)
+  - `Llama 3 (Ollama)` — active by default (local, no API key needed)
+  - `Gemini 2.5 Flash lite` — active (requires Gemini API key)
+  - `GPT‑4o mini` — inactive (enable if you have OpenAI access)
 - Site rules (enabled): LinkedIn, hh.ru, Indeed
 - Global templates: system prompt and Markdown output template
 
@@ -111,7 +111,8 @@ If a site rule exists, click Auto‑grab to automatically pull the description i
 - Export: save selected groups to JSON. API keys are excluded by default; include them with the “Include API keys” checkbox.
 - Import: load settings with modes:
   - Merge / add (updates by ID, preserves existing)
-  - Replace selected groups
+  - Replace selected groups  
+  
   Empty API keys during merge will not overwrite existing keys.
 
 ## ♻️ Reset to Defaults
@@ -156,21 +157,24 @@ If a site rule exists, click Auto‑grab to automatically pull the description i
 
 ## ❓ FAQ
 
-Q: Is my CV stored in the cloud?
+**Q: Is my CV stored in the cloud?**  
 A: No, all data is stored locally in your browser.
 
-Q: Can I use multiple providers?
+**Q: Can I use multiple providers?**  
 A: Yes. Add several and switch models freely.
 
-Q: Are site rules case‑sensitive?
+**Q: Are site rules case‑sensitive?**  
 A: No, host and path matching is case‑insensitive.
 
-Q: Are API keys exported?
+**Q: Are API keys exported?**  
 A: Only if you check “Include API keys” in the Export dialog. By default, keys are not exported.
 
 ## 📎 Links
 
-- Project on GitHub: https://github.com/AndreyKolygin/smja-extension
-- Issues: https://github.com/AndreyKolygin/smja-extension/issues
-- Changelog: CHANGELOG.md
+- [Project on GitHub](https://github.com/AndreyKolygin/smja-extension)
 
+- [Issues](https://github.com/AndreyKolygin/smja-extension/issues)
+
+- [Readme (rus)](https://github.com/AndreyKolygin/smja-extension/blob/main/README.ru.md)
+
+- [Changelog](https://github.com/AndreyKolygin/smja-extension/blob/main/CHANGELOG.md)
