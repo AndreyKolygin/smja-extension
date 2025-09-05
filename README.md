@@ -14,7 +14,7 @@ Everything runs locally in your browser. Your CV is not sent to the cloud. API k
 1) Download the latest release from [GitHub](https://github.com/AndreyKolygin/smja-extension/releases).
 2) Unzip to any folder.
 3) In Chrome/Chromium:
-   - Open [chrome://extensions/](chrome://extensions/)
+   - Open `chrome://extensions/`
    - Enable Developer mode
    - Click “Load unpacked” and select the extension folder
 4) The extension icon appears in the toolbar.
