@@ -30,7 +30,7 @@
 
 3. В Chrome / Chromium:
 
-- Откройте `chrome://extensions/`.
+- Откройте [chrome://extensions/](chrome://extensions/).
 
 - Включите **Режим разработчика** (Developer mode).
 
