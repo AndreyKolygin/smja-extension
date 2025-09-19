@@ -23,42 +23,33 @@ async function extractFromPageBG(tabId, selector, { waitMs = 4000, pollMs = 150 
         target: { tabId, allFrames: true },
         world: 'ISOLATED',
         func: (sel) => {
-          function deepQuerySelector(sel) {
-            let el = document.querySelector(sel);
-            if (el) return el;
-            const q = [];
-            const seed = document.querySelectorAll('*');
-            for (const n of seed) { if (n.shadowRoot) q.push(n.shadowRoot); }
-            for (let i = 0; i < q.length; i++) {
-              const root = q[i];
+          function collectTextBySelector(selector) {
+            const parts = String(selector || '').split(',').map(s => s.trim()).filter(Boolean);
+            const seen = new Set();
+            const out = [];
+            function collectInRoot(root, sel) {
               try {
-                el = root.querySelector(sel);
-                if (el) return el;
+                const nodes = root.querySelectorAll(sel);
+                for (const n of nodes) { if (!seen.has(n)) { seen.add(n); out.push(n); } }
               } catch {}
               const all = root.querySelectorAll('*');
-              for (const n of all) { if (n.shadowRoot) q.push(n.shadowRoot); }
+              for (const el of all) { if (el.shadowRoot) collectInRoot(el.shadowRoot, sel); }
             }
-            return null;
+            for (const p of parts) collectInRoot(document, p);
+            const texts = out.map(n => (n.innerText ?? n.textContent ?? '').trim()).filter(Boolean);
+            const text = texts.join('\n\n').replace(/\u00A0/g, ' ').replace(/[ \t]+\n/g, '\n').replace(/\n{3,}/g, '\n\n').trim();
+            return { ok: !!text, text, count: texts.length };
           }
-          try {
-            const node = deepQuerySelector(sel);
-            if (!node) return { ok: false, error: 'notfound' };
-            let text = (node.innerText ?? node.textContent ?? '').trim();
-            if (!text) return { ok: false, error: 'empty' };
-            text = text.replace(/\u00A0/g, ' ').replace(/[ \t]+\n/g, '\n').replace(/\n{3,}/g, '\n\n').trim();
-            return { ok: true, text };
-          } catch (e) {
-            return { ok: false, error: String(e && (e.message || e)) };
-          }
+          try { return collectTextBySelector(sel); }
+          catch (e) { return { ok: false, error: String(e && (e.message || e)) }; }
         },
         args: [selector]
       });
 
-      for (const inj of injResults || []) {
-        const r = inj?.result;
-        if (r?.ok) return r;
-      }
-      const last = injResults?.[injResults.length - 1]?.result;
+      const texts = [];
+      let last = null;
+      for (const inj of injResults || []) { const r = inj?.result; if (r) last = r; if (r?.ok && r.text) texts.push(r.text); }
+      if (texts.length) return { ok: true, text: texts.join('\n\n') };
       return last || { ok: false, error: 'notfound' };
     } catch (e) {
       return { ok: false, error: String(e && (e.message || e)) };
