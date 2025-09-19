@@ -150,3 +150,5 @@ function wireResetDefaults(){
     }
   });
 }
+
+// UI Mode controls removed (overlay is not supported in this build)

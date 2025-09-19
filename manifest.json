@@ -6,7 +6,7 @@
   "icons": { "16": "icons/16.png", "48": "icons/48.png", "128": "icons/128.png" },
   "action": { "default_popup": "ui/popup.html", "default_title": "Job description Analyzer" },
   "options_ui": { "page": "ui/options.html", "open_in_tab": true },
-  "permissions": ["storage","scripting","activeTab","downloads"],
+  "permissions": ["storage","scripting","activeTab","downloads","tabs"],
   "host_permissions": [],
   "optional_host_permissions": [
     "https://api.openai.com/*",
@@ -21,9 +21,18 @@
     "http://127.0.0.1:11434/*"
   ],
   
-  "background": { "service_worker": "sw.js", "type": "module" },
+  "background": { "service_worker": "background/index.js", "type": "module" },
   "content_security_policy": {
     "extension_pages": "script-src 'self'; object-src 'self'; style-src 'self'"
   },
-  "web_accessible_resources": []
+  
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "ui/*",
+        "icons/*"
+      ],
+      "matches": ["<all_urls>"]
+    }
+  ]
 }

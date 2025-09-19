@@ -1,6 +1,7 @@
 # JDA Extension
 
 JDA (Job Description Analyzer) is a browser extension that helps you:
+
 - compare job descriptions with your CV,
 - quickly find matches and gaps,
 - get a clean, structured report.
@@ -39,6 +40,7 @@ Open Options. On first launch the extension is preconfigured with sensible defau
 - Global templates: system prompt and Markdown output template
 
 Recommended first steps:
+
 - Paste your CV into General → CV
 - If needed, add API keys for Gemini / OpenAI
 - Tune System Prompt / Output Template to your style
@@ -50,11 +52,13 @@ Changes are autosaved; you can also press Save.
 ## 🛠 Options Overview
 
 ### Providers
+
 - Add providers with name, Base URL, API key
 - Edit and delete providers
 - Helpful hints for popular services
 
 ### Models
+
 - List of models (display name + ID)
 - Each model is linked to a provider
 - Optional per‑model system prompt override
@@ -62,6 +66,7 @@ Changes are autosaved; you can also press Save.
 - Reorder via drag handle in the first column
 
 ### CV & Templates
+
 - Paste and maintain your CV locally
 - Global System Prompt that controls analysis style
 - Output Template (Markdown skeleton)
@@ -69,12 +74,14 @@ Changes are autosaved; you can also press Save.
 - Clear prompt cache button
 
 ### Auto‑extraction Rules
+
 - Manage job‑text extraction rules per site
 - Support host patterns, wildcards, full‑URL masks, and regex
 - Provide CSS selectors to extract job description blocks
 - Enable/disable, edit, delete rules
 
 ### General (Language + Import/Export)
+
 - Language: choose UI language (applies to popup and settings)
 - Import / Export:
   - Export Settings → modal to pick groups:
@@ -139,18 +146,23 @@ If a site rule exists, click Auto‑grab to automatically pull the description i
 ## 🖼 Screenshots
 
 ### Analyze
+
 ![Popup Screenshot](docs/images/popup.png)
 
 ### Select job description
+
 ![Select Screenshot](docs/images/select.png)
 
 ### LLM Settings
+
 ![LLM Settings Screenshot](docs/images/llm-settings.png)
 
-### Auto‑extraction Rules
+### Autoextraction Rules
+
 ![Auto-extraction Rules Screenshot](docs/images/auto-extraction.png)
 
 ### General Settings
+
 ![General Settings Screenshot](docs/images/general-settings.png)
 
 ---

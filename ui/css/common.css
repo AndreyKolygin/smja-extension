@@ -377,6 +377,11 @@ fieldset {
   --icon: url("../../icons/menu-dots-svgrepo-com.svg");
 }
 
+/* Overlay switch icon */
+.i-maximize {
+  --icon: url("../../icons/maximize-square-svgrepo-com.svg");
+}
+
 /* Optional: icon-only buttons */
 .btn.icon-only {
   padding-left: 8px;

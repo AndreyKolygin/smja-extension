@@ -1,11 +1,11 @@
 // actions.js — Select/Clear/Analyze/Copy/Save
-import { state, setJobInput, setProgress, startTimer, stopTimer, setResult, setLastMeta } from "./state.js";
+import { state, setJobInput, setProgress, startTimer, stopTimer, setResult, setLastMeta, getActiveTab } from "./state.js";
 
 let __anBtnTicker = 0;
 let __anBtnStart = 0;
 
 // content-extraction defaults
-const DEFAULT_EXTRACT_WAIT = 2500; // ms
+const DEFAULT_EXTRACT_WAIT = 4000; // ms
 const DEFAULT_EXTRACT_POLL = 150;  // ms
 
 function startAnalyzeButtonTimer() {
@@ -38,16 +38,16 @@ function stopAnalyzeButtonTimer(finalMs, isError = false) {
 }
 
 export async function startSelection() {
-  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-  if (!tab?.id) return;
-  await chrome.scripting.executeScript({ target: { tabId: tab.id }, files: ["content/select.js"] });
-  await chrome.tabs.sendMessage(tab.id, { type: "START_SELECTION" });
+  const resp = await chrome.runtime.sendMessage({ type: 'BEGIN_SELECTION' });
+  if (!resp?.ok) {
+    alert('Cannot start selection: ' + (resp?.error || 'unknown error'));
+  }
 }
 
 export async function clearSelection() {
-  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-  if (tab?.id) { try { await chrome.tabs.sendMessage(tab.id, { type: "CLEAR_SELECTION" }); } catch {}
-  }
+  try {
+    await chrome.runtime.sendMessage({ type: 'CLEAR_SELECTION' });
+  } catch {}
   state.selectedText = "";
   const ji = document.getElementById("jobInput"); if (ji) ji.value = "";
   setResult("");
@@ -66,7 +66,6 @@ export function wireCopy() {
 
 // --- utils: печать в консоль попапа с узнаваемым префиксом
 const dbg = (...a) => console.debug("[FastStart]", ...a);
-
 
 // Универсальный матчинг правил сайта
 function wildcardToRegExp(str, { anchor = true } = {}) {
@@ -153,42 +152,74 @@ function siteMatches(url, pattern) {
 
 export async function ensureContentScript(tabId) {
   try {
-    await chrome.tabs.sendMessage(tabId, { type: "__PING__" }, { frameId: 0 });
-    return true; // уже на странице
-  } catch {
-    // попробуем внедрить
-    try {
-      await chrome.scripting.executeScript({
-        target: { tabId },
-        files: ["content/content.js"]
-      });
-      return true;
-    } catch (e) {
-      console.warn("[JDA] inject content failed:", e);
-      return false;
-    }
+    const resp = await chrome.runtime.sendMessage({ type: 'ENSURE_CONTENT_SCRIPT', tabId });
+    return !!resp?.ok;
+  } catch (e) {
+    console.warn('[JDA] ensureContentScript failed:', e);
+    return false;
   }
 }
 
 async function extractFromPage(tabId, selector, { waitMs = DEFAULT_EXTRACT_WAIT, pollMs = DEFAULT_EXTRACT_POLL } = {}) {
-  return new Promise((resolve) => {
-    try {
-      chrome.tabs.sendMessage(
-        tabId,
-        { type: "EXTRACT_SELECTOR", selector, waitMs, pollMs },
-        (resp) => {
-          const err = chrome.runtime.lastError;
-          if (err) {
-            resolve({ ok: false, error: err.message || "Chrome messaging error" });
-            return;
-          }
-          resolve(resp || { ok: false, error: "No response" });
-        }
-      );
-    } catch (e) {
-      resolve({ ok: false, error: String(e && e.message ? e.message : e) });
+  // Если мы внутри popup (chrome.scripting доступен), можно читать напрямую.
+  if (chrome?.scripting?.executeScript) {
+    const deadline = Date.now() + Math.max(800, Number(waitMs) || 3000);
+    async function readOnceAllFrames() {
+      try {
+        const injResults = await chrome.scripting.executeScript({
+          target: { tabId, allFrames: true },
+          world: 'ISOLATED',
+          func: (sel) => {
+            function deepQuerySelector(sel) {
+              let el = document.querySelector(sel);
+              if (el) return el;
+              const q = [];
+              const seed = document.querySelectorAll('*');
+              for (const n of seed) { if (n.shadowRoot) q.push(n.shadowRoot); }
+              for (let i = 0; i < q.length; i++) {
+                const root = q[i];
+                try { el = root.querySelector(sel); if (el) return el; } catch {}
+                const all = root.querySelectorAll('*');
+                for (const n of all) { if (n.shadowRoot) q.push(n.shadowRoot); }
+              }
+              return null;
+            }
+            try {
+              const node = deepQuerySelector(sel);
+              if (!node) return { ok: false, error: 'notfound' };
+              let text = (node.innerText ?? node.textContent ?? '').trim();
+              if (!text) return { ok: false, error: 'empty' };
+              text = text.replace(/\u00A0/g, ' ').replace(/[ \t]+\n/g, '\n').replace(/\n{3,}/g, '\n\n').trim();
+              return { ok: true, text };
+            } catch (e) {
+              return { ok: false, error: String(e && (e.message || e)) };
+            }
+          },
+          args: [selector]
+        });
+        for (const inj of injResults || []) { const r = inj?.result; if (r?.ok) return r; }
+        const last = injResults?.[injResults.length - 1]?.result;
+        return last || { ok: false, error: 'notfound' };
+      } catch (e) {
+        return { ok: false, error: String(e && (e.message || e)) };
+      }
     }
-  });
+    let lastErr = 'timeout';
+    while (Date.now() < deadline) {
+      const res = await readOnceAllFrames();
+      if (res?.ok) return res;
+      lastErr = res?.error || lastErr;
+      await new Promise(r => setTimeout(r, Math.max(80, Number(pollMs) || 160)));
+    }
+    return { ok: false, error: lastErr };
+  }
+  // В overlay (контент-скрипт) chrome.scripting недоступен — делаем через SW
+  try {
+    const resp = await chrome.runtime.sendMessage({ type: 'EXTRACT_FROM_PAGE', selector, waitMs, pollMs });
+    return resp || { ok: false, error: 'no_response' };
+  } catch (e) {
+    return { ok: false, error: String(e && (e.message || e)) };
+  }
 }
 
 // показать/скрыть кнопку Fast start
@@ -196,7 +227,7 @@ export async function detectAndToggleFastStart() {
   const btn = document.getElementById("fastStartBtn");
   if (!btn) return;
 
-  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+  const tab = await getActiveTab();
   if (!tab?.url) { btn.hidden = true; return; }
 
   const rules = (state.settings?.sites || []).filter(r => r && (r.active === undefined || r.active));
@@ -224,13 +255,11 @@ export async function detectAndToggleFastStart() {
       const selector = btn.dataset.selector || match.selector || "";
       if (!selector) { alert("Selector is empty for this site rule."); return; }
 
-      // показываем краткий статус в Progress, если есть
       setProgress?.("Grabbing description…");
 
       const resp = await extractFromPage(tab.id, selector, { waitMs: DEFAULT_EXTRACT_WAIT, pollMs: DEFAULT_EXTRACT_POLL });
 
       if (!resp?.ok) {
-        // типовые тексты ошибок — делаем дружелюбнее
         const msg = /port closed|context invalidated/i.test(resp?.error || "")
           ? "Page changed before we could read it. Try again."
           : (resp?.error || "Nothing found by selector on this page.");

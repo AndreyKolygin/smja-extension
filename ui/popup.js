@@ -1,9 +1,11 @@
 // popup.js — точка входа
-import { state, fetchSettings } from "./js/state.js";
+import { state, fetchSettings, getActiveTab, setActiveTab, setJobInput, setResult, setLastMeta } from "./js/state.js";
 import { populateModels, wireModelSelector } from "./js/models.js";
 import { startSelection, clearSelection, wireCopy, wireSave, wireAnalyzeButtons, wireJobInputSync, ensureContentScript, detectAndToggleFastStart } from "./js/actions.js";
 import { wireRuntimeMessages, warmLoadCaches } from "./js/messaging.js";
 import { loadLocale, applyTranslations, getSavedLang } from "./js/i18n.js";
+
+let __jdaInitStarted = false;
 
 function wireUI() {
   const menu = document.getElementById("menu");
@@ -52,6 +54,40 @@ function wireUI() {
   wireRuntimeMessages();
 }
 
+async function hydrateFromStorage() {
+  const { lastSelection, lastResult } = await chrome.storage.local.get(["lastSelection", "lastResult"]);
+  try {
+    if (lastSelection) {
+      // support either setter name used by app
+      window?.app?.setJobText?.(lastSelection);
+      window?.app?.setJobInput?.(lastSelection);
+    }
+    if (lastResult?.text) {
+      // support either renderer name used by app
+      window?.app?.setAnalysisResult?.(lastResult);
+      window?.app?.renderAnalysis?.(lastResult);
+    }
+  } catch (e) {
+    console.debug("[UI] hydrateFromStorage error:", e);
+  }
+}
+
+// первичная загрузка при открытии popup/overlay
+document.addEventListener("DOMContentLoaded", () => {
+  hydrateFromStorage();
+});
+if (document.readyState !== 'loading') {
+  setTimeout(() => hydrateFromStorage(), 0);
+}
+
+// лайв-синхронизация: когда SW кладёт новый результат
+chrome.storage.onChanged.addListener((changes, area) => {
+  if (area !== "local") return;
+  if (changes.lastSelection || changes.lastResult) {
+    hydrateFromStorage();
+  }
+});
+
 // lightweight i18n bootstrap for the popup
 async function initI18nPopup() {
   try {
@@ -67,9 +103,19 @@ async function initI18nPopup() {
 }
 
 async function init() {
+  if (__jdaInitStarted) return;
+  __jdaInitStarted = true;
   console.debug("[POPUP] init()");
   await initI18nPopup();
-  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+  let tab = null;
+  let initialCache = null;
+
+  // no overlay context bootstrap
+
+  if (!tab) {
+    tab = await getActiveTab();
+    setActiveTab(tab);
+  }
   console.debug("[POPUP] active tab =", tab?.url);
 
   if (!tab?.url || (!tab.url.startsWith("http://") && !tab.url.startsWith("https://"))) {
@@ -89,11 +135,32 @@ async function init() {
     return;
   }
 
- wireUI();
-  state.settings = await fetchSettings();
+  wireUI();
+  if (!state.settings) {
+    state.settings = await fetchSettings();
+  }
   console.debug("[POPUP] settings loaded", state.settings);
   populateModels();
-  warmLoadCaches();
+  if (initialCache) {
+    try {
+      const { lastSelection, lastResult } = initialCache;
+      if (lastSelection) {
+        state.selectedText = lastSelection;
+        setJobInput(lastSelection);
+        try { chrome.storage.local.set({ lastSelection }); } catch {}
+      }
+      if (lastResult?.text) {
+        state.lastResponse = lastResult.text;
+        setResult(lastResult.text);
+        try { setLastMeta(lastResult.when); } catch {}
+      }
+    } catch (e) {
+      console.debug('[POPUP] hydrate from context failed:', e);
+      warmLoadCaches();
+    }
+  } else {
+    warmLoadCaches();
+  }
 
   // Диагностический статус для Fast Start (создаём до вызова)
   let fs = document.getElementById("fastStartStatus");
@@ -122,3 +189,6 @@ async function init() {
 
 
 document.addEventListener("DOMContentLoaded", init);
+if (document.readyState !== 'loading') {
+  setTimeout(() => init(), 0);
+}

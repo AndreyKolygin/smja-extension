@@ -9,8 +9,8 @@
   /* Glassmorphism */
   background: linear-gradient(
     to bottom right,
-    rgba(255, 255, 255, 0.12),
-    rgba(255, 255, 255, 0.04)
+    rgba(255, 255, 255, 0.42),
+    rgba(255, 255, 255, 0.34)
   );
   border: 1px solid rgba(255, 255, 255, 0.18);
   border-radius: 12px;

@@ -6,7 +6,8 @@ export const state = {
   timerId: 0,
   timerStart: 0,
   settings: null,
-  chosenModel: null
+  chosenModel: null,
+  activeTab: null
 };
 
 
@@ -95,8 +96,27 @@ export function setResult(text) {
 }
 
 export async function getActiveTab() {
-  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-  return tab || null;
+  if (state.activeTab?.id) return state.activeTab;
+  try {
+    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    if (tab) return tab;
+  } catch (e) {
+    console.debug('[JDA] chrome.tabs.query failed:', e);
+  }
+  try {
+    const resp = await chrome.runtime.sendMessage({ type: 'GET_ACTIVE_TAB' });
+    if (resp?.ok && resp.tab) return resp.tab;
+    if (resp?.ok && resp.tabId) {
+      return { id: resp.tabId };
+    }
+  } catch (e) {
+    console.debug('[JDA] GET_ACTIVE_TAB fallback failed:', e);
+  }
+  return null;
+}
+
+export function setActiveTab(tab) {
+  state.activeTab = tab || null;
 }
 
 export function setLastMeta(whenMs) {
@@ -128,8 +148,19 @@ export function stopTimer(done = false, ms = 0) {
 }
 
 export async function fetchSettings() {
-  try { return await chrome.runtime.sendMessage({ type: "GET_SETTINGS" }); }
-  catch { return null; }
+  try {
+    const resp = await chrome.runtime.sendMessage({ type: "GET_SETTINGS" });
+    if (resp) return resp;
+  } catch (err) {
+    console.debug('[JDA] GET_SETTINGS via SW failed:', err);
+  }
+  try {
+    const res = await chrome.storage.local.get(['settings']);
+    return res?.settings || null;
+  } catch (err) {
+    console.debug('[JDA] local settings read failed:', err);
+    return null;
+  }
 }
 
 export function setJobInput(text) {
