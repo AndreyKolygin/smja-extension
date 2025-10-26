@@ -573,66 +573,69 @@
 
     safeSendMessage({ type: 'SELECTION_ANALYZE', text });
 
-    safeSendMessage({ type: 'GET_SETTINGS' }, (settings) => {
-      try {
-        const s = settings || {};
-        const models = Array.isArray(s.models) ? s.models.filter(m => m && m.active) : [];
-        if (!models.length) throw new Error('No active model configured. Open Settings to activate a model.');
-        const chosenId = (s.ui && s.ui.chosenModel) || s.chosenModel || models[0].id;
-        const modelMeta = models.find(m => m.id === chosenId) || models[0];
-        const provider = Array.isArray(s.providers) ? s.providers.find(p => p.id === modelMeta.providerId) : null;
-        if (!provider) throw new Error('Provider for the selected model is missing.');
+    chrome.storage.local.get(['ui'], (localData) => {
+      const localChosen = localData?.ui?.chosenModel || null;
+      safeSendMessage({ type: 'GET_SETTINGS' }, (settings) => {
+        try {
+          const s = settings || {};
+          const models = Array.isArray(s.models) ? s.models.filter(m => m && m.active) : [];
+          if (!models.length) throw new Error('No active model configured. Open Settings to activate a model.');
+          const chosenId = localChosen || s.ui?.chosenModel || s.chosenModel || models[0].id;
+          const modelMeta = models.find(m => m.id === chosenId) || models[0];
+          const provider = Array.isArray(s.providers) ? s.providers.find(p => p.id === modelMeta.providerId) : null;
+          if (!provider) throw new Error('Provider for the selected model is missing.');
 
-        const callPayload = {
-          modelId: modelMeta.modelId,
-          providerId: modelMeta.providerId,
-          cv: s.cv || '',
-          systemTemplate: s.systemTemplate || '',
-          outputTemplate: s.outputTemplate || '',
-          modelSystemPrompt: modelMeta.systemPrompt || '',
-          text
-        };
+          const callPayload = {
+            modelId: modelMeta.modelId,
+            providerId: modelMeta.providerId,
+            cv: s.cv || '',
+            systemTemplate: s.systemTemplate || '',
+            outputTemplate: s.outputTemplate || '',
+            modelSystemPrompt: modelMeta.systemPrompt || '',
+            text
+          };
 
-        safeSendMessage({ type: 'CALL_LLM', payload: callPayload }, (resp) => {
+          safeSendMessage({ type: 'CALL_LLM', payload: callPayload }, (resp) => {
+            if (timerId) { clearInterval(timerId); timerId = 0; }
+            const elapsedMs = performance.now() - state.analyzing.start;
+            const label = `Done: ${(elapsedMs / 1000).toFixed(2)}s`;
+            analyzeBtn.textContent = label;
+            analyzeBtn.disabled = false;
+            state.analyzing = null;
+
+            if (resp?.ok) {
+              try {
+                chrome.storage.local.set({ lastResult: { text: resp.text, when: Date.now(), ms: resp.ms || elapsedMs } }, () => {});
+              } catch {}
+              safeSendMessage({ type: 'LLM_RESULT', text: resp.text });
+              analyzeBtn.textContent = `${label}`;
+              analyzeBtn.dataset.mode = 'done';
+              analyzeBtn.disabled = true;
+              state.lastAnalyzedBlockCount = state.highlights.length;
+              updateMenu();
+            } else if (resp?.error) {
+              alert('LLM error: ' + resp.error);
+              analyzeBtn.textContent = 'Analyze';
+              analyzeBtn.dataset.mode = '';
+              analyzeBtn.disabled = state.highlights.length === 0;
+              updateMenu();
+            } else {
+              analyzeBtn.textContent = 'Analyze';
+              analyzeBtn.dataset.mode = '';
+              analyzeBtn.disabled = state.highlights.length === 0;
+              updateMenu();
+            }
+          });
+        } catch (err) {
           if (timerId) { clearInterval(timerId); timerId = 0; }
-          const elapsedMs = performance.now() - state.analyzing.start;
-          const label = `Done: ${(elapsedMs / 1000).toFixed(2)}s`;
-          analyzeBtn.textContent = label;
           analyzeBtn.disabled = false;
+          analyzeBtn.textContent = 'Analyze';
+          analyzeBtn.dataset.mode = '';
           state.analyzing = null;
-
-          if (resp?.ok) {
-            try {
-              chrome.storage.local.set({ lastResult: { text: resp.text, when: Date.now(), ms: resp.ms || elapsedMs } }, () => {});
-            } catch {}
-            safeSendMessage({ type: 'LLM_RESULT', text: resp.text });
-            analyzeBtn.textContent = `${label}`;
-            analyzeBtn.dataset.mode = 'done';
-            analyzeBtn.disabled = true;
-            state.lastAnalyzedBlockCount = state.highlights.length;
-            updateMenu();
-          } else if (resp?.error) {
-            alert('LLM error: ' + resp.error);
-            analyzeBtn.textContent = 'Analyze';
-            analyzeBtn.dataset.mode = '';
-            analyzeBtn.disabled = state.highlights.length === 0;
-            updateMenu();
-          } else {
-            analyzeBtn.textContent = 'Analyze';
-            analyzeBtn.dataset.mode = '';
-            analyzeBtn.disabled = state.highlights.length === 0;
-            updateMenu();
-          }
-        });
-      } catch (err) {
-        if (timerId) { clearInterval(timerId); timerId = 0; }
-        analyzeBtn.disabled = false;
-        analyzeBtn.textContent = 'Analyze';
-        analyzeBtn.dataset.mode = '';
-        state.analyzing = null;
-        alert(err?.message || String(err || 'Failed to start analysis.'));
-        updateMenu();
-      }
+          alert(err?.message || String(err || 'Failed to start analysis.'));
+          updateMenu();
+        }
+      });
     });
   }
 
