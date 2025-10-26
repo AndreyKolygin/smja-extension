@@ -258,8 +258,25 @@ fieldset {
   gap: 6px;
 }
 
+.icon-only {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+}
+
 .icon-left::before,
 .icon-right::after {
+  content: "";
+  display: inline-block;
+  width: var(--icon-size, 16px);
+  height: var(--icon-size, 16px);
+  background-color: currentColor;
+  mask: var(--icon) center / contain no-repeat;
+  -webkit-mask: var(--icon) center / contain no-repeat;
+}
+
+.icon-only::before {
   content: "";
   display: inline-block;
   width: var(--icon-size, 16px);
@@ -293,6 +310,9 @@ fieldset {
 .i-copy {
   --icon: url("../../icons/copy-svgrepo-com.svg");
 }
+.i-notion {
+  --icon: url("../../icons/notion-logo-svgrepo-com.svg");
+}
 .i-save {
   --icon: url("../../icons/file-download-svgrepo-com.svg");
 }
@@ -303,7 +323,7 @@ fieldset {
   --icon: url("../../icons/link-minimalistic-svgrepo-com.svg");
 }
 .i-file {
-  --icon: url("../../icons/file-svgrepo-com.svg");
+  --icon: url("../../icons/markdown-svgrepo-com.svg");
 }
 .i-magic {
   --icon: url("../../icons/magic-stick-3-svgrepo-com.svg");
@@ -344,8 +364,8 @@ fieldset {
 .i-trash {
   --icon: url("../../icons/trash-bin-trash-svgrepo-com.svg");
 }
-.i-broom {
-  --icon: url("../../icons/broom-svgrepo-com.svg");
+.i-startover {
+  --icon: url("../../icons/arrow-counterclockwise.svg");
 }
 .i-paperclip {
   --icon: url("../../icons/paperclip-2-svgrepo-com.svg");
@@ -356,7 +376,8 @@ fieldset {
   --icon: url("../../icons/paper-bin-svgrepo-com.svg");
 }
 .i-doc-add {
-  --icon: url("../../icons/document-add-svgrepo-com.svg");
+  /* --icon: url("../../icons/document-add-svgrepo-com.svg"); */
+  --icon: url("../../icons/chat-left-text-svgrepo-com.svg");
 }
 .i-pen {
   --icon: url("../../icons/pen-new-square-svgrepo-com.svg");

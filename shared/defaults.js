@@ -113,6 +113,32 @@ const DEFAULT_OUTPUT_TEMPLATE = [
   '- ...'
 ].join('\n');
 
+const DEFAULT_NOTION_FIELDS = [
+  {
+    id: 'notion_field_title',
+    label: 'Title (analysis summary)',
+    propertyName: '',
+    propertyType: 'title',
+    source: 'analysis',
+    staticValue: ''
+  },
+  {
+    id: 'notion_field_job',
+    label: 'Job description',
+    propertyName: '',
+    propertyType: 'rich_text',
+    source: 'jobDescription',
+    staticValue: ''
+  }
+];
+
+const DEFAULT_NOTION = {
+  enabled: false,
+  token: '',
+  databaseId: '',
+  fields: DEFAULT_NOTION_FIELDS
+};
+
 export function getDefaultSettings() {
   return {
     version: undefined,
@@ -122,7 +148,15 @@ export function getDefaultSettings() {
     sites: DEFAULT_SITES.map(s => ({ ...s })),
     cv: '',
     systemTemplate: DEFAULT_SYSTEM_TEMPLATE,
-    outputTemplate: DEFAULT_OUTPUT_TEMPLATE
+    outputTemplate: DEFAULT_OUTPUT_TEMPLATE,
+    integrations: {
+      notion: {
+        enabled: DEFAULT_NOTION.enabled,
+        token: '',
+        databaseId: '',
+        fields: DEFAULT_NOTION.fields.map(f => ({ ...f }))
+      }
+    }
   };
 }
 
@@ -131,6 +165,6 @@ export const DEFAULTS = {
   MODELS: DEFAULT_MODELS,
   SITES: DEFAULT_SITES,
   SYSTEM_TEMPLATE: DEFAULT_SYSTEM_TEMPLATE,
-  OUTPUT_TEMPLATE: DEFAULT_OUTPUT_TEMPLATE
+  OUTPUT_TEMPLATE: DEFAULT_OUTPUT_TEMPLATE,
+  NOTION: DEFAULT_NOTION
 };
-

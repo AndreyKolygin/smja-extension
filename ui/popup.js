@@ -1,7 +1,7 @@
 // popup.js — точка входа
 import { state, fetchSettings, getActiveTab, setActiveTab, setJobInput, setResult, setLastMeta } from "./js/state.js";
 import { populateModels, wireModelSelector } from "./js/models.js";
-import { startSelection, clearSelection, wireCopy, wireSave, wireAnalyzeButtons, wireJobInputSync, ensureContentScript, detectAndToggleFastStart } from "./js/actions.js";
+import { startSelection, clearSelection, wireCopy, wireSave, wireSaveToNotion, wireAnalyzeButtons, wireJobInputSync, ensureContentScript, detectAndToggleFastStart, updateNotionButtonVisibility } from "./js/actions.js";
 import { wireRuntimeMessages, warmLoadCaches } from "./js/messaging.js";
 import { loadLocale, applyTranslations, getSavedLang } from "./js/i18n.js";
 
@@ -50,6 +50,7 @@ function wireUI() {
   wireAnalyzeButtons();
   wireCopy();
   wireSave();
+  wireSaveToNotion();
   wireJobInputSync();
   wireRuntimeMessages();
 }
@@ -139,6 +140,7 @@ async function init() {
   if (!state.settings) {
     state.settings = await fetchSettings();
   }
+  updateNotionButtonVisibility();
   console.debug("[POPUP] settings loaded", state.settings);
   populateModels();
   if (initialCache) {

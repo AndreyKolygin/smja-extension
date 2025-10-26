@@ -3,6 +3,7 @@
 import { sanitizeText, requireFields, guardedCall } from './utils.js';
 import { applyUiMode, getSettings, saveSettings, resetSettings } from './settings.js';
 import { callLLMRouter } from './llm/router.js';
+import { saveToNotion } from './integrations/notion.js';
 
 function sanitizeTab(tab) {
   if (!tab) return null;
@@ -212,6 +213,17 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         } catch {}
 
         sendResponse(result);
+        return;
+      }
+
+      if (message?.type === 'SAVE_TO_NOTION') {
+        try {
+          const settings = await getSettings();
+          const result = await saveToNotion({ settings, payload: message.payload || {} });
+          sendResponse(result);
+        } catch (e) {
+          sendResponse({ ok: false, error: String(e?.message || e) });
+        }
         return;
       }
 

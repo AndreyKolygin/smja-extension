@@ -10,125 +10,163 @@
   <div class="options container ">
     <h1 data-i18n="ui.app.title">Job description Analyzer — Settings</h1>
     <div class="grid mt-16">
-      <div class="card glass card_llm">
-        <h2 data-i18n="options.title.llmSettings">LLM settings</h2>
-        <h3 data-i18n="options.title.providerSettings">Provider settings</h3>
-        <p><button class="btn add-model icon-left i-add" id="addProviderBtn" title="Add LLM provider" data-i18n="options.btn.addProvider">+ Add Provider</button></p>
-        <div class="table-wrapper">
-          <table class="table" id="providersTable">
-          <thead><tr>
-            <th data-i18n="options.tbl.name">Name</th>
-            <th data-i18n="options.tbl.baseUrl">Base URL</th>
-            <th>Type</th>
-            <th data-i18n="options.tbl.key">Key</th>
-            <th></th>
-          </tr></thead>
-          <tbody></tbody>
-        </table>
-        </div>
-        <h3 data-i18n="options.title.models">Models</h3>
-        <p><button class="btn add-model icon-left i-add" id="addModelBtn" title="Add model for provider" data-i18n="options.btn.addModel">+ Add Model</button></p>
-        <div class="table-wrapper">
-        <table class="table" id="modelsTable">
-          <thead><tr>
-            <th class="col-drag" title="Drag to reorder">⇅</th>
-            <th data-i18n="options.tbl.active">Active</th>
-            <th data-i18n="options.tbl.displayName">Display name</th>
-            <th data-i18n="options.tbl.provider">Provider</th>
-            <th data-i18n="options.tbl.modelId">Model ID</th>
-            <th></th></tr></thead>
-          <tbody></tbody>
-        </table>
-        </div>
-        <label data-i18n="options.hint.model1">Model-level system prompt (edit per model)</label>
-        <div class="muted" data-i18n="options.hint.model2">Open any model row to edit its system prompt.</div>
+      <div class="tabs" id="optionsTabs" role="tablist">
+        <button class="tab-button active" data-tab="llm" role="tab" aria-selected="true" data-i18n="options.tabs.llm">LLM Settings</button>
+        <button class="tab-button" data-tab="sites" role="tab" aria-selected="false" tabindex="-1" data-i18n="options.tabs.sites">Auto-extraction Rules</button>
+        <button class="tab-button" data-tab="prompts" role="tab" aria-selected="false" tabindex="-1" data-i18n="options.tabs.prompts">CV &amp; Prompts</button>
+        <button class="tab-button" data-tab="integrations" role="tab" aria-selected="false" tabindex="-1" data-i18n="options.tabs.integrations">Integrations</button>
+        <button class="tab-button" data-tab="lang" role="tab" aria-selected="false" tabindex="-1" data-i18n="options.tabs.langIO">Lang &amp; I/O settings</button>
       </div>
-      
-      <div class="card glass card_sites">
-        <h2 data-i18n="options.title.autoExtract">Auto-extraction Rules</h2>
-        <p class="muted" data-i18n="options.section.description">Add websites and CSS selectors to automatically extract job descriptions.</p>
-        <p><button class="btn add-model icon-left i-add" id="addSiteBtn" data-i18n="options.btn.addSiteRule">+ Add Site</button></p>
-        <div class="table-wrapper">
-          <table class="table" id="sitesTable">
-            <thead>
-              <tr>
-                <th data-i18n="options.tbl.active">Active</th>
-                <th data-i18n="options.tbl.site">Site</th>
-                <th data-i18n="options.tbl.selector" class="word-break">Selector</th>
-                <th data-i18n="options.tbl.comment">Comment</th>
+
+      <div class="tab-panels">
+        <section class="tab-panel active" data-tab="llm" role="tabpanel">
+          <div class="card glass card_llm">
+            <h2 data-i18n="options.title.llmSettings">LLM settings</h2>
+            <h3 data-i18n="options.title.providerSettings">Provider settings</h3>
+            <p><button class="btn add-model icon-left i-add" id="addProviderBtn" title="Add LLM provider" data-i18n="options.btn.addProvider">+ Add Provider</button></p>
+            <div class="table-wrapper">
+              <table class="table" id="providersTable">
+              <thead><tr>
+                <th data-i18n="options.tbl.name">Name</th>
+                <th data-i18n="options.tbl.baseUrl">Base URL</th>
+                <th>Type</th>
+                <th data-i18n="options.tbl.key">Key</th>
                 <th></th>
-              </tr>
-            </thead>
-            <tbody></tbody>
-          </table>
-        </div>
-      </div>
+              </tr></thead>
+              <tbody></tbody>
+            </table>
+            </div>
+            <h3 data-i18n="options.title.models">Models</h3>
+            <p><button class="btn add-model icon-left i-add" id="addModelBtn" title="Add model for provider" data-i18n="options.btn.addModel">+ Add Model</button></p>
+            <div class="table-wrapper">
+            <table class="table" id="modelsTable">
+              <thead><tr>
+                <th class="col-drag" title="Drag to reorder">⇅</th>
+                <th data-i18n="options.tbl.active">Active</th>
+                <th data-i18n="options.tbl.displayName">Display name</th>
+                <th data-i18n="options.tbl.provider">Provider</th>
+                <th data-i18n="options.tbl.modelId">Model ID</th>
+                <th></th></tr></thead>
+              <tbody></tbody>
+            </table>
+            </div>
+            <label data-i18n="options.hint.model1">Model-level system prompt (edit per model)</label>
+            <div class="muted" data-i18n="options.hint.model2">Open any model row to edit its system prompt.</div>
+          </div>
+        </section>
 
-      <div class="card glass card_general">
-        <h2 data-i18n="options.title.general">General</h2>
-        <h3 data-i18n="options.title.cv">CV</h3>
-        <textarea class="textInput" id="cv" data-i18n-attr-placeholder="options.title.cv" placeholder="Your CV" required aria-required="true"></textarea>
-
-        <h3 data-i18n="options.title.systemPromptTempl">System prompt template</h3>
-        <textarea class="textInput" id="systemTemplate"></textarea>
-        <!-- <div class="muted" data-i18n="options.title.systemPromptTempl.help">
-          Default included. See templates: <a href="https://github.com/andreykolygin" target="_blank">GitHub</a>.
-        </div> -->
-
-        <h3 data-i18n="options.title.resultOutpTempl">Result output template</h3>
-        <textarea class="textInput" id="outputTemplate"></textarea>
-        
-        <!-- Кнопки сохранения и сбороса кэша -->
-        <div class="saveBtn">
-          <p>
-            <button class="btn danger icon-left i-eraser" id="resetCacheBtn" data-i18n="options.btn.resetPromptCache" disabled>Reset prompt cache</button>
-            <span class="muted ml-8" id="resetHint"></span>
-          </p>
-          <p>
-            <button class="btn primary icon-left i-check" id="saveBtn" data-i18n="options.btn.saveSettings">Save settings</button>
-          </p>
-        </div>
-      </div> 
-      <!-- Settings group -->
-      <div class="twoColumn">
-        <div class="flex-items">
-          <div class="card glass">
-          <h2 data-i18n="options.title.language">Language</h2>
-          <div class="settings-grid">
-            <div class="settings-col">
-              <div class="form-row">
-                <label for="uiLang" data-i18n="options.lang.label">Interface language</label>
-                <select id="uiLang">
-                  <option value="en">English</option>
-                  <option value="ru">Русский</option>
-                  <!-- добавляй другие языки -->
-                </select>
-                <p class="muted" data-i18n="options.lang.hint">Choose UI language (applies to popup &amp; settings)</p>
-              </div>
+        <section class="tab-panel" data-tab="sites" role="tabpanel" hidden>
+          <div class="card glass card_sites">
+            <h2 data-i18n="options.title.autoExtract">Auto-extraction Rules</h2>
+            <p class="muted" data-i18n="options.section.description">Add websites and CSS selectors to automatically extract job descriptions.</p>
+            <p><button class="btn add-model icon-left i-add" id="addSiteBtn" data-i18n="options.btn.addSiteRule">+ Add Site</button></p>
+            <div class="table-wrapper">
+              <table class="table" id="sitesTable">
+                <thead>
+                  <tr>
+                    <th data-i18n="options.tbl.active">Active</th>
+                    <th data-i18n="options.tbl.site">Site</th>
+                    <th data-i18n="options.tbl.selector" class="word-break">Selector</th>
+                    <th data-i18n="options.tbl.comment">Comment</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody></tbody>
+              </table>
             </div>
           </div>
-          </div>
-        </div>
-        <div class="flex-items">
-          <div class="card glass">
-          <h2 data-i18n="options.title.importExport">Import / Export </h2>
-          <div class="settings-grid">
-            <div class="settings-col">
-              <div id="settingsIO" class="io-row">
-                <button id="exportSettingsBtn" class="btn secondary icon-left i-export" data-i18n="options.btn.exportSettings">Export Settings</button>
-                <button id="importSettingsBtn" class="btn icon-left i-import" data-i18n="options.btn.importSettings">Import Settings</button>
-                <input id="importSettingsFile" type="file" accept="application/json" class="hidden" />
-              </div>
-              <p class="mt-8">
-                <button class="btn danger icon-left i-default" id="resetDefaultsBtn" data-i18n="options.btn.resetDefaults">Reset to defaults</button>
+        </section>
+
+        <section class="tab-panel" data-tab="prompts" role="tabpanel" hidden>
+          <div class="card glass card_general">
+            <h2 data-i18n="options.title.general">CV &amp; Prompts</h2>
+            <h3 data-i18n="options.title.cv">CV</h3>
+            <textarea class="textInput" id="cv" data-i18n-attr-placeholder="options.title.cv" placeholder="Your CV" required aria-required="true"></textarea>
+
+            <h3 data-i18n="options.title.systemPromptTempl">System prompt template</h3>
+            <textarea class="textInput" id="systemTemplate"></textarea>
+
+            <h3 data-i18n="options.title.resultOutpTempl">Result output template</h3>
+            <textarea class="textInput" id="outputTemplate"></textarea>
+            
+            <div class="saveBtn">
+              <p>
+                <button class="btn danger icon-left i-eraser" id="resetCacheBtn" data-i18n="options.btn.resetPromptCache" disabled>Reset prompt cache</button>
+                <span class="muted ml-8" id="resetHint"></span>
+              </p>
+              <p>
+                <button class="btn primary icon-left i-check" id="saveBtn" data-i18n="options.btn.saveSettings">Save settings</button>
               </p>
             </div>
+          </div> 
+        </section>
+
+        <section class="tab-panel" data-tab="integrations" role="tabpanel" hidden>
+          <div class="card glass card_integrations">
+            <h2 data-i18n="options.integrations.title">Integrations</h2>
+            <div class="form-row switch-row">
+              <label for="notionEnabled">
+                <input type="checkbox" id="notionEnabled" />
+                <span data-i18n="options.integrations.notion.enable">Enable “Save to Notion” button</span>
+              </label>
+            </div>
+            <div id="notionSettings" class="notion-settings hidden">
+              <p class="muted" data-i18n="options.integrations.notion.hint">Provide integration secret and database ID from Notion. At least one field must map to a title property.</p>
+              <div class="form-row">
+                <label for="notionToken" data-i18n="options.integrations.notion.token">Integration token</label>
+                <input type="password" id="notionToken" placeholder="secret_..." />
+              </div>
+              <div class="form-row">
+                <label for="notionDatabaseId" data-i18n="options.integrations.notion.database">Database ID</label>
+                <input type="text" id="notionDatabaseId" placeholder="xxxxxxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" />
+              </div>
+              <h3 data-i18n="options.integrations.notion.fields">Field mapping</h3>
+              <p><button class="btn add-model icon-left i-add" type="button" id="addNotionFieldBtn" data-i18n="options.integrations.notion.addField">+ Add field</button></p>
+              <div id="notionFields" class="notion-field-list"></div>
+            </div>
           </div>
-          </div>
-        </div>
-      </div>   
+        </section>
+
+        <section class="tab-panel" data-tab="lang" role="tabpanel" hidden>
+          <div class="twoColumn">
+            <div class="flex-items">
+              <div class="card glass">
+              <h2 data-i18n="options.title.language">Language</h2>
+              <div class="settings-grid">
+                <div class="settings-col">
+                  <div class="form-row">
+                    <label for="uiLang" data-i18n="options.lang.label">Interface language</label>
+                    <select id="uiLang">
+                      <option value="en">English</option>
+                      <option value="ru">Русский</option>
+                    </select>
+                    <p class="muted" data-i18n="options.lang.hint">Choose UI language (applies to popup &amp; settings)</p>
+                  </div>
+                </div>
+              </div>
+              </div>
+            </div>
+            <div class="flex-items">
+              <div class="card glass">
+              <h2 data-i18n="options.title.importExport">Import / Export </h2>
+              <div class="settings-grid">
+                <div class="settings-col">
+                  <div id="settingsIO" class="io-row">
+                    <button id="exportSettingsBtn" class="btn secondary icon-left i-export" data-i18n="options.btn.exportSettings">Export Settings</button>
+                    <button id="importSettingsBtn" class="btn icon-left i-import" data-i18n="options.btn.importSettings">Import Settings</button>
+                    <input id="importSettingsFile" type="file" accept="application/json" class="hidden" />
+                  </div>
+                  <p class="mt-8">
+                    <button class="btn danger icon-left i-default" id="resetDefaultsBtn" data-i18n="options.btn.resetDefaults">Reset to defaults</button>
+                  </p>
+                </div>
+              </div>
+              </div>
+            </div>
+          </div>   
+        </section>
+      </div>
     </div>
-  </div>
   </div>
 
 
@@ -304,6 +342,10 @@
         <input type="checkbox" name="grp" value="prompts" checked>
         <span data-i18n="options.section.prompts">CV and Templates</span>
       </label>
+      <label class="row">
+        <input type="checkbox" name="grp" value="integrations" checked>
+        <span data-i18n="options.import.integrations">Integrations (Notion)</span>
+      </label>
     </fieldset>
 
     <!-- Drop zone (clickable) -->
@@ -365,6 +407,14 @@
         <label class="row">
           <input type="checkbox" name="exgrp" value="outputTemplate" checked>
           <span data-i18n="options.export.output">Result Output Template</span>
+        </label>
+        <label class="row">
+          <input type="checkbox" name="exgrp" value="integrations" checked>
+          <span data-i18n="options.export.integrations">Integrations (Notion)</span>
+        </label>
+        <label class="row ml-8">
+          <input type="checkbox" name="exintsecret" id="exintsecret">
+          <span data-i18n="options.export.integrationsSecret">Include Notion integration token</span>
         </label>
       </fieldset>
 

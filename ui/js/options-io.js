@@ -3,6 +3,7 @@ import { normalizeSettings, persistSettings } from './options-util.js';
 import { renderProviders } from './options-providers.js';
 import { renderModels } from './options-models.js';
 import { renderSites } from './options-sites.js';
+import { renderIntegrations } from './options-integrations.js';
 
 // утилита: merge массива по id, с опцией сохранить существующие (по умолчанию true)
 function mergeById(existing = [], incoming = [], { preserveExisting = true, onMerge = null } = {}) {
@@ -87,12 +88,41 @@ async function applyImport(settings, imported, { mode = 'merge', groups = [] } =
     }
   }
 
+  if (want('integrations')) {
+    const srcIntegr = src.integrations || {};
+    if (!tgt.integrations) tgt.integrations = {};
+    const srcNotion = srcIntegr.notion && typeof srcIntegr.notion === 'object' ? srcIntegr.notion : null;
+
+    if (mode === 'replace') {
+      if (srcNotion) {
+        tgt.integrations.notion = JSON.parse(JSON.stringify(srcNotion));
+      }
+    } else if (srcNotion) {
+      const dest = {
+        enabled: tgt.integrations.notion?.enabled ?? false,
+        token: tgt.integrations.notion?.token ?? '',
+        databaseId: tgt.integrations.notion?.databaseId ?? '',
+        fields: Array.isArray(tgt.integrations.notion?.fields) ? [...tgt.integrations.notion.fields] : []
+      };
+      if (typeof srcNotion.enabled === 'boolean') dest.enabled = srcNotion.enabled;
+      if (srcNotion.databaseId) dest.databaseId = srcNotion.databaseId;
+      if (Object.prototype.hasOwnProperty.call(srcNotion, 'token') && srcNotion.token) {
+        dest.token = srcNotion.token;
+      }
+      if (Array.isArray(srcNotion.fields) && srcNotion.fields.length) {
+        dest.fields = mergeById(dest.fields || [], srcNotion.fields, { preserveExisting: true });
+      }
+      tgt.integrations.notion = dest;
+    }
+  }
+
   await persistSettings(tgt);
 
   // перерисуем таблицы/поля
   renderProviders(tgt);
   renderModels(tgt);
   renderSites(tgt);
+  renderIntegrations(tgt);
   const cv = document.getElementById('cv');
   const sys = document.getElementById('systemTemplate');
   const out = document.getElementById('outputTemplate');
@@ -101,7 +131,7 @@ async function applyImport(settings, imported, { mode = 'merge', groups = [] } =
   if (out) out.value = tgt.outputTemplate || '';
 }
 
-async function doExport(settings, { groups = [], includeProviderKeys = false } = {}) {
+async function doExport(settings, { groups = [], includeProviderKeys = false, includeIntegrationSecrets = false } = {}) {
   // pick-only selected groups; when empty, export them all
   const want = (g) => groups.length === 0 || groups.includes(g);
 
@@ -129,6 +159,15 @@ async function doExport(settings, { groups = [], includeProviderKeys = false } =
   }
   if (want('outputTemplate')) {
     out.outputTemplate = src.outputTemplate || '';
+  }
+  if (want('integrations')) {
+    const integr = src.integrations ? JSON.parse(JSON.stringify(src.integrations)) : {};
+    if (!includeIntegrationSecrets && integr?.notion) {
+      integr.notion.token = '';
+    }
+    if (integr && Object.keys(integr).length > 0) {
+      out.integrations = integr;
+    }
   }
 
   const data = JSON.stringify(out, null, 2);
@@ -262,8 +301,9 @@ function openExportDialog(settings){
     e?.preventDefault?.();
     const groups = Array.from(dlg.querySelectorAll('input[name="exgrp"]:checked')).map(x => x.value);
     const includeProviderKeys = !!dlg.querySelector('input[name="exprovkeys"]')?.checked;
+    const includeIntegrationSecrets = !!dlg.querySelector('input[name="exintsecret"]')?.checked;
     try {
-      await doExport(settings, { groups, includeProviderKeys });
+      await doExport(settings, { groups, includeProviderKeys, includeIntegrationSecrets });
       dlg.close?.();
     } catch (err) {
       alert('Export failed: ' + String(err && (err.message || err)));

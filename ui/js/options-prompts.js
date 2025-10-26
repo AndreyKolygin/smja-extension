@@ -127,8 +127,8 @@ export function injectSingleColumnLayout() {
   try { document.body.classList.add('single-column'); } catch {}
 }
 export function renameGeneralToCV() {
-  const n = document.querySelector('#generalTitle, #general h2, .general h2, h2');
-  if (n && /General/i.test(n.textContent || "")) n.setAttribute('data-i18n', 'your_cv_and_prompts');
+  const title = document.querySelector('.card_general h2');
+  if (title) title.setAttribute('data-i18n', 'options.title.general');
 }
 
 async function safeRemoveLocal(keys){

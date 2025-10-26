@@ -10,8 +10,78 @@ import { renderProviders, wireProviderModals } from './options-providers.js';
 import { renderModels, wireModelModals } from './options-models.js';
 import { renderSites, wireSitesModals } from './options-sites.js';
 import { initPrompts, setupAutosave, renameGeneralToCV, injectSingleColumnLayout } from './options-prompts.js';
+import { renderIntegrations } from './options-integrations.js';
 
 import { loadLocale, applyTranslations, getSavedLang, setSavedLang } from './i18n.js';
+
+const TAB_STORAGE_KEY = 'optionsActiveTab';
+
+function initTabs() {
+  const tabsRoot = document.getElementById('optionsTabs');
+  if (!tabsRoot || tabsRoot.dataset.wired) return;
+  tabsRoot.dataset.wired = '1';
+
+  const buttons = Array.from(tabsRoot.querySelectorAll('.tab-button'));
+  const panels = Array.from(document.querySelectorAll('.tab-panel'));
+  if (!buttons.length || !panels.length) return;
+
+  const panelMap = new Map(panels.map(panel => [panel.dataset.tab, panel]));
+
+  const activate = (tab, { focus = false } = {}) => {
+    if (!panelMap.has(tab) && buttons[0]) {
+      tab = buttons[0].dataset.tab;
+    }
+    buttons.forEach(btn => {
+      const isActive = btn.dataset.tab === tab;
+      btn.classList.toggle('active', isActive);
+      btn.setAttribute('aria-selected', String(isActive));
+      if (isActive) {
+        btn.removeAttribute('tabindex');
+        if (focus) {
+          setTimeout(() => {
+            try { btn.focus({ preventScroll: true }); } catch {}
+          }, 0);
+        }
+      } else {
+        btn.setAttribute('tabindex', '-1');
+      }
+    });
+    panels.forEach(panel => {
+      const isActive = panel.dataset.tab === tab;
+      panel.classList.toggle('active', isActive);
+      panel.hidden = !isActive;
+      panel.setAttribute('aria-hidden', String(!isActive));
+    });
+    try { chrome.storage.local.set({ [TAB_STORAGE_KEY]: tab }); } catch {}
+  };
+
+  buttons.forEach(btn => {
+    btn.addEventListener('click', () => activate(btn.dataset.tab, { focus: true }));
+    btn.addEventListener('keydown', (e) => {
+      if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return;
+      e.preventDefault();
+      const idx = buttons.indexOf(btn);
+      if (idx === -1) return;
+      const dir = e.key === 'ArrowRight' ? 1 : -1;
+      const nextIdx = (idx + dir + buttons.length) % buttons.length;
+      const nextBtn = buttons[nextIdx];
+      if (nextBtn) activate(nextBtn.dataset.tab, { focus: true });
+    });
+  });
+
+  try {
+    chrome.storage.local.get([TAB_STORAGE_KEY], (res) => {
+      const stored = res?.[TAB_STORAGE_KEY];
+      if (stored && panelMap.has(stored)) {
+        activate(stored);
+      } else if (buttons[0]) {
+        activate(buttons[0].dataset.tab);
+      }
+    });
+  } catch {
+    if (buttons[0]) activate(buttons[0].dataset.tab);
+  }
+}
 
 async function initI18n() {
   let lang = await getSavedLang();
@@ -65,6 +135,7 @@ export async function loadSettings() {
   renderProviders(settings);
   renderModels(settings);
   renderSites(settings);
+  renderIntegrations(settings);
   applyTranslations(document);
 
   // Провода
@@ -109,6 +180,7 @@ export async function loadSettings() {
 document.addEventListener('DOMContentLoaded', () => {
   (async () => {
     try {
+      initTabs();
       await initI18n();     // 1) init language & apply translations
       await loadSettings(); // 2) then build the rest of the page
     } catch (e) {

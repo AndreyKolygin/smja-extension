@@ -31,7 +31,7 @@ export function renderModels(settings){
                 data-i18n-attr-title="options.btn.editSysPromptTitle"
                 title="Edit system prompt for this model">Edit system prompt</button>
 
-        <button class="btn delete icon-left i-paperbin"
+        <button class="btn delete icon-left i-trash"
                 data-i18n="options.btn.delete"
                 data-i18n-attr-title="options.btn.deleteTitle"
                 title="Delete model">Delete</button>

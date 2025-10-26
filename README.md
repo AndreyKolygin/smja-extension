@@ -122,6 +122,61 @@ If a site rule exists, click Auto‑grab to automatically pull the description i
   
   Empty API keys during merge will not overwrite existing keys.
 
+### Notion Integration (optional)
+
+1. Открой Options → Integrations, включи “Save to Notion” и подай integration token + database ID.
+2. В “Field mapping” добавь строки из таблицы ниже (имена должны совпадать со столбцами в Notion).
+3. При экспорте/импорте настроек можно включать группу `Integrations` и, при необходимости, токен.
+4. Для источников `Analysis` и `Custom text` заполняй поле “Source data value”: для `Analysis` укажи префикс строки из отчёта (например, `- Компания:`), для `Custom text` — конкретный текст.
+5. Используй обновлённый Output Template (см. ниже), чтобы источники (`Analysis`, `Job description`, `Page title` и т.д.) наполнялись предсказуемо.
+
+| Notion property | Property type | Source in extension | Описание / подсказка |
+|-----------------|---------------|----------------------|----------------------|
+| `Company`       | `title`       | `pageTitle`          | Заголовок вкладки, обычно содержит название компании. |
+| `Role`          | `rich_text`   | `analysis` или `custom` | Перенеси строку “Должность” в отчёт, либо оставь `custom`, чтобы заполнить вручную. |
+| `Date ap`       | `date`        | `timestamp`          | Текущая дата/время; Notion само покажет дату заявки. |
+| `Salary`        | `rich_text`   | `analysis` или `custom` | Если в отчёте есть цифры, подтянутся автоматически; иначе оставь пустым и заполни после сохранения. |
+| `URL`           | `url`         | `url`                | Прямая ссылка на вакансию из активной вкладки. |
+| `Note`          | `rich_text`   | `jobDescription`     | Полный текст вакансии или любой другой блок для заметок. |
+| `Status`        | `status`      | `custom text`        | Укажи в “Source data value” название статуса (например, `Applied`). |
+
+**Рекомендуемый Output Template для Notion**
+
+```md
+# Анализ вакансии
+
+## Краткое резюме
+- Компания: …
+- Должность: …
+- Совпадение (1–100%): …
+- Зарплата: …
+- URL: …
+
+## Языки
+- Требования: …
+- Комментарий: …
+
+## О компании
+- Название: …
+- Род деятельности: …
+
+## Основные задачи (до 5 пунктов)
+- …
+- …
+
+## Ключевые требования (до 5 пунктов)
+- …
+- …
+
+## Дополнительные требования
+- …
+- …
+
+## Несовпадения (CV vs вакансия)
+- …
+- …
+```
+
 ## ♻️ Reset to Defaults
 
 - Reset to defaults in the Import / Export block

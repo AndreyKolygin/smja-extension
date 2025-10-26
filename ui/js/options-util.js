@@ -35,11 +35,24 @@ export function normalizeSettings(obj){
     sites: [],
     cv: "",
     systemTemplate: "",
-    outputTemplate: ""
+    outputTemplate: "",
+    integrations: {
+      notion: {
+        enabled: false,
+        token: "",
+        databaseId: "",
+        fields: []
+      }
+    }
   };
   const s = Object.assign({}, base, obj || {});
   if (!Array.isArray(s.providers)) s.providers = [];
   if (!Array.isArray(s.models)) s.models = [];
   if (!Array.isArray(s.sites)) s.sites = [];
+  if (!s.integrations || typeof s.integrations !== "object") s.integrations = { notion: { enabled: false, token: "", databaseId: "", fields: [] } };
+  if (!Array.isArray(s.integrations.notion?.fields)) {
+    s.integrations.notion = Object.assign({ enabled: false, token: "", databaseId: "", fields: [] }, s.integrations.notion || {});
+    s.integrations.notion.fields = Array.isArray(s.integrations.notion.fields) ? s.integrations.notion.fields : [];
+  }
   return s;
 }

@@ -199,6 +199,16 @@ body {
   background: var(--red-deep-light);
   color: #fff;
 }
+
+.notion-btn {
+  min-width: 64px;
+  padding: 8px 10px;
+  /* font-weight: 600; */
+  font-size: 14px;
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+}
 .btn.success:hover {
   background: var(--red-deep-dark);
   color: #fff;

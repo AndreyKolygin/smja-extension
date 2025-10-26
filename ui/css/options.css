@@ -17,6 +17,55 @@ body.single-column {
   justify-content: flex-start;
   align-items: center;
 }
+.tabs {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+  margin-bottom: 16px;
+  width: 100%;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: var(--bg);
+  padding: 8px 0;
+  border-radius: 12px;
+  box-shadow: var(--shadow);
+}
+
+.tab-button {
+  border: 1px solid var(--border);
+  background: var(--panel-light);
+  color: var(--text);
+  padding: 8px 14px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: background 0.2s ease, border-color 0.2s ease;
+}
+
+.tab-button:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.tab-button.active {
+  /* background: rgba(255, 255, 255, 0.16); */
+  background: var(--accent);
+  border-color: var(--border-dark, #555);
+  color: #fff;
+}
+
+.tab-panels {
+  width: 100%;
+}
+
+.tab-panel {
+  display: none;
+}
+
+.tab-panel.active {
+  display: block;
+}
 .card {
   width: 100%;
   box-sizing: border-box;
@@ -64,6 +113,54 @@ body.single-column {
 }
 .hidden {
   display: none;
+}
+
+.switch-row label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+}
+
+.switch-row input[type="checkbox"] {
+  margin: 0;
+}
+
+.notion-settings {
+  margin-top: 12px;
+}
+
+.notion-field {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 12px;
+  margin-bottom: 12px;
+  background: rgba(255, 255, 255, 0.74);
+}
+
+.notion-inline {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.notion-inline label {
+  flex: 1 1 64px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.notion-remove-row {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 4px;
+}
+
+.notion-remove-row .notion-remove {
+  max-width: 30px;
+  padding: 6px;
+  border-radius: 6px;
 }
 
 .io-row {
@@ -141,6 +238,7 @@ body.single-column {
 }
 
 .modal .form-row input[type="text"],
+.modal .form-row input[type="password"],
 .modal .form-row textarea {
   width: 100%;
   max-width: 400px; /* ограничение ширины */
@@ -214,6 +312,7 @@ dialog menu button {
   border-radius: 6px;
 }
 input[type="text"],
+input[type="password"],
 textarea,
 select {
   width: 100%;
@@ -236,6 +335,7 @@ select {
 }
 
 .form-row input[type="text"],
+.form-row input[type="password"],
 .form-row textarea,
 .form-row select {
   width: 100%;

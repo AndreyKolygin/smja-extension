@@ -64,6 +64,93 @@ export function wireCopy() {
   });
 }
 
+export function updateNotionButtonVisibility() {
+  const btn = document.getElementById("notionBtn");
+  if (!btn) return;
+  const enabled = !!state.settings?.integrations?.notion?.enabled;
+  btn.hidden = !enabled;
+  btn.classList.toggle("hidden", !enabled);
+}
+
+function validateNotionMappingConfig(notion) {
+  const fields = Array.isArray(notion?.fields) ? notion.fields.filter(f => f && f.propertyName) : [];
+  if (!fields.length) {
+    return { ok: false, error: "Configure Notion field mapping before saving." };
+  }
+  const hasTitle = fields.some(f => String(f.propertyType || '').toLowerCase() === 'title');
+  if (!hasTitle) {
+    return { ok: false, error: "Add a Notion field mapped to a Title property." };
+  }
+  for (const f of fields) {
+    const propName = String(f.propertyName || '').trim();
+    if (!propName) {
+      return { ok: false, error: "Each Notion field mapping must have a property name." };
+    }
+    if ((f.source === 'analysis' || f.source === 'custom') && !String(f.staticValue || '').trim()) {
+      return { ok: false, error: `Fill Source data value for "${propName}".` };
+    }
+  }
+  return { ok: true };
+}
+
+export function wireSaveToNotion() {
+  const btn = document.getElementById("notionBtn");
+  if (!btn) return;
+
+  btn.addEventListener("click", async () => {
+    const notion = state.settings?.integrations?.notion;
+    if (!notion?.enabled) {
+      alert("Save to Notion is disabled in settings.");
+      return;
+    }
+
+    const validation = validateNotionMappingConfig(notion);
+    if (!validation.ok) {
+      alert(validation.error);
+      return;
+    }
+
+    const jobInput = document.getElementById("jobInput");
+    const model = Array.isArray(state.settings?.models)
+      ? state.settings.models.find(m => m && m.id === state.chosenModel)
+      : null;
+    const provider = Array.isArray(state.settings?.providers)
+      ? state.settings.providers.find(p => p && p.id === (model?.providerId || notion.providerId))
+      : null;
+
+    const payload = {
+      analysis: state.lastResponse || "",
+      jobDescription: jobInput?.value || "",
+      selectedText: state.selectedText || "",
+      modelId: model?.id || state.chosenModel || "",
+      providerId: model?.providerId || "",
+      modelLabel: model?.displayName || model?.modelId || "",
+      providerName: provider?.name || "",
+      tabUrl: state.activeTab?.url || "",
+      tabTitle: state.activeTab?.title || "",
+      timestampIso: new Date().toISOString()
+    };
+
+    setProgress("Saving to Notion…");
+    btn.disabled = true;
+    try {
+      const resp = await chrome.runtime.sendMessage({ type: "SAVE_TO_NOTION", payload });
+      if (resp?.ok) {
+        setProgress("Saved to Notion");
+        setTimeout(() => setProgress(""), 2000);
+      } else {
+        setProgress("");
+        alert("Save to Notion failed: " + (resp?.error || "Unknown error"));
+      }
+    } catch (e) {
+      setProgress("");
+      alert("Save to Notion failed: " + String(e && (e.message || e)));
+    } finally {
+      btn.disabled = false;
+    }
+  });
+}
+
 // --- utils: печать в консоль попапа с узнаваемым префиксом
 const dbg = (...a) => console.debug("[FastStart]", ...a);
 

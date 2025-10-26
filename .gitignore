@@ -145,3 +145,6 @@ dist/
 # local settings exports with keys (на всякий)
 *.secret.json
 local/
+
+# external
+/ext/
