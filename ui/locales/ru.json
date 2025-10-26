@@ -167,5 +167,6 @@
   "options.export.output": "Шаблон вывода результата",
   "options.export.integrations": "Интеграции (Notion)",
   "options.export.integrationsSecret": "Включить токен интеграции Notion",
-  "options.export.start": "Экспортировать выбранное"
+  "options.export.start": "Экспортировать выбранное",
+  "ui.highlighter.hint": "Откройте расширение для чтения результата"
 }

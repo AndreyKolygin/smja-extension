@@ -29,6 +29,7 @@
 - Сброс настроек → `rg "RESET_DEFAULTS"`.
 - Дефолтные шаблоны → `rg "DEFAULT_SYSTEM_TEMPLATE" shared/defaults.js`.
 ## Журнал изменений (новое сверху)
+- 2025-10-26 Реализован блочный highlighter: клики по элементам, меню управления, undo/redo.
 - 2025-10-26 Обновил Notion API header до 2025-09-03.
 - 2025-10-26 Notion mapping: переименовал "Static value" → "Source data value", добавил парсинг analysis по префиксу и валидацию.
 - 2025-10-26 Экспорт/импорт: добавлены группы Integrations + опция включать токен Notion.

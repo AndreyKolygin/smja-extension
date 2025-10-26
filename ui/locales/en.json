@@ -3,7 +3,7 @@
   "ui.app.title": "Job Description Analyzer",
   "ui.menu.options": "Settings",
   "ui.menu.optionsMenu": "Settings menu",
-  "ui.popup.select": "Select job description",
+  "ui.popup.select": "Select description",
   "ui.popup.autograb": "Auto-grab",
   "ui.popup.startover": "Start over",
   "ui.popup.jobDescription": "Job description:",
@@ -167,5 +167,6 @@
   "options.export.output": "Result Output Template",
   "options.export.integrations": "Integrations (Notion)",
   "options.export.integrationsSecret": "Include Notion integration token",
-  "options.export.start": "Export Selected"
+  "options.export.start": "Export Selected",
+  "ui.highlighter.hint": "Open the extension to read the result"
 }

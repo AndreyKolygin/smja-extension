@@ -1,45 +1,53 @@
-// content/select.js — robust highlighter (overlay-based) for JDA
-(() => {
-  if (window.__JDA_SELECT_INSTALLED__) return;
-  window.__JDA_SELECT_INSTALLED__ = true;
+// content/select.js — блочный хайлайтер для JDA
 
-  const STATE = {
+(() => {
+  if (window.__JDA_BLOCK_HIGHLIGHTER__) return;
+  window.__JDA_BLOCK_HIGHLIGHTER__ = true;
+
+  const MENU_ID = 'jda-highlighter-menu';
+  const HOVER_ID = 'jda-hover-overlay';
+  const OVERLAY_CLASS = 'jda-highlight-overlay';
+  const STYLE_ID = 'jda-highlighter-style';
+
+  const state = {
     active: false,
-    prevCursor: null,
-    hoverOverlay: null,
-    analyzeBtn: null,
-    overlays: [], // HTMLElements
-    lastText: "",
-    lastRanges: [], // cache { rects: DOMRect[] }
+    hover: null,
+    menu: null,
+    highlights: [],
+    undoStack: [],
+    redoStack: [],
+    orderSeq: 0,
+    rafScheduled: false,
+    style: null,
+    lastPointer: { x: 0, y: 0 },
+    lastAnalyzedBlockCount: null
   };
 
-  const OVERLAY_CLASS = "jda-highlight-overlay";
-  const HOVER_ID = "jda-highlight-hover-overlay";
-
-  const SEND_SILENT = true;
-  let __lastMouseUpTs = 0;
-  const MOUSEUP_COOLDOWN_MS = 250;
-
-  function pickActiveModel(settings){
-    if (!settings) return null;
-    const models = (settings.models || []).filter(m => m && m.active);
-    if (!models.length) return null;
-    const chosenId = (settings.ui && settings.ui.chosenModel) || settings.chosenModel;
-    const byChosen = chosenId ? models.find(m => m.id === chosenId) : null;
-    return byChosen || models[0];
+  function t(key, fallback = '') {
+    try {
+      return chrome.i18n?.getMessage?.(key) || fallback || key;
+    } catch {
+      return fallback || key;
+    }
   }
 
-  function safeSendMessage(msg, cb){
+  const SEND_SILENT = true;
+
+  function safeSendMessage(message, cb) {
     try {
-      if (!chrome || !chrome.runtime || !chrome.runtime.id) return;
+      if (!chrome?.runtime?.id) return;
       if (cb) {
-        chrome.runtime.sendMessage(msg, (...args) => {
-          const err = chrome.runtime.lastError; if (SEND_SILENT && err) { /* swallow */ } else if (err) { console.warn('[JDA] sendMessage error:', err); }
-          try { cb(...args); } catch {}
+        chrome.runtime.sendMessage(message, (...args) => {
+          const err = chrome.runtime.lastError;
+          if (!SEND_SILENT && err) console.warn('[JDA] sendMessage error:', err);
+          if (!err) {
+            try { cb(...args); } catch (e) { console.warn('[JDA] callback error:', e); }
+          }
         });
       } else {
-        chrome.runtime.sendMessage(msg, () => {
-          const err = chrome.runtime.lastError; if (SEND_SILENT && err) { /* swallow */ } else if (err) { console.warn('[JDA] sendMessage error:', err); }
+        chrome.runtime.sendMessage(message, () => {
+          const err = chrome.runtime.lastError;
+          if (!SEND_SILENT && err) console.warn('[JDA] sendMessage error:', err);
         });
       }
     } catch (e) {
@@ -47,347 +55,674 @@
     }
   }
 
-  // ============ utils ============
-  function throttle(fn, wait) {
-    let t = 0, lastArgs, lastThis;
-    return function (...args) {
-      lastArgs = args; lastThis = this;
-      const now = Date.now();
-      if (now - t >= wait) { t = now; fn.apply(lastThis, lastArgs); }
-    };
+  function ensureStyleInjected() {
+    if (state.style) return;
+    const css = `
+      html.jda-highlighter-active, html.jda-highlighter-active body {
+        cursor: crosshair !important;
+      }
+      html.jda-highlighter-active .jda-highlighter-menu button {
+        cursor: pointer !important;
+      }
+      #${HOVER_ID} {
+        position: absolute;
+        pointer-events: none;
+        border: 2px dashed rgba(16, 185, 129, 0.9);
+        border-radius: 6px;
+        z-index: 2147483645;
+        display: none;
+      }
+      .${OVERLAY_CLASS} {
+        position: absolute;
+        background: rgba(16, 185, 129, 0.28);
+        border-radius: 6px;
+        pointer-events: none;
+        z-index: 2147483644;
+      }
+      .jda-highlighter-menu {
+        position: fixed;
+        top: 16px;
+        left: 50%;
+        transform: translateX(-50%);
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        padding: 10px 12px;
+        border-radius: 24px;
+        background: #1f2937;
+        color: #f8fafc;
+        box-shadow: 0 8px 20px rgba(15, 23, 42, 0.25);
+        z-index: 2147483646;
+        font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+        font-size: 13px;
+        font-weight: 600;
+        user-select: none;
+      }
+      .jda-highlighter-menu .button-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .jda-highlighter-menu button {
+        border: none;
+        border-radius: 20px;
+        padding: 6px 12px;
+        background: rgba(148, 163, 184, 0.2);
+        color: inherit;
+        font: inherit;
+        font-weight: 600;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+      }
+      .jda-highlighter-menu button:disabled {
+        opacity: 0.4;
+        cursor: default !important;
+      }
+      .jda-highlighter-menu button.primary {
+        background: #0ea5e9;
+        color: #0f172a;
+      }
+      .jda-highlighter-menu button.danger {
+        background: rgba(239, 68, 68, 0.18);
+        color: #fecaca;
+      }
+      .jda-highlighter-menu button.neutral {
+        background: rgba(148, 163, 184, 0.15);
+      }
+      .jda-highlighter-menu .counter {
+        opacity: 0.7;
+      }
+      .jda-highlighter-menu .hint {
+        font-size: 12px;
+        opacity: 0.7;
+        text-align: center;
+      }
+    `;
+    const style = document.createElement('style');
+    style.id = STYLE_ID;
+    style.textContent = css;
+    document.documentElement.appendChild(style);
+    state.style = style;
   }
-  function px(n) { return `${n}px`; }
-  function removeNode(n) { if (n && n.parentNode) n.parentNode.removeChild(n); }
-  function createEl(tag, cls) { const el = document.createElement(tag); if (cls) el.className = cls; return el; }
-  function clearSelectionRanges(){ try{ const sel = window.getSelection(); sel && sel.removeAllRanges(); }catch{} }
 
-  // ============ hover overlay ============
-  function createOrUpdateHoverOverlay(target){
-    if (!STATE.active) { removeHoverOverlay(); return; }
-    if (!target || !(target instanceof Element)) { removeHoverOverlay(); return; }
-
-    let elForRect = target;
-    const tag = target.tagName?.toUpperCase?.() || "";
-    if (["TD","TH","TR"].includes(tag)) {
-      const t = target.closest('table');
-      if (t) elForRect = t;
-    }
-
-    const rect = elForRect.getBoundingClientRect();
-    if (!STATE.hoverOverlay) {
-      const hov = createEl('div');
-      hov.id = HOVER_ID;
-      hov.style.position = 'absolute';
-      hov.style.pointerEvents = 'none';
-      hov.style.outline = '2px dashed rgba(16,185,129,.7)';
-      hov.style.borderRadius = '4px';
-      hov.style.zIndex = '2147483646';
-      document.body.appendChild(hov);
-      STATE.hoverOverlay = hov;
-    }
-    const hov = STATE.hoverOverlay;
-    hov.style.left = px(rect.left + window.scrollX - 2);
-    hov.style.top = px(rect.top + window.scrollY - 2);
-    hov.style.width = px(rect.width + 4);
-    hov.style.height = px(rect.height + 4);
-    hov.style.display = 'block';
-  }
-  function removeHoverOverlay(){
-    if (STATE.hoverOverlay) STATE.hoverOverlay.style.display = 'none';
-  }
-
-  // ============ selection overlays ============
-  function clearOverlays(){
-    for (const el of STATE.overlays) removeNode(el);
-    STATE.overlays = [];
-    STATE.lastRanges = [];
-  }
-
-  function removeOverlay(el){
-    const idx = STATE.overlays.indexOf(el);
-    if (idx !== -1) STATE.overlays.splice(idx, 1);
-    removeNode(el);
-    if (STATE.overlays.length === 0){
-      removeAnalyzeButton();
-      removeClearButton();
-      STATE.lastText = '';
-    }
-  }
-
-  function createOverlay(rect){
-    const el = createEl('div', OVERLAY_CLASS);
-    el.style.position = 'absolute';
-    el.style.left = px(rect.left + window.scrollX - 1);
-    el.style.top = px(rect.top + window.scrollY - 1);
-    el.style.width = px(rect.width + 2);
-    el.style.height = px(rect.height + 2);
-    el.style.background = 'rgba(0, 200, 0, 0.18)';
-    el.style.borderRadius = '3px';
-    el.style.pointerEvents = 'auto';
-    el.style.cursor = 'pointer';
-    el.style.zIndex = '2147483647';
-    document.body.appendChild(el);
-    // allow removing a single highlight by clicking it
-    el.addEventListener('click', (ev) => {
-      ev.preventDefault(); ev.stopPropagation();
-      removeOverlay(el);
+  function createMenu() {
+    if (state.menu) return;
+    const menu = document.createElement('div');
+    menu.id = MENU_ID;
+    menu.className = 'jda-highlighter-menu';
+    menu.innerHTML = `
+      <div class="button-row">
+        <button type="button" data-action="undo" disabled>Undo</button>
+        <button type="button" data-action="redo" disabled>Redo</button>
+        <button type="button" data-action="clear" class="danger" disabled>Clear</button>
+        <span class="counter">0 blocks</span>
+        <button type="button" data-action="analyze" class="primary">Analyze</button>
+        <button type="button" data-action="cancel" class="neutral" title="Cancel">✕</button>
+      </div>
+      <div class="hint" hidden data-i18n="ui.highlighter.hint">Open the extension to read the result</div>
+    `;
+    menu.addEventListener('click', (e) => {
+      const btn = e.target.closest('button[data-action]');
+      if (!btn) return;
+      e.preventDefault();
+      e.stopPropagation();
+      const action = btn.getAttribute('data-action');
+      switch (action) {
+        case 'undo':
+          undo();
+          break;
+        case 'redo':
+          redo();
+          break;
+        case 'clear':
+          clearHighlights();
+          break;
+        case 'analyze':
+          startAnalyze();
+          break;
+        case 'cancel':
+          cancelSelection();
+          break;
+        default:
+          break;
+      }
     }, true);
+    document.body.appendChild(menu);
+    state.menu = menu;
+    updateMenu();
+  }
+
+  function destroyMenu() {
+    if (state.menu?.parentNode) state.menu.parentNode.removeChild(state.menu);
+    state.menu = null;
+  }
+
+  function updateMenu() {
+    if (!state.menu) return;
+    const count = state.highlights.length;
+    const counter = state.menu.querySelector('.counter');
+    if (counter) counter.textContent = count === 1 ? '1 block' : `${count} blocks`;
+    const undoBtn = state.menu.querySelector('button[data-action="undo"]');
+    const redoBtn = state.menu.querySelector('button[data-action="redo"]');
+    const clearBtn = state.menu.querySelector('button[data-action="clear"]');
+    const analyzeBtn = state.menu.querySelector('button[data-action="analyze"]');
+    const hint = state.menu.querySelector('.hint');
+    if (undoBtn) undoBtn.disabled = state.undoStack.length === 0;
+    if (redoBtn) redoBtn.disabled = state.redoStack.length === 0;
+    if (clearBtn) clearBtn.disabled = count === 0;
+    if (analyzeBtn && !state.analyzing) {
+      const mode = analyzeBtn.dataset.mode || '';
+      if (mode === 'done') {
+        analyzeBtn.disabled = true;
+        if (hint) hint.hidden = false;
+      } else {
+        analyzeBtn.disabled = count === 0;
+        if (hint) hint.hidden = true;
+      }
+    } else if (hint) {
+      hint.hidden = true;
+    }
+    const cancelBtn = state.menu.querySelector('button[data-action="cancel"]');
+    if (cancelBtn) cancelBtn.disabled = false;
+
+    if (hint) {
+      const text = t('ui.highlighter.hint', hint.textContent || '');
+      if (text) hint.textContent = text;
+    }
+  }
+
+  function ensureHoverOverlay() {
+    let hover = document.getElementById(HOVER_ID);
+    if (!hover) {
+      hover = document.createElement('div');
+      hover.id = HOVER_ID;
+      document.body.appendChild(hover);
+    }
+    return hover;
+  }
+
+  function removeHover() {
+    const hover = document.getElementById(HOVER_ID);
+    if (hover) hover.style.display = 'none';
+    state.hover = null;
+  }
+
+  function setHover(element) {
+    if (!state.active) return;
+    if (!element || !element.getBoundingClientRect) {
+      removeHover();
+      return;
+    }
+    if (state.hover === element) {
+      updateHoverPosition();
+      return;
+    }
+    state.hover = element;
+    updateHoverPosition();
+  }
+
+  function updateHoverPosition() {
+    if (!state.hover) return;
+    const rect = state.hover.getBoundingClientRect();
+    if (!rect || !rect.width || !rect.height) {
+      removeHover();
+      return;
+    }
+    const hover = ensureHoverOverlay();
+    hover.style.display = 'block';
+    hover.style.left = `${rect.left + window.scrollX}px`;
+    hover.style.top = `${rect.top + window.scrollY}px`;
+    hover.style.width = `${rect.width}px`;
+    hover.style.height = `${rect.height}px`;
+  }
+
+  function createOverlay(rect) {
+    const overlay = document.createElement('div');
+    overlay.className = OVERLAY_CLASS;
+    overlay.style.left = `${rect.left + window.scrollX}px`;
+    overlay.style.top = `${rect.top + window.scrollY}px`;
+    overlay.style.width = `${rect.width}px`;
+    overlay.style.height = `${rect.height}px`;
+    document.body.appendChild(overlay);
+    return overlay;
+  }
+
+  function extractText(element) {
+    if (!element) return '';
+    const text = element.innerText || element.textContent || '';
+    return text.replace(/\s+\n/g, '\n').replace(/\n{3,}/g, '\n\n').trim();
+  }
+
+  function getUniqueSelector(element) {
+    if (!element || element.nodeType !== 1) return '';
+    if (element.id) {
+      const idSafe = element.id.replace(/[^a-zA-Z0-9_-]/g, '\\$&');
+      return `#${idSafe}`;
+    }
+    const parts = [];
+    let el = element;
+    while (el && el.nodeType === 1 && el !== document.body && el !== document.documentElement) {
+      let part = el.tagName.toLowerCase();
+      const className = (el.className && typeof el.className === 'string')
+        ? el.className.trim().split(/\s+/).filter(Boolean)[0]
+        : null;
+      if (className) part += `.${className.replace(/[^a-zA-Z0-9_-]/g, '\\$&')}`;
+      const siblings = Array.from(el.parentElement.children).filter(child => child.tagName === el.tagName);
+      if (siblings.length > 1) {
+        part += `:nth-of-type(${siblings.indexOf(el) + 1})`;
+      }
+      parts.unshift(part);
+      el = el.parentElement;
+    }
+    return parts.join(' > ');
+  }
+
+  function collectRects(element) {
+    const rects = Array.from(element.getClientRects()).filter(r => r.width && r.height);
+    if (rects.length) return rects;
+    const rect = element.getBoundingClientRect();
+    return rect.width && rect.height ? [rect] : [];
+  }
+
+  function refreshHighlightGeometry(highlight) {
+    highlight.overlays.forEach(el => el.remove());
+    const rects = collectRects(highlight.element);
+    highlight.overlays = rects.map(createOverlay);
+    highlight.rects = rects.map(r => ({ left: r.left + window.scrollX, top: r.top + window.scrollY, width: r.width, height: r.height }));
+    highlight.text = extractText(highlight.element);
+    highlight.html = highlight.element.innerHTML;
+  }
+
+  function createHighlight(element, opts = { record: true, order: null }) {
+    if (!element || element.dataset.jdaHighlight === '1') return null;
+    const highlight = {
+      element,
+      overlays: [],
+      rects: [],
+      text: '',
+      html: '',
+      selector: getUniqueSelector(element),
+      order: typeof opts.order === 'number' ? opts.order : state.orderSeq++
+    };
+    element.dataset.jdaHighlight = '1';
+    refreshHighlightGeometry(highlight);
+    state.highlights.push(highlight);
+    if (opts.record) {
+      state.undoStack.push({ type: 'add', highlight });
+      state.redoStack = [];
+    }
+    updateMenu();
+    requestRefresh();
+    return highlight;
+  }
+
+  function removeHighlight(highlight, record = true) {
+    if (!highlight) return;
+    highlight.overlays.forEach(el => el.remove());
+    highlight.overlays = [];
+    if (highlight.element?.dataset) delete highlight.element.dataset.jdaHighlight;
+    state.highlights = state.highlights.filter(h => h !== highlight);
+    if (record) {
+      state.undoStack.push({ type: 'remove', highlight });
+      state.redoStack = [];
+    }
+    updateMenu();
+    requestRefresh();
+  }
+
+  function findHighlightByElement(element) {
+    return state.highlights.find(h => h.element === element);
+  }
+
+  function toggleHighlight(element) {
+    if (!element) return;
+    const existing = findHighlightByElement(element);
+    if (existing) {
+      removeHighlight(existing, true);
+    } else {
+      createHighlight(element, { record: true });
+    }
+  }
+
+  function undo() {
+    const action = state.undoStack.pop();
+    if (!action) return;
+    if (action.type === 'add') {
+      removeHighlight(action.highlight, false);
+      state.redoStack.push(action);
+    } else if (action.type === 'remove') {
+      const highlight = action.highlight;
+      if (highlight?.element?.isConnected) {
+        const recreated = createHighlight(highlight.element, { record: false, order: highlight.order });
+        if (recreated) action.highlight = recreated;
+      }
+      state.redoStack.push(action);
+    } else if (action.type === 'clear') {
+      handleUndoClear(action);
+      state.redoStack.push(action);
+    }
+    updateMenu();
+  }
+
+  function redo() {
+    const action = state.redoStack.pop();
+    if (!action) return;
+    if (action.type === 'add') {
+      if (action.highlight?.element?.isConnected) {
+        const recreated = createHighlight(action.highlight.element, { record: false, order: action.highlight.order });
+        if (recreated) action.highlight = recreated;
+        state.undoStack.push(action);
+      }
+    } else if (action.type === 'remove') {
+      removeHighlight(action.highlight, false);
+      state.undoStack.push(action);
+    } else if (action.type === 'clear') {
+      handleRedoClear(action);
+      state.undoStack.push(action);
+    }
+    updateMenu();
+  }
+
+  function clearHighlights(record = true) {
+    const snapshot = [...state.highlights];
+    snapshot.forEach(h => removeHighlight(h, false));
+    if (record && snapshot.length) {
+      state.undoStack.push({ type: 'clear', highlights: snapshot });
+      state.redoStack = [];
+    }
+    updateMenu();
+  }
+
+  function handleUndoClear(action) {
+    (action.highlights || []).forEach((h, idx) => {
+      if (h.element?.isConnected) {
+        const recreated = createHighlight(h.element, { record: false, order: h.order });
+        if (recreated) action.highlights[idx] = recreated;
+      }
+    });
+    updateMenu();
+  }
+
+  function handleRedoClear(action) {
+    (action.highlights || []).forEach(h => {
+      if (!h) return;
+      if (state.highlights.includes(h)) removeHighlight(h, false);
+      else {
+        const current = findHighlightByElement(h.element);
+        if (current) removeHighlight(current, false);
+      }
+    });
+    updateMenu();
+  }
+
+  function requestRefresh() {
+    if (state.rafScheduled) return;
+    state.rafScheduled = true;
+    requestAnimationFrame(() => {
+      state.rafScheduled = false;
+      state.highlights.forEach(refreshHighlightGeometry);
+      updateHoverPosition();
+      resetAnalyzeStateIfNeeded();
+    });
+  }
+
+  function resetAnalyzeStateIfNeeded() {
+    const analyzeBtn = state.menu?.querySelector('button[data-action="analyze"]');
+    if (!analyzeBtn || analyzeBtn.dataset.mode !== 'done') return;
+    const count = state.highlights.length;
+    if (count && state.lastAnalyzedBlockCount === count) return;
+    analyzeBtn.dataset.mode = '';
+    analyzeBtn.textContent = 'Analyze';
+    analyzeBtn.disabled = count === 0;
+    state.lastAnalyzedBlockCount = null;
+  }
+
+  function getTargetFromPointer(event) {
+    const x = event.clientX ?? (event.touches?.[0]?.clientX) ?? state.lastPointer.x;
+    const y = event.clientY ?? (event.touches?.[0]?.clientY) ?? state.lastPointer.y;
+    state.lastPointer = { x, y };
+    let el = document.elementFromPoint(x, y);
+    if (!el) return null;
+    if (el.closest(`#${MENU_ID}`)) return null;
+    if (el.id === HOVER_ID) return state.hover;
+    el = refineTarget(el);
     return el;
   }
-  function mergeSameLineRects(rects){
-    if (!rects || !rects.length) return [];
-    const merged = [];
-    let cur = new DOMRect(rects[0].x, rects[0].y, rects[0].width, rects[0].height);
-    for (let i=1;i<rects.length;i++){
-      const r = rects[i];
-      if (Math.abs(r.y - cur.y) < 1 && Math.abs(r.height - cur.height) < 1){
-        cur.width = (r.right - r.left) + (cur.right - cur.left);
-        cur.x = Math.min(cur.x, r.x);
-        cur.width = (Math.max(cur.right, r.right) - Math.min(cur.left, r.left));
-      } else {
-        merged.push(cur);
-        cur = new DOMRect(r.x, r.y, r.width, r.height);
+
+  function refineTarget(element) {
+    if (!element || element === document.body || element === document.documentElement) return null;
+    if (element.closest(`#${MENU_ID}`)) return null;
+    if (element.classList?.contains('jda-highlight-overlay')) return null;
+    let el = element;
+    while (el && el !== document.body && el !== document.documentElement) {
+      const tag = el.tagName?.toUpperCase?.();
+      if (!tag || ['SCRIPT', 'STYLE', 'HEAD', 'HTML'].includes(tag)) return null;
+      if (tag === 'BODY') return null;
+      const display = window.getComputedStyle(el).display;
+      if (display !== 'inline') return el;
+      el = el.parentElement;
+    }
+    return null;
+  }
+
+  function handlePointerMove(event) {
+    if (!state.active) return;
+    const target = getTargetFromPointer(event);
+    setHover(target);
+  }
+
+  function handleClick(event) {
+    if (!state.active) return;
+    if (event.target.closest(`#${MENU_ID}`)) return;
+    const target = getTargetFromPointer(event);
+    if (!target) return;
+    event.preventDefault();
+    event.stopPropagation();
+    toggleHighlight(target);
+  }
+
+  function handleKeydown(event) {
+    if (!state.active) return;
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      cancelSelection();
+      return;
+    }
+    if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'z') {
+      event.preventDefault();
+      undo();
+      return;
+    }
+    if ((event.ctrlKey || event.metaKey) && (event.key.toLowerCase() === 'y' || (event.shiftKey && event.key.toLowerCase() === 'z'))) {
+      event.preventDefault();
+      redo();
+      return;
+    }
+    if (event.key === 'Enter') {
+      event.preventDefault();
+      startAnalyze();
+    }
+  }
+
+  function startAnalyze() {
+    if (state.analyzing) return;
+    const { text, blocks } = finishSelection();
+    if (!text) {
+      alert('Select at least one block before analyzing.');
+      return;
+    }
+
+    const analyzeBtn = state.menu?.querySelector('button[data-action="analyze"]');
+    if (!analyzeBtn) return;
+
+    analyzeBtn.dataset.mode = '';
+
+    const originalLabel = analyzeBtn.textContent;
+    analyzeBtn.disabled = true;
+    state.analyzing = { start: performance.now(), label: originalLabel };
+    let timerId = 0;
+
+    const updateTimer = () => {
+      if (!state.analyzing) return;
+      const elapsed = (performance.now() - state.analyzing.start) / 1000;
+      analyzeBtn.textContent = `${elapsed.toFixed(1)}s…`;
+    };
+    updateTimer();
+    timerId = window.setInterval(updateTimer, 100);
+
+    safeSendMessage({ type: 'SELECTION_ANALYZE', text });
+
+    safeSendMessage({ type: 'GET_SETTINGS' }, (settings) => {
+      try {
+        const s = settings || {};
+        const models = Array.isArray(s.models) ? s.models.filter(m => m && m.active) : [];
+        if (!models.length) throw new Error('No active model configured. Open Settings to activate a model.');
+        const chosenId = (s.ui && s.ui.chosenModel) || s.chosenModel || models[0].id;
+        const modelMeta = models.find(m => m.id === chosenId) || models[0];
+        const provider = Array.isArray(s.providers) ? s.providers.find(p => p.id === modelMeta.providerId) : null;
+        if (!provider) throw new Error('Provider for the selected model is missing.');
+
+        const callPayload = {
+          modelId: modelMeta.modelId,
+          providerId: modelMeta.providerId,
+          cv: s.cv || '',
+          systemTemplate: s.systemTemplate || '',
+          outputTemplate: s.outputTemplate || '',
+          modelSystemPrompt: modelMeta.systemPrompt || '',
+          text
+        };
+
+        safeSendMessage({ type: 'CALL_LLM', payload: callPayload }, (resp) => {
+          if (timerId) { clearInterval(timerId); timerId = 0; }
+          const elapsedMs = performance.now() - state.analyzing.start;
+          const label = `Done: ${(elapsedMs / 1000).toFixed(2)}s`;
+          analyzeBtn.textContent = label;
+          analyzeBtn.disabled = false;
+          state.analyzing = null;
+
+          if (resp?.ok) {
+            try {
+              chrome.storage.local.set({ lastResult: { text: resp.text, when: Date.now(), ms: resp.ms || elapsedMs } }, () => {});
+            } catch {}
+            safeSendMessage({ type: 'LLM_RESULT', text: resp.text });
+            analyzeBtn.textContent = `${label}`;
+            analyzeBtn.dataset.mode = 'done';
+            analyzeBtn.disabled = true;
+            state.lastAnalyzedBlockCount = state.highlights.length;
+            updateMenu();
+          } else if (resp?.error) {
+            alert('LLM error: ' + resp.error);
+            analyzeBtn.textContent = 'Analyze';
+            analyzeBtn.dataset.mode = '';
+            analyzeBtn.disabled = state.highlights.length === 0;
+            updateMenu();
+          } else {
+            analyzeBtn.textContent = 'Analyze';
+            analyzeBtn.dataset.mode = '';
+            analyzeBtn.disabled = state.highlights.length === 0;
+            updateMenu();
+          }
+        });
+      } catch (err) {
+        if (timerId) { clearInterval(timerId); timerId = 0; }
+        analyzeBtn.disabled = false;
+        analyzeBtn.textContent = 'Analyze';
+        analyzeBtn.dataset.mode = '';
+        state.analyzing = null;
+        alert(err?.message || String(err || 'Failed to start analysis.'));
+        updateMenu();
       }
-    }
-    merged.push(cur);
-    return merged;
-  }
-  function buildOverlaysFromSelection(sel){
-    clearOverlays();
-    const ranges = [];
-    for (let i=0;i<sel.rangeCount;i++){
-      const r = sel.getRangeAt(i);
-      const rects = Array.from(r.getClientRects());
-      const merged = mergeSameLineRects(rects);
-      for (const m of merged) STATE.overlays.push(createOverlay(m));
-      ranges.push({ rects: merged });
-    }
-    STATE.lastRanges = ranges;
-  }
-
-  function reflowOverlays(){
-    // Ничего не делаем — абсолютные координаты уже рассчитаны с учётом scrollX/scrollY.
-    // Если DOM «прыгнул» — сработает MutationObserver и подсветка будет снята пользователем вручную.
-  }
-
-  // ============ analyze button ============
-  function removeActionPanel(){
-    const p = document.getElementById('__jda_action_panel');
-    if (p && p.parentNode) p.parentNode.removeChild(p);
-    STATE.analyzeBtn = null;
-  }
-
-  function showActionPanel(x, y){
-    removeActionPanel();
-    const panel = document.createElement('div');
-    panel.id = '__jda_action_panel';
-    Object.assign(panel.style, {
-      position: 'fixed',
-      top: px(Math.max(8, y + 12)),
-      left: px(Math.max(8, x + 12)),
-      display: 'flex',
-      gap: '8px',
-      padding: '8px',
-      borderRadius: '12px',
-      background: 'rgba(15,118,110,.96)',
-      boxShadow: '0 8px 24px rgba(0,0,0,.25)',
-      zIndex: 2147483647,
-      alignItems: 'center'
     });
-
-    const analyze = document.createElement('button');
-    analyze.textContent = 'Start analyze';
-    Object.assign(analyze.style, {
-      border: 'none', borderRadius: '8px', padding: '6px 10px',
-      background: '#10b981', color: '#fff', cursor: 'pointer', fontSize: '13px'
-    });
-    analyze.addEventListener('click', () => {
-      const text = (STATE.lastText || '').trim();
-      if (!text) return;
-      analyze.disabled = true;
-
-      // мгновенно закэшировать последний выбор и уведомить попап
-      try { chrome.storage.local.set({ lastSelection: text, lastSelectionWhen: Date.now() }); } catch {}
-      safeSendMessage({ type: 'SELECTION_ANALYZE', text });
-
-      const t0 = performance.now();
-      const fmt = (ms) => `Progress: ${(ms/1000).toFixed(2)}s`;
-      analyze.textContent = fmt(0);
-      let timerId = setInterval(() => {
-        analyze.textContent = fmt(performance.now() - t0);
-      }, 100);
-
-      // 1) get settings from background
-      safeSendMessage({ type: 'GET_SETTINGS' }, (settings) => {
-        try {
-          const s = settings || {};
-          const model = pickActiveModel(s);
-          if (!model) {
-            analyze.disabled = false; analyze.textContent = 'Start analyze';
-            alert('No active model configured. Please add and activate a model in Settings.');
-            return;
-          }
-          const provider = (s.providers || []).find(p => p.id === model.providerId);
-          if (!provider) {
-            analyze.disabled = false; analyze.textContent = 'Start analyze';
-            alert('Provider for the selected model is missing.');
-            return;
-          }
-
-          // 2) call LLM via background
-          safeSendMessage({
-            type: 'CALL_LLM',
-            payload: {
-              modelId: model.modelId,
-              providerId: model.providerId,
-              cv: s.cv || '',
-              systemTemplate: s.systemTemplate || '',
-              outputTemplate: s.outputTemplate || '',
-              modelSystemPrompt: model.systemPrompt || '',
-              text
-            }
-          }, (resp) => {
-            // 3) notify popup to render (if open), fall back to alert on error
-            if (timerId) { clearInterval(timerId); timerId = 0; }
-            const elapsed = performance.now() - t0;
-            const doneMs = (resp && typeof resp.ms === 'number' ? resp.ms : elapsed);
-            analyze.textContent = `Done: ${(doneMs/1000).toFixed(2)}s`;
-            setTimeout(() => { try { analyze.disabled = false; analyze.textContent = 'Start analyze'; } catch {} }, 5000);
-
-            if (resp && resp.ok) {
-              // Switch Cancel → Show result with a fresh handler
-              try { clearBtn.removeEventListener('click', onCancel); } catch {}
-              clearBtn.textContent = 'Show result';
-              clearBtn.onclick = (e) => {
-                e?.preventDefault?.();
-                e?.stopPropagation?.();
-                try {
-                  chrome.runtime.sendMessage({ type: 'OPEN_POPUP' }, () => { /* ignore errors */ });
-                } catch {}
-                removeActionPanel();
-              };
-              safeSendMessage({ type: 'LLM_RESULT', text: resp.text });
-              try { chrome.storage.local.set({ lastResult: { text: resp.text, when: Date.now(), ms: doneMs } }, ()=>{}); } catch {}
-            } else if (resp && resp.error) {
-              alert('LLM error: ' + resp.error);
-            }
-          });
-        } catch (e){
-          analyze.disabled = false; analyze.textContent = 'Start analyze';
-          alert('Unexpected error: ' + (e && e.message ? e.message : e));
-        }
-      });
-    });
-
-    const clearBtn = document.createElement('button');
-    clearBtn.textContent = 'Cancel';
-    Object.assign(clearBtn.style, {
-      border: 'none', borderRadius: '8px', padding: '6px 10px',
-      background: '#334155', color: '#fff', cursor: 'pointer', fontSize: '13px'
-    });
-    const onCancel = (e) => { e.preventDefault(); e.stopPropagation(); clearAll(); };
-    clearBtn.addEventListener('click', onCancel);
-
-    panel.appendChild(analyze);
-    panel.appendChild(clearBtn);
-    document.body.appendChild(panel);
-
-    // keep reference for compatibility with old helpers
-    STATE.analyzeBtn = analyze;
   }
 
-  function removeAnalyzeButton(){ removeActionPanel(); }
-  function removeClearButton(){ removeActionPanel(); }
-
-  // ============ handlers ============
-  function handleMouseMove(e){
-    if (!STATE.active) { removeHoverOverlay(); return; }
-    const t = (e instanceof MouseEvent)
-      ? e.target
-      : document.elementFromPoint(e.changedTouches[0].clientX, e.changedTouches[0].clientY);
-    if (t && t.nodeType === 1) createOrUpdateHoverOverlay(t);
-  }
-  function handleMouseUp(e){
-    if (!STATE.active) return;
-    const now = Date.now();
-    if (now - __lastMouseUpTs < MOUSEUP_COOLDOWN_MS) return;
-    __lastMouseUpTs = now;
-    const sel = window.getSelection();
-    if (sel && !sel.isCollapsed) {
-      const text = sel.toString();
-      STATE.lastText = text;
-      buildOverlaysFromSelection(sel);
-      clearSelectionRanges();
-
-      // stop selection mode
-      STATE.active = false;
-      document.body.style.cursor = STATE.prevCursor || '';
-      document.removeEventListener('mouseup', handleMouseUp, true);
-      document.removeEventListener('mousemove', handleMouseMove, true);
-
-      const x = (e && (e.clientX || e.pageX)) || 20;
-      const y = (e && (e.clientY || e.pageY)) || 20;
-      showActionPanel(x, y);
-
-      safeSendMessage({ type: 'SELECTION_RESULT', text });
-      try { chrome.storage.local.set({ lastSelection: text, lastSelectionWhen: Date.now() }) } catch {}
+  function finishSelection() {
+    const ordered = [...state.highlights].sort((a, b) => a.order - b.order);
+    const text = ordered.map(h => h.text).filter(Boolean).join('\n\n').trim();
+    const blocks = ordered.map(h => ({
+      text: h.text,
+      html: h.html,
+      selector: h.selector,
+      rects: h.rects,
+      order: h.order
+    }));
+    if (text) {
+      try {
+        chrome.storage.local.set({
+          lastSelection: text,
+          lastSelectionBlocks: blocks,
+          lastSelectionWhen: Date.now()
+        }, () => {});
+      } catch {}
     }
+    safeSendMessage({ type: 'SELECTION_RESULT', text, blocks });
+    return { text, blocks };
   }
 
-  function handleKeydown(ev){
-    if (!STATE.active) return;
-    // Esc — отмена выделения
-    if (ev.key === "Escape") {
-      ev.preventDefault(); ev.stopPropagation();
-      clearAll();
-      disable();
-    }
+  function cancelSelection() {
+    clearHighlights(false);
+    safeSendMessage({ type: 'SELECTION_RESULT', text: '', blocks: [] });
+    deactivate();
   }
 
-  function enable(){
-    if (STATE.active) return;
-    STATE.active = true;
-    STATE.prevCursor = document.body.style.cursor;
-    document.body.style.cursor = 'crosshair';
-    removeAnalyzeButton();
-    removeHoverOverlay();
-    clearOverlays();
-    removeClearButton();
-    __lastMouseUpTs = 0;
-    document.addEventListener('mouseup', handleMouseUp, true);
-    document.addEventListener('mousemove', handleMouseMove, true);
+  function activate() {
+    if (state.active) return;
+    ensureStyleInjected();
+    createMenu();
+    state.highlights = [];
+    state.undoStack = [];
+    state.redoStack = [];
+    state.orderSeq = 0;
+    document.documentElement.classList.add('jda-highlighter-active');
+    document.addEventListener('pointermove', handlePointerMove, true);
+    document.addEventListener('mousemove', handlePointerMove, true);
+    document.addEventListener('click', handleClick, true);
     document.addEventListener('keydown', handleKeydown, true);
+    window.addEventListener('scroll', requestRefresh, true);
+    window.addEventListener('resize', requestRefresh, true);
+    state.observer = new MutationObserver(() => requestRefresh());
+    try { state.observer.observe(document.body, { childList: true, subtree: true, attributes: true }); } catch {}
+    state.active = true;
   }
-  function disable(){
-    STATE.active = false;
-    document.body.style.cursor = STATE.prevCursor || '';
-    document.removeEventListener('mouseup', handleMouseUp, true);
-    document.removeEventListener('mousemove', handleMouseMove, true);
+
+  function deactivate() {
+    state.analyzing = null;
+    state.active = false;
+    document.documentElement.classList.remove('jda-highlighter-active');
+    document.removeEventListener('pointermove', handlePointerMove, true);
+    document.removeEventListener('mousemove', handlePointerMove, true);
+    document.removeEventListener('click', handleClick, true);
     document.removeEventListener('keydown', handleKeydown, true);
+    window.removeEventListener('scroll', requestRefresh, true);
+    window.removeEventListener('resize', requestRefresh, true);
+    if (state.observer) try { state.observer.disconnect(); } catch {}
+    state.observer = null;
+    removeHover();
+    clearHighlights(false);
+    state.undoStack = [];
+    state.redoStack = [];
+    destroyMenu();
   }
-  function clearAll(){
-    clearOverlays();
-    removeAnalyzeButton();
-    removeHoverOverlay();
-    removeClearButton();
-    STATE.lastText = '';
+
+  function cancelExternal() {
+    cancelSelection();
+    deactivate();
   }
 
-  // ============ reflow on resize/scroll/mutations ============
-  const throttledReflow = throttle(reflowOverlays, 100);
-  window.addEventListener('resize', throttledReflow);
-  window.addEventListener('scroll', throttledReflow, { passive: true });
-
-  const mo = new MutationObserver(throttle(() => {
-    // На SPA ничего не ломаем автоматически.
-  }, 250));
-  try {
-    mo.observe(document.body, { childList: true, subtree: true, attributes: true, characterData: false });
-  } catch {}
-
-  // ============ bus ============
-  chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
-    if (msg?.type === 'START_SELECTION') { enable(); sendResponse?.({ ok: true }); }
-    else if (msg?.type === 'CLEAR_SELECTION') { clearAll(); sendResponse?.({ ok: true }); }
+  chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+    if (message?.type === '__PING__') {
+      sendResponse?.({ ok: true });
+      return;
+    }
+    if (message?.type === 'START_SELECTION') {
+      activate();
+      sendResponse?.({ ok: true });
+      return;
+    }
+    if (message?.type === 'CLEAR_SELECTION') {
+      cancelExternal();
+      sendResponse?.({ ok: true });
+      return;
+    }
   });
 })();
