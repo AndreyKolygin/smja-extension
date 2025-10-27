@@ -216,9 +216,17 @@ If a site rule exists, click Auto‑grab to automatically pull the description i
 
 ![Auto-extraction Rules Screenshot](docs/images/auto-extraction.png)
 
+### Prompt settings
+![Auto-extraction Rules Screenshot](docs/images/prompts.png)
+
+### Notion integration
+
+![Auto-extraction Rules Screenshot](docs/images/integrations.png)
+
+
 ### General Settings
 
-![General Settings Screenshot](docs/images/general-settings.png)
+![General Settings Screenshot](docs/images/io-settings.png)
 
 ---
 

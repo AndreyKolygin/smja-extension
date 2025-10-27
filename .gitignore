@@ -145,6 +145,7 @@ dist/
 # local settings exports with keys (на всякий)
 *.secret.json
 local/
+.vscode/
 
 # external
-/ext/
+ext/
