@@ -133,7 +133,7 @@
   "options.modal.model.idPh": "например gpt-4o-mini",
 
   "options.modal.modelPrompt.title": "Системный промпт (для модели)",
-  "options.modal.modelPrompt.textPh": "Оставьте пустым, чтобы наследовать глобальный шаблон…",
+  "options.modal.modelPrompt.textPh": "Оставьте пустым, чтобы наследовать глобальный шаблон. Используйте {{GLOBAL_SYSTEM_PROMPT}} для подстановки глобального текста и {{RESULT_OUTPUT_TEMPLATE}} — чтобы встроить или отключить шаблон выдачи.",
 
   "options.modal.site.title": "Правило автоизвлечения",
   "options.modal.site.host": "Сайт / шаблон",

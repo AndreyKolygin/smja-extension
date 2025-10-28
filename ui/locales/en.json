@@ -133,7 +133,7 @@
   "options.modal.model.idPh": "e.g. gpt-4o-mini",
 
   "options.modal.modelPrompt.title": "System prompt (per model)",
-  "options.modal.modelPrompt.textPh": "Leave blank to inherit global system template…",
+  "options.modal.modelPrompt.textPh": "Leave blank to inherit global system template. Use {{GLOBAL_SYSTEM_PROMPT}} to embed it, and {{RESULT_OUTPUT_TEMPLATE}} to include or remove the global output format.",
 
   "options.modal.site.title": "Auto-extract rule",
   "options.modal.site.host": "Site / pattern",

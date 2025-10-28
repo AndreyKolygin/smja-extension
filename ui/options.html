@@ -298,7 +298,9 @@
   <dialog id="modelPromptModal" class="modal">
   <form method="dialog" class="modal-body">
     <h3 data-i18n="options.modal.modelPrompt.title">System prompt (per model)</h3>
-    <p class="hint" data-i18n="options.modal.modelPrompt.textPh">Leave blank to inherit global system template…</p>
+    <p class="hint" data-i18n="options.modal.modelPrompt.textPh">
+      Leave blank to inherit global system template. <code>{{GLOBAL_SYSTEM_PROMPT}}</code> to insert the global prompt, and <code>{{RESULT_OUTPUT_TEMPLATE}}</code> to embed (or remove) the output template.
+    </p>
     <textarea id="modelPromptText" rows="12" class="stretch mono"></textarea>
     <div class="modal-actions">
       <button id="cancelModelPromptBtn" type="reset" class="btn icon-left i-undo" data-i18n="options.btn.cancel">Cancel</button>
