@@ -9,12 +9,46 @@ import { callOllama } from './ollama.js';
 import { callGemini } from './gemini.js';
 
 function buildPrompt({ cv, systemTemplate, outputTemplate, modelSystemPrompt, text }) {
-  const sys = [systemTemplate || '', modelSystemPrompt || ''].filter(Boolean).join('\n\n').trim();
-  const user = [
-    cv ? `CV:\n${cv}` : '',
-    text ? `JOB DESCRIPTION:\n${text}` : '',
-    outputTemplate ? `OUTPUT FORMAT:\n${outputTemplate}` : ''
-  ].filter(Boolean).join('\n\n').trim();
+  const globalPromptRaw = (systemTemplate || '').trim();
+  const modelPromptRaw = (modelSystemPrompt || '').trim();
+  const outputTemplateTrimmed = (outputTemplate || '').trim();
+
+  const globalPlaceholder = /{{\s*GLOBAL_SYSTEM_PROMPT\s*}}/gi;
+  const outputPlaceholder = /((?:не|not)\s+[^{}]*?)?{{\s*RESULT_OUTPUT_TEMPLATE\s*}}/gi;
+
+  let includeOutputTemplate = !!outputTemplateTrimmed;
+
+  const replaceOutputPlaceholders = (input) => {
+    if (!input) return input;
+    return input.replace(outputPlaceholder, (_, neg) => {
+      includeOutputTemplate = false;
+      if (neg) return neg.replace(/\s+$/, '');
+      return outputTemplateTrimmed;
+    });
+  };
+
+  let sys = '';
+
+  if (modelPromptRaw) {
+    let prompt = modelPromptRaw;
+    if (globalPromptRaw) {
+      prompt = prompt.replace(globalPlaceholder, globalPromptRaw);
+    }
+    prompt = replaceOutputPlaceholders(prompt);
+    sys = prompt.trim();
+  } else {
+    let prompt = replaceOutputPlaceholders(globalPromptRaw);
+    sys = prompt.trim();
+  }
+
+  const userParts = [];
+  if (cv) userParts.push(`CV:\n${cv}`);
+  if (text) userParts.push(`JOB DESCRIPTION:\n${text}`);
+  if (includeOutputTemplate && outputTemplateTrimmed) {
+    userParts.push(`OUTPUT FORMAT:\n${outputTemplateTrimmed}`);
+  }
+
+  const user = userParts.join('\n\n').trim();
   return { sys, user };
 }
 

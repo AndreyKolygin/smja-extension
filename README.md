@@ -72,6 +72,8 @@ Changes are autosaved; you can also press Save.
 - Output Template (Markdown skeleton)
 - Autosave
 - Clear prompt cache button
+- Per-model system prompt overrides the global template; include `{{GLOBAL_SYSTEM_PROMPT}}` inside it if you need to embed the global prompt.
+- To reuse or suppress the global output template, place `{{RESULT_OUTPUT_TEMPLATE}}` in the per-model prompt: the token is replaced with the template text; phrases like `не используй {{RESULT_OUTPUT_TEMPLATE}}` remove it entirely.
 
 ### Auto‑extraction Rules
 
