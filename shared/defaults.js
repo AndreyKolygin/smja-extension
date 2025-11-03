@@ -61,6 +61,7 @@ const DEFAULT_SITES = [
   {
     id: 'site_linkedin',
     host: 'linkedin.com/jobs/*',
+    strategy: 'css',
     selector: 'div.display-flex.align-items-center.flex-1, h1.t-24.t-bold.inline, span.tvm__text.tvm__text--low-emphasis, div.feed-shared-inline-show-more-text',
     comment: 'LinkedIn job description',
     active: true
@@ -68,6 +69,7 @@ const DEFAULT_SITES = [
   {
     id: 'site_hh',
     host: 'https://hh.ru/vacancy?',
+    strategy: 'css',
     selector: 'div.magritte-card___bhGKz_8-0-6.magritte-card-style-primary___eZ6aX_8-0-6.magritte-card-shadow-level-0___RNbQK_8-0-6.magritte-card-stretched___0Uc0J_8-0-6, div.vacancy-description',
     comment: 'HeadHunter (hh.ru) vacancy description',
     active: true
@@ -76,6 +78,7 @@ const DEFAULT_SITES = [
     id: 'site_indeed',
     // use regex to match any TLD: indeed.com/.co.uk/etc
     host: '/https?:\\/\\/[^\\/]*indeed\\.[^\\/]+\//i',
+    strategy: 'css',
     selector: '#jobDescriptionText, .jobsearch-jobDescriptionText',
     comment: 'Indeed job description',
     active: true

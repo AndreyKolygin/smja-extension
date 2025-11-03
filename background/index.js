@@ -15,7 +15,181 @@ function sanitizeTab(tab) {
   };
 }
 
-async function extractFromPageBG(tabId, selector, { waitMs = 4000, pollMs = 150 } = {}) {
+function normalizeRuleForExec(ruleOrSelector) {
+  if (!ruleOrSelector && ruleOrSelector !== '') return null;
+  if (typeof ruleOrSelector === 'string') {
+    const selector = ruleOrSelector.trim();
+    if (!selector) return null;
+    return {
+      strategy: 'css',
+      selector,
+      chain: [],
+      script: ''
+    };
+  }
+  const raw = (ruleOrSelector && typeof ruleOrSelector === 'object') ? ruleOrSelector : {};
+  const strategy = typeof raw.strategy === 'string' ? raw.strategy.toLowerCase() : 'css';
+  const selector = typeof raw.selector === 'string' ? raw.selector.trim() : '';
+  const script = typeof raw.script === 'string' ? raw.script.trim() : '';
+  const chain = Array.isArray(raw.chain)
+    ? raw.chain.map((step) => {
+        const sel = typeof step?.selector === 'string' ? step.selector.trim() : '';
+        if (!sel) return null;
+        const text = typeof step?.text === 'string' ? step.text.trim() : '';
+        let nth = null;
+        if (Number.isFinite(step?.nth)) {
+          nth = Math.max(0, Math.floor(step.nth));
+        } else if (typeof step?.nth === 'string' && step.nth.trim()) {
+          const parsed = Number(step.nth.trim());
+          if (Number.isFinite(parsed) && parsed >= 0) {
+            nth = Math.floor(parsed);
+          }
+        }
+        return { selector: sel, text, nth };
+      }).filter(Boolean)
+    : [];
+  return {
+    strategy: ['css', 'chain', 'script'].includes(strategy) ? strategy : 'css',
+    selector,
+    chain,
+    script
+  };
+}
+
+async function evaluateRuleInPage(rule) {
+  try {
+    const strategy = (rule?.strategy || 'css').toLowerCase();
+
+    function nodesToText(nodes) {
+      const unique = [];
+      const seen = new Set();
+      for (const node of nodes || []) {
+        if (!node || seen.has(node)) continue;
+        seen.add(node);
+        const text = (node.innerText ?? node.textContent ?? '').trim();
+        if (text) unique.push(text);
+      }
+      const text = unique.join('\n\n')
+        .replace(/\u00A0/g, ' ')
+        .replace(/[ \t]+\n/g, '\n')
+        .replace(/\n{3,}/g, '\n\n')
+        .trim();
+      return { text, count: unique.length };
+    }
+
+    function collectNodes(root, selector) {
+      const parts = String(selector || '').split(',').map(s => s.trim()).filter(Boolean);
+      const seen = new Set();
+      const out = [];
+
+      function pushNode(node) {
+        if (node && !seen.has(node)) {
+          seen.add(node);
+          out.push(node);
+        }
+      }
+
+      function collect(rootNode, sel) {
+        if (!rootNode || !sel) return;
+        try {
+          if (rootNode instanceof Element && rootNode.matches?.(sel)) {
+            pushNode(rootNode);
+          }
+        } catch {}
+        try {
+          const list = rootNode.querySelectorAll ? rootNode.querySelectorAll(sel) : [];
+          for (const node of list) pushNode(node);
+        } catch {}
+        const descendants = rootNode.querySelectorAll ? rootNode.querySelectorAll('*') : [];
+        for (const el of descendants) {
+          if (el.shadowRoot) {
+            collect(el.shadowRoot, sel);
+          }
+        }
+      }
+
+      for (const part of parts) {
+        collect(root, part);
+      }
+      return out;
+    }
+
+    if (strategy === 'css') {
+      const selector = String(rule?.selector || '').trim();
+      if (!selector) return { ok: false, error: 'no_selector' };
+      const nodes = collectNodes(document, selector);
+      const { text, count } = nodesToText(nodes);
+      return { ok: !!text, text, count };
+    }
+
+    if (strategy === 'chain') {
+      const chain = Array.isArray(rule?.chain) ? rule.chain : [];
+      if (!chain.length) return { ok: false, error: 'empty_chain' };
+      let current = [document];
+      for (const step of chain) {
+        const sel = String(step?.selector || '').trim();
+        if (!sel) continue;
+        const next = [];
+        const seen = new Set();
+        for (const scope of current) {
+          const nodes = collectNodes(scope, sel);
+          let filtered = nodes;
+          const textFilter = String(step?.text || '').trim().toLowerCase();
+          if (textFilter) {
+            filtered = filtered.filter(node => {
+              const raw = (node.innerText ?? node.textContent ?? '').toLowerCase();
+              return raw.includes(textFilter);
+            });
+          }
+          const nth = Number.isFinite(step?.nth) ? step.nth : null;
+          if (nth != null) {
+            filtered = filtered[nth] ? [filtered[nth]] : [];
+          }
+          for (const node of filtered) {
+            if (node && !seen.has(node)) {
+              seen.add(node);
+              next.push(node);
+            }
+          }
+        }
+        current = next;
+        if (!current.length) break;
+      }
+      const { text, count } = nodesToText(current);
+      return { ok: !!text, text, count };
+    }
+
+    if (strategy === 'script') {
+      const body = String(rule?.script || '');
+      if (!body.trim()) return { ok: false, error: 'empty_script' };
+      try {
+        const fn = new Function('document', 'window', 'root', '"use strict";' + body);
+        const value = fn(document, window, document);
+        const resolved = value && typeof value.then === 'function' ? await value : value;
+        const text = typeof resolved === 'string'
+          ? resolved
+          : (resolved == null ? '' : String(resolved));
+        const clean = text
+          .replace(/\u00A0/g, ' ')
+          .replace(/[ \t]+\n/g, '\n')
+          .replace(/\n{3,}/g, '\n\n')
+          .trim();
+        return { ok: !!clean, text: clean, count: clean ? 1 : 0 };
+      } catch (err) {
+        return { ok: false, error: String(err && (err.message || err)) };
+      }
+    }
+
+    return { ok: false, error: 'unknown_strategy' };
+  } catch (err) {
+    return { ok: false, error: String(err && (err.message || err)) };
+  }
+}
+
+async function extractFromPageBG(tabId, ruleInput, { waitMs = 4000, pollMs = 150 } = {}) {
+  const rule = normalizeRuleForExec(ruleInput);
+  if (!rule) return { ok: false, error: 'invalid_rule' };
+
   const deadline = Date.now() + Math.max(800, Number(waitMs) || 3000);
 
   async function readOnceAllFrames() {
@@ -23,28 +197,8 @@ async function extractFromPageBG(tabId, selector, { waitMs = 4000, pollMs = 150 
       const injResults = await chrome.scripting.executeScript({
         target: { tabId, allFrames: true },
         world: 'ISOLATED',
-        func: (sel) => {
-          function collectTextBySelector(selector) {
-            const parts = String(selector || '').split(',').map(s => s.trim()).filter(Boolean);
-            const seen = new Set();
-            const out = [];
-            function collectInRoot(root, sel) {
-              try {
-                const nodes = root.querySelectorAll(sel);
-                for (const n of nodes) { if (!seen.has(n)) { seen.add(n); out.push(n); } }
-              } catch {}
-              const all = root.querySelectorAll('*');
-              for (const el of all) { if (el.shadowRoot) collectInRoot(el.shadowRoot, sel); }
-            }
-            for (const p of parts) collectInRoot(document, p);
-            const texts = out.map(n => (n.innerText ?? n.textContent ?? '').trim()).filter(Boolean);
-            const text = texts.join('\n\n').replace(/\u00A0/g, ' ').replace(/[ \t]+\n/g, '\n').replace(/\n{3,}/g, '\n\n').trim();
-            return { ok: !!text, text, count: texts.length };
-          }
-          try { return collectTextBySelector(sel); }
-          catch (e) { return { ok: false, error: String(e && (e.message || e)) }; }
-        },
-        args: [selector]
+        func: evaluateRuleInPage,
+        args: [rule]
       });
 
       const texts = [];
@@ -154,9 +308,10 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       if (message?.type === 'EXTRACT_FROM_PAGE') {
         try {
           const tabId = await resolveTabId(message.tabId);
-          const selector = String(message.selector || '').trim();
-          if (!selector) { sendResponse({ ok:false, error:'No selector' }); return; }
-          const res = await extractFromPageBG(tabId, selector, { waitMs: message.waitMs, pollMs: message.pollMs });
+          const rawRule = message.rule !== undefined ? message.rule : message.selector;
+          const rule = normalizeRuleForExec(rawRule);
+          if (!rule) { sendResponse({ ok:false, error:'no_rule' }); return; }
+          const res = await extractFromPageBG(tabId, rule, { waitMs: message.waitMs, pollMs: message.pollMs });
           sendResponse(res);
         } catch (e) {
           sendResponse({ ok: false, error: String(e?.message || e) });

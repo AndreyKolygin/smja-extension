@@ -20,6 +20,7 @@ function cloneDefaultNotion() {
 
 const NOTION_TYPES = new Set(['title', 'rich_text', 'url', 'number', 'checkbox', 'date', 'multi_select', 'status']);
 const NOTION_SOURCES = new Set(['analysis', 'jobDescription', 'selectedText', 'url', 'provider', 'model', 'timestamp', 'cv', 'pageTitle', 'custom']);
+const SITE_STRATEGIES = new Set(['css', 'chain', 'script']);
 
 function normalizeNotionField(field, idx = 0) {
   const base = {
@@ -41,6 +42,45 @@ function normalizeNotionField(field, idx = 0) {
     propertyType,
     source,
     staticValue: typeof raw.staticValue === 'string' ? raw.staticValue : ''
+  };
+}
+
+function normalizeChainStep(step, idx = 0) {
+  const raw = step && typeof step === 'object' ? step : {};
+  const selector = typeof raw.selector === 'string' ? raw.selector.trim() : '';
+  const text = typeof raw.text === 'string' ? raw.text.trim() : '';
+  let nth = null;
+  if (Number.isFinite(raw.nth)) {
+    nth = Math.max(0, Math.floor(raw.nth));
+  } else if (typeof raw.nth === 'string' && raw.nth.trim()) {
+    const parsed = Number(raw.nth.trim());
+    if (Number.isFinite(parsed)) nth = Math.max(0, Math.floor(parsed));
+  }
+  return selector
+    ? { selector, text, nth }
+    : { selector: '', text: '', nth: null };
+}
+
+function normalizeSiteRule(rule, idx = 0) {
+  const baseId = `site_${Math.random().toString(36).slice(2, 8)}${Date.now().toString(36)}`;
+  const raw = rule && typeof rule === 'object' ? rule : {};
+  const strategy = SITE_STRATEGIES.has(raw.strategy) ? raw.strategy : 'css';
+  const host = typeof raw.host === 'string' ? raw.host.trim() : '';
+  const selector = typeof raw.selector === 'string' ? raw.selector.trim() : '';
+  const comment = typeof raw.comment === 'string' ? raw.comment.trim() : '';
+  const script = typeof raw.script === 'string' ? raw.script.trim() : '';
+  const active = raw.active === undefined ? true : !!raw.active;
+  const chain = Array.isArray(raw.chain) ? raw.chain.map((step, i) => normalizeChainStep(step, i)).filter(st => st.selector) : [];
+
+  return {
+    id: typeof raw.id === 'string' && raw.id ? raw.id : baseId,
+    host,
+    strategy,
+    selector: strategy === 'css' ? selector : selector || '',
+    comment,
+    active,
+    chain,
+    script: strategy === 'script' ? script : ''
   };
 }
 
@@ -73,6 +113,7 @@ export function normalizeSettings(obj) {
   if (!Array.isArray(s.providers)) s.providers = [];
   if (!Array.isArray(s.models)) s.models = [];
   if (!Array.isArray(s.sites)) s.sites = [];
+  s.sites = s.sites.map((rule, idx) => normalizeSiteRule(rule, idx));
 
   if (!s.general || typeof s.general !== 'object') s.general = {};
   const m = s.general.uiDefaultMode;

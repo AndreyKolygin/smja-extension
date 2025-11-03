@@ -353,6 +353,54 @@ select {
 /* .nowrap {
   white-space: nowrap;
 } */
+
+#siteChainRow .chain-row-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+
+.chain-step-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.chain-step {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px;
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.chain-step-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 6px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.chain-step-fields {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.chain-step-fields .field {
+  flex: 1 1 160px;
+  display: flex;
+  flex-direction: column;
+}
+
+.chain-step-fields .field input {
+  width: 100%;
+}
+
 #apiKeyHelp {
   color: var(--muted);
   font-size: 12px;

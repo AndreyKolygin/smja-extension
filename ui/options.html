@@ -66,7 +66,7 @@
                   <tr>
                     <th data-i18n="options.tbl.active">Active</th>
                     <th data-i18n="options.tbl.site">Site</th>
-                    <th data-i18n="options.tbl.selector" class="word-break">Selector</th>
+                    <th data-i18n="options.tbl.extraction" class="word-break">Extraction</th>
                     <th data-i18n="options.tbl.comment">Comment</th>
                     <th></th>
                   </tr>
@@ -271,10 +271,35 @@
       </div>
 
       <div class="form-row">
+        <label for="siteStrategy" data-i18n="options.modal.site.strategy">Extraction strategy</label>
+        <select id="siteStrategy">
+          <option value="css" data-i18n="options.modal.site.strategy.css">CSS selector</option>
+          <option value="chain" data-i18n="options.modal.site.strategy.chain">DOM chain</option>
+          <option value="script" data-i18n="options.modal.site.strategy.script">Custom script</option>
+        </select>
+      </div>
+
+      <div class="form-row" id="siteSelectorRow">
         <label for="siteSelector" data-i18n="options.modal.site.selector">*CSS selector</label>
         <textarea rows="3" id="siteSelector"
                   placeholder=".job-description, [data-role=&quot;jd&quot;]"
-                  data-i18n-attr-placeholder="options.modal.site.selectorPh" required></textarea>
+                  data-i18n-attr-placeholder="options.modal.site.selectorPh"></textarea>
+      </div>
+
+      <div class="form-row" id="siteChainRow" hidden>
+        <div class="chain-row-header">
+          <label data-i18n="options.modal.site.chainTitle">Chain steps</label>
+          <button type="button" class="btn add-model icon-left i-add" id="addChainStepBtn" data-i18n="options.modal.site.chainAdd">+ Step</button>
+        </div>
+        <div id="siteChainSteps" class="chain-step-list"></div>
+        <p class="muted" data-i18n="options.modal.site.chainHint">Steps execute in order. Each selector runs relative to the previous result; optional “Contains text” narrows matches.</p>
+      </div>
+
+      <div class="form-row" id="siteScriptRow" hidden>
+        <label for="siteScript" data-i18n="options.modal.site.scriptLabel">Custom script (function body)</label>
+        <textarea rows="6" id="siteScript"
+                  placeholder="const el = document.querySelector('...');\nreturn el ? el.innerText : '';"></textarea>
+        <p class="muted" data-i18n="options.modal.site.scriptHint">Runs inside the page with access to <code>document</code>. Return a string with the extracted description.</p>
       </div>
 
       <div class="form-row">
@@ -290,7 +315,7 @@
 
       <menu>
         <button class="btn icon-left i-undo" value="cancel" id="cancelSiteBtn" data-i18n="options.btn.cancel">Cancel</button>
-        <button class="btn primary icon-left i-check" id="saveSiteBtn" value="default" data-i18n="options.btn.save">Save</button>
+        <button type="button" class="btn primary icon-left i-check" id="saveSiteBtn" value="default" data-i18n="options.btn.save">Save</button>
       </menu>
     </form>
   </dialog>

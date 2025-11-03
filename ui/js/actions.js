@@ -1,5 +1,6 @@
 // actions.js — Select/Clear/Analyze/Copy/Save
 import { state, setJobInput, setProgress, startTimer, stopTimer, setResult, setLastMeta, getActiveTab } from "./state.js";
+import { t } from "./i18n.js";
 
 let __anBtnTicker = 0;
 let __anBtnStart = 0;
@@ -7,6 +8,177 @@ let __anBtnStart = 0;
 // content-extraction defaults
 const DEFAULT_EXTRACT_WAIT = 4000; // ms
 const DEFAULT_EXTRACT_POLL = 150;  // ms
+
+function normalizeRuleForExec(ruleOrSelector) {
+  if (!ruleOrSelector && ruleOrSelector !== '') return null;
+  if (typeof ruleOrSelector === 'string') {
+    const selector = ruleOrSelector.trim();
+    if (!selector) return null;
+    return {
+      strategy: 'css',
+      selector,
+      chain: [],
+      script: ''
+    };
+  }
+  const raw = (ruleOrSelector && typeof ruleOrSelector === 'object') ? ruleOrSelector : {};
+  const strategy = typeof raw.strategy === 'string' ? raw.strategy.toLowerCase() : 'css';
+  const selector = typeof raw.selector === 'string' ? raw.selector.trim() : '';
+  const script = typeof raw.script === 'string' ? raw.script.trim() : '';
+  const chain = Array.isArray(raw.chain)
+    ? raw.chain.map((step) => {
+        const sel = typeof step?.selector === 'string' ? step.selector.trim() : '';
+        if (!sel) return null;
+        const text = typeof step?.text === 'string' ? step.text.trim() : '';
+        let nth = null;
+        if (Number.isFinite(step?.nth)) {
+          nth = Math.max(0, Math.floor(step.nth));
+        } else if (typeof step?.nth === 'string' && step.nth.trim()) {
+          const parsed = Number(step.nth.trim());
+          if (Number.isFinite(parsed) && parsed >= 0) {
+            nth = Math.floor(parsed);
+          }
+        }
+        return { selector: sel, text, nth };
+      }).filter(Boolean)
+    : [];
+  return {
+    strategy: ['css', 'chain', 'script'].includes(strategy) ? strategy : 'css',
+    selector,
+    chain,
+    script
+  };
+}
+
+async function evaluateRuleInPage(rule) {
+  try {
+    const strategy = (rule?.strategy || 'css').toLowerCase();
+
+    function nodesToText(nodes) {
+      const unique = [];
+      const seen = new Set();
+      for (const node of nodes || []) {
+        if (!node || seen.has(node)) continue;
+        seen.add(node);
+        const text = (node.innerText ?? node.textContent ?? '').trim();
+        if (text) unique.push(text);
+      }
+      const text = unique.join('\n\n')
+        .replace(/\u00A0/g, ' ')
+        .replace(/[ \t]+\n/g, '\n')
+        .replace(/\n{3,}/g, '\n\n')
+        .trim();
+      return { text, count: unique.length };
+    }
+
+    function collectNodes(root, selector) {
+      const parts = String(selector || '').split(',').map(s => s.trim()).filter(Boolean);
+      const seen = new Set();
+      const out = [];
+
+      function pushNode(node) {
+        if (node && !seen.has(node)) {
+          seen.add(node);
+          out.push(node);
+        }
+      }
+
+      function collect(rootNode, sel) {
+        if (!rootNode || !sel) return;
+        try {
+          if (rootNode instanceof Element && rootNode.matches?.(sel)) {
+            pushNode(rootNode);
+          }
+        } catch {}
+        try {
+          const list = rootNode.querySelectorAll ? rootNode.querySelectorAll(sel) : [];
+          for (const node of list) pushNode(node);
+        } catch {}
+        const descendants = rootNode.querySelectorAll ? rootNode.querySelectorAll('*') : [];
+        for (const el of descendants) {
+          if (el.shadowRoot) {
+            collect(el.shadowRoot, sel);
+          }
+        }
+      }
+
+      for (const part of parts) {
+        collect(root, part);
+      }
+      return out;
+    }
+
+    if (strategy === 'css') {
+      const selector = String(rule?.selector || '').trim();
+      if (!selector) return { ok: false, error: 'no_selector' };
+      const nodes = collectNodes(document, selector);
+      const { text, count } = nodesToText(nodes);
+      return { ok: !!text, text, count };
+    }
+
+    if (strategy === 'chain') {
+      const chain = Array.isArray(rule?.chain) ? rule.chain : [];
+      if (!chain.length) return { ok: false, error: 'empty_chain' };
+      let current = [document];
+      for (const step of chain) {
+        const sel = String(step?.selector || '').trim();
+        if (!sel) continue;
+        const next = [];
+        const seen = new Set();
+        for (const scope of current) {
+          const nodes = collectNodes(scope, sel);
+          let filtered = nodes;
+          const textFilter = String(step?.text || '').trim().toLowerCase();
+          if (textFilter) {
+            filtered = filtered.filter(node => {
+              const raw = (node.innerText ?? node.textContent ?? '').toLowerCase();
+              return raw.includes(textFilter);
+            });
+          }
+          const nth = Number.isFinite(step?.nth) ? step.nth : null;
+          if (nth != null) {
+            filtered = filtered[nth] ? [filtered[nth]] : [];
+          }
+          for (const node of filtered) {
+            if (node && !seen.has(node)) {
+              seen.add(node);
+              next.push(node);
+            }
+          }
+        }
+        current = next;
+        if (!current.length) break;
+      }
+      const { text, count } = nodesToText(current);
+      return { ok: !!text, text, count };
+    }
+
+    if (strategy === 'script') {
+      const body = String(rule?.script || '');
+      if (!body.trim()) return { ok: false, error: 'empty_script' };
+      try {
+        const fn = new Function('document', 'window', 'root', '"use strict";' + body);
+        const value = fn(document, window, document);
+        const resolved = value && typeof value.then === 'function' ? await value : value;
+        const text = typeof resolved === 'string'
+          ? resolved
+          : (resolved == null ? '' : String(resolved));
+        const clean = text
+          .replace(/\u00A0/g, ' ')
+          .replace(/[ \t]+\n/g, '\n')
+          .replace(/\n{3,}/g, '\n\n')
+          .trim();
+        return { ok: !!clean, text: clean, count: clean ? 1 : 0 };
+      } catch (err) {
+        return { ok: false, error: String(err && (err.message || err)) };
+      }
+    }
+
+    return { ok: false, error: 'unknown_strategy' };
+  } catch (err) {
+    return { ok: false, error: String(err && (err.message || err)) };
+  }
+}
 
 function startAnalyzeButtonTimer() {
   const btn = document.getElementById("analyzeBtn");
@@ -247,8 +419,10 @@ export async function ensureContentScript(tabId) {
   }
 }
 
-async function extractFromPage(tabId, selector, { waitMs = DEFAULT_EXTRACT_WAIT, pollMs = DEFAULT_EXTRACT_POLL } = {}) {
-  // Если мы внутри popup (chrome.scripting доступен), можно читать напрямую.
+async function extractFromRule(tabId, ruleInput, { waitMs = DEFAULT_EXTRACT_WAIT, pollMs = DEFAULT_EXTRACT_POLL } = {}) {
+  const rule = normalizeRuleForExec(ruleInput);
+  if (!rule) return { ok: false, error: 'invalid_rule' };
+
   if (chrome?.scripting?.executeScript) {
     const deadline = Date.now() + Math.max(800, Number(waitMs) || 3000);
     async function readOnceAllFrames() {
@@ -256,40 +430,19 @@ async function extractFromPage(tabId, selector, { waitMs = DEFAULT_EXTRACT_WAIT,
         const injResults = await chrome.scripting.executeScript({
           target: { tabId, allFrames: true },
           world: 'ISOLATED',
-          func: (sel) => {
-            function collectTextBySelector(selector) {
-              const parts = String(selector || '').split(',').map(s => s.trim()).filter(Boolean);
-              const seen = new Set();
-              const out = [];
-              function collectInRoot(root, sel) {
-                try {
-                  const nodes = root.querySelectorAll(sel);
-                  for (const n of nodes) {
-                    if (!seen.has(n)) { seen.add(n); out.push(n); }
-                  }
-                } catch {}
-                const all = root.querySelectorAll('*');
-                for (const el of all) {
-                  if (el.shadowRoot) collectInRoot(el.shadowRoot, sel);
-                }
-              }
-              for (const p of parts) collectInRoot(document, p);
-              const texts = out.map(n => (n.innerText ?? n.textContent ?? '').trim()).filter(Boolean);
-              const text = texts.join('\n\n').replace(/\u00A0/g, ' ').replace(/[ \t]+\n/g, '\n').replace(/\n{3,}/g, '\n\n').trim();
-              return { ok: !!text, text, count: texts.length };
-            }
-            try { return collectTextBySelector(sel); }
-            catch (e) { return { ok: false, error: String(e && (e.message || e)) }; }
-          },
-          args: [selector]
+          func: evaluateRuleInPage,
+          args: [rule]
         });
         const texts = [];
         let last = null;
         for (const inj of injResults || []) {
-          const r = inj?.result; if (r) last = r;
+          const r = inj?.result;
+          if (r) last = r;
           if (r?.ok && r.text) texts.push(r.text);
         }
-        if (texts.length) return { ok: true, text: texts.join('\n\n') };
+        if (texts.length) {
+          return { ok: true, text: texts.join('\n\n') };
+        }
         return last || { ok: false, error: 'notfound' };
       } catch (e) {
         return { ok: false, error: String(e && (e.message || e)) };
@@ -304,9 +457,9 @@ async function extractFromPage(tabId, selector, { waitMs = DEFAULT_EXTRACT_WAIT,
     }
     return { ok: false, error: lastErr };
   }
-  // В overlay (контент-скрипт) chrome.scripting недоступен — делаем через SW
+
   try {
-    const resp = await chrome.runtime.sendMessage({ type: 'EXTRACT_FROM_PAGE', selector, waitMs, pollMs });
+    const resp = await chrome.runtime.sendMessage({ type: 'EXTRACT_FROM_PAGE', rule, waitMs, pollMs });
     return resp || { ok: false, error: 'no_response' };
   } catch (e) {
     return { ok: false, error: String(e && (e.message || e)) };
@@ -335,34 +488,66 @@ export async function detectAndToggleFastStart() {
   dbg("matched:", match);
   if (!match) { btn.hidden = true; return; }
 
+  const normalizedRule = normalizeRuleForExec(match);
+  if (!normalizedRule) { btn.hidden = true; return; }
+
   btn.hidden = false;
   btn.classList.remove("hidden");
-  btn.dataset.selector = match.selector || "";
+  btn.__fastRule = normalizedRule;
   btn.onclick = async () => {
     try {
       const ready = await ensureContentScript(tab.id);
-      if (!ready) { alert("Cannot access page. Content script isn't available."); return; }
+      if (!ready) { alert(t('options.faststart.noAccess', "Cannot access page. Content script isn't available.")); return; }
 
-      const selector = btn.dataset.selector || match.selector || "";
-      if (!selector) { alert("Selector is empty for this site rule."); return; }
+      const selectedRule = btn.__fastRule || normalizeRuleForExec(match);
+      if (!selectedRule) { alert(t('options.faststart.invalidRule', "Auto-extraction rule is not configured.")); return; }
 
-      setProgress?.("Grabbing description…");
+      if (selectedRule.strategy === 'css' && !selectedRule.selector) {
+        alert(t('options.faststart.missingSelector', "Auto-extraction rule is missing a selector."));
+        return;
+      }
+      if (selectedRule.strategy === 'chain' && (!Array.isArray(selectedRule.chain) || !selectedRule.chain.length)) {
+        alert(t('options.faststart.missingChain', "Auto-extraction chain has no steps."));
+        return;
+      }
+      if (selectedRule.strategy === 'script' && !selectedRule.script) {
+        alert(t('options.faststart.missingScript', "Auto-extraction script body is empty."));
+        return;
+      }
 
-      const resp = await extractFromPage(tab.id, selector, { waitMs: DEFAULT_EXTRACT_WAIT, pollMs: DEFAULT_EXTRACT_POLL });
+      setProgress?.(t('options.faststart.progress', "Grabbing description…"));
+
+      const resp = await extractFromRule(tab.id, selectedRule, { waitMs: DEFAULT_EXTRACT_WAIT, pollMs: DEFAULT_EXTRACT_POLL });
 
       if (!resp?.ok) {
-        const msg = /port closed|context invalidated/i.test(resp?.error || "")
-          ? "Page changed before we could read it. Try again."
-          : (resp?.error || "Nothing found by selector on this page.");
+        const err = String(resp?.error || '');
+        let msg;
+        if (/port closed|context invalidated/i.test(err)) {
+          msg = t('options.faststart.pageChanged', "Page changed before we could read it. Try again.");
+        } else if (err === 'no_selector') {
+          msg = t('options.faststart.missingSelector', "Auto-extraction rule is missing a selector.");
+        } else if (err === 'empty_chain') {
+          msg = t('options.faststart.missingChain', "Auto-extraction chain has no steps.");
+        } else if (err === 'empty_script') {
+          msg = t('options.faststart.missingScript', "Auto-extraction script body is empty.");
+        } else if (err === 'unknown_strategy') {
+          msg = t('options.faststart.unknownStrategy', "Unknown extraction strategy.");
+        } else if (err === 'invalid_rule' || err === 'no_rule') {
+          msg = t('options.faststart.invalidRule', "Auto-extraction rule is not configured.");
+        } else if (err === 'notfound') {
+          msg = t('options.faststart.notFound', "Nothing matched on this page.");
+        } else {
+          msg = err || t('options.faststart.notFound', "Nothing matched on this page.");
+        }
         setProgress?.("");
-        alert("Extraction failed: " + msg);
+        alert(t('options.faststart.failedPrefix', "Extraction failed: ") + msg);
         return;
       }
 
       const text = String(resp.text || "").trim();
       if (!text) {
         setProgress?.("");
-        alert("Nothing found by selector on this page.");
+        alert(t('options.faststart.notFound', "Nothing matched on this page."));
         return;
       }
 
