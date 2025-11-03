@@ -29,7 +29,8 @@ body.single-column {
   z-index: 100;
   background: var(--bg);
   padding: 8px 0;
-  border-radius: 12px;
+  /* border-radius: 12px; */
+  border-radius: var(--radius);
   box-shadow: var(--shadow);
 }
 
@@ -38,7 +39,8 @@ body.single-column {
   background: var(--panel-light);
   color: var(--text);
   padding: 8px 14px;
-  border-radius: 8px;
+  /* border-radius: 8px; */
+  border-radius: var(--radius);
   cursor: pointer;
   font-weight: 500;
   transition: background 0.2s ease, border-color 0.2s ease;
@@ -132,7 +134,8 @@ body.single-column {
 
 .notion-field {
   border: 1px solid var(--border);
-  border-radius: 10px;
+  /* border-radius: 10px; */
+  border-radius: var(--radius);
   padding: 12px;
   margin-bottom: 12px;
   background: rgba(255, 255, 255, 0.74);
@@ -328,9 +331,9 @@ select {
 .table-wrapper {
   overflow-x: auto;
 }
-/* .nowrap {
+.nowrap {
   white-space: nowrap;
-} */
+}
 
 #siteChainRow .chain-row-header {
   display: flex;
@@ -422,6 +425,7 @@ select {
   margin-top: 8px;
 }
 .twoColumn {
+  margin: 15px 0;
   width: 100%;
   display: flex;
   flex-direction: row;
@@ -483,7 +487,7 @@ select {
 .notion-remove-cell .notion-remove {
   max-width: 34px;
   /* padding: 6px; */
-  border-radius: 6px;
+  /* border-radius: 6px; */
   margin-top: 30px;
 }
 

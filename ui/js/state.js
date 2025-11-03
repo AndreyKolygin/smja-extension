@@ -1,4 +1,5 @@
 // state.js — единое состояние и базовые утилиты
+import { t } from "./i18n.js";
 export const SETTINGS_KEY = "settings"; // в SW уже унифицировано на local.settings
 export const state = {
   selectedText: "",
@@ -95,8 +96,8 @@ export function setResult(text) {
   if (el) el.innerHTML = mdToHtml(text || "");
 }
 
-export async function getActiveTab() {
-  if (state.activeTab?.id) return state.activeTab;
+export async function getActiveTab({ refresh = false } = {}) {
+  if (!refresh && state.activeTab?.id) return state.activeTab;
   try {
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
     if (tab) return tab;
@@ -112,7 +113,7 @@ export async function getActiveTab() {
   } catch (e) {
     console.debug('[JDA] GET_ACTIVE_TAB fallback failed:', e);
   }
-  return null;
+  return state.activeTab || null;
 }
 
 export function setActiveTab(tab) {
@@ -127,24 +128,65 @@ export function setLastMeta(whenMs) {
   el.textContent = `Last result • ${sec}s ago`;
 }
 
-export function setProgress(text) {
+export function setProgress(text, ms = null, extra = null) {
   const el = document.getElementById("progress");
-  if (el) el.textContent = text || "";
+  if (!el) return;
+  if (!el.dataset.defaultI18n) {
+    const baseKey = el.getAttribute('data-i18n');
+    if (baseKey) el.dataset.defaultI18n = baseKey;
+  }
+
+  let i18nKey = null;
+  const data = extra && typeof extra === 'object' ? { ...extra } : null;
+  if (data && Object.prototype.hasOwnProperty.call(data, 'i18nKey')) {
+    i18nKey = data.i18nKey;
+    delete data.i18nKey;
+  }
+
+  if (ms != null) {
+    el.dataset.ms = String(ms);
+  } else {
+    el.dataset.ms = '0';
+  }
+  delete el.dataset.seconds;
+  if (data) {
+    for (const [key, value] of Object.entries(data)) {
+      if (value == null) delete el.dataset[key];
+      else el.dataset[key] = String(value);
+    }
+  }
+
+  if (i18nKey) {
+    el.setAttribute('data-i18n', String(i18nKey));
+  } else if (el.dataset.defaultI18n) {
+    el.setAttribute('data-i18n', el.dataset.defaultI18n);
+  }
+
+  el.textContent = text || "";
 }
 
-export function startTimer(prefix = "Progress") {
+export function startTimer() {
   state.timerStart = performance.now();
   stopTimer();
+  const initial = t('ui.popup.progress', 'Progress: {{ms}} ms').replace('{{ms}}', '0');
+  setProgress(initial, 0, { i18nKey: 'ui.popup.progress' });
   state.timerId = setInterval(() => {
-    const ms = performance.now() - state.timerStart;
-    setProgress(`${prefix}: ${ms.toFixed(0)} ms`);
+    const ms = Math.max(0, performance.now() - state.timerStart);
+    const label = t('ui.popup.progress', 'Progress: {{ms}} ms').replace('{{ms}}', ms.toFixed(0));
+    setProgress(label, ms, { i18nKey: 'ui.popup.progress' });
   }, 100);
 }
 
 export function stopTimer(done = false, ms = 0) {
   if (state.timerId) clearInterval(state.timerId);
   state.timerId = 0;
-  if (done) setProgress(`Done: ${(ms / 1000).toFixed(2)}s`);
+  if (done) {
+    const seconds = Math.max(0, ms / 1000).toFixed(2);
+    const label = t('ui.popup.progressDone', 'Done: {{seconds}}s').replace('{{seconds}}', seconds);
+    setProgress(label, ms, { seconds, i18nKey: 'ui.popup.progressDone' });
+  } else {
+    setProgress('', null);
+  }
 }
 
 export async function fetchSettings() {

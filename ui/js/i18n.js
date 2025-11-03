@@ -72,7 +72,14 @@ export function applyTranslations(root = document) {
   scope.querySelectorAll('[data-i18n]').forEach(el => {
     const key = el.getAttribute('data-i18n');
     if (!key) return;
-    el.textContent = t(key, el.textContent || '');
+    let translated = t(key, el.textContent || '');
+    const entries = el.dataset ? Object.entries(el.dataset) : [];
+    for (const [name, val] of entries) {
+      if (val == null) continue;
+      if (name === 'defaultI18n') continue;
+      translated = translated.replace(new RegExp(`{{${name}}}`, 'g'), String(val));
+    }
+    el.textContent = translated;
   });
 
   // Placeholder для input/textarea

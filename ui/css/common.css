@@ -34,8 +34,9 @@
   --extra: #475569;
   --extra-light: #7086a3;
   --extra-dark: #2f3a49;
+  --extra-dark-border: #475568;
 
-  --radius: 10px;
+  --radius: 24px;
   --shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
 
   --mainfont: 14px / 1.4 system-ui, -apple-system, Segoe UI, Roboto, Inter,
@@ -91,7 +92,8 @@ body {
   border-radius: var(--radius);
   padding: 8px 10px;
   cursor: pointer;
-  border: 1px solid var(--accent);
+  /* border: 1px solid var(--accent); */
+  border: none;
 }
 .btn:hover {
   background: var(--bg-dark);
@@ -158,13 +160,26 @@ body {
   background: var(--accent-dark);
 }
 .btn.secondary {
-  border: 1px solid var(--accent);
-  background: #475569;
+  /* border: 1px solid #303a48; */
+  border: none;
+  background: var(--extra-dark-border);
   color: #fff;
 }
 .btn.secondary:hover {
   background: var(--extra-light);
 }
+.btn.third,
+.edit-prompt {
+  border: none;
+  background: #3a67a3;
+  color: #ffffff;
+}
+
+.btn.third:hover,
+.edit-prompt:hover {
+  background: #3a67a399;
+}
+
 .btn.ghost {
   background: transparent;
   border: 1px solid var(--accent);
@@ -200,7 +215,8 @@ textarea {
 .card {
   background: var(--panel);
   border: 1px solid var(--border);
-  border-radius: 12px;
+  /* border-radius: 12px; */
+  border-radius: var(--radius);
   padding: 16px;
   box-shadow: var(--shadow);
 }

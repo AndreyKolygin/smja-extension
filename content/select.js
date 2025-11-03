@@ -34,15 +34,106 @@
     }
   };
 
-  function t(key, fallback = '') {
-    try {
-      return chrome.i18n?.getMessage?.(key) || fallback || key;
-    } catch {
-      return fallback || key;
+  let localeCode = 'en';
+  let localeDict = null;
+  let localeLoading = null;
+
+  function lookupLocale(key) {
+    if (!localeDict || !key) return undefined;
+    if (Object.prototype.hasOwnProperty.call(localeDict, key)) {
+      const value = localeDict[key];
+      return typeof value === 'string' ? value : undefined;
     }
+    if (key.includes('.')) {
+      const parts = key.split('.');
+      let ref = localeDict;
+      for (const part of parts) {
+        if (ref && typeof ref === 'object' && Object.prototype.hasOwnProperty.call(ref, part)) {
+          ref = ref[part];
+        } else {
+          ref = undefined;
+          break;
+        }
+      }
+      if (typeof ref === 'string') return ref;
+    }
+    return undefined;
+  }
+
+  async function determineLocale() {
+    try {
+      const res = await new Promise((resolve) => {
+        try {
+          chrome.storage.local.get({ uiLang: 'en' }, (value) => {
+            resolve(value || { uiLang: 'en' });
+          });
+        } catch {
+          resolve({ uiLang: 'en' });
+        }
+      });
+      const lang = (res?.uiLang || 'en') || 'en';
+      const tryLangs = Array.from(new Set([lang, 'en']));
+      for (const candidate of tryLangs) {
+        try {
+          const url = chrome.runtime.getURL(`ui/locales/${candidate}.json`);
+          const resp = await fetch(url, { cache: 'no-cache' });
+          if (!resp.ok) continue;
+          const json = await resp.json();
+          if (json && typeof json === 'object') {
+            localeCode = String(candidate || 'en').toLowerCase();
+            localeDict = json;
+            return;
+          }
+        } catch {
+          // ignore and try next candidate
+        }
+      }
+    } catch {
+      // fall through to defaults
+    }
+    localeCode = 'en';
+    localeDict = null;
+  }
+
+  function ensureLocaleLoaded(force = false) {
+    if (!force && localeDict) return Promise.resolve();
+    if (localeLoading) return localeLoading;
+    localeLoading = determineLocale().finally(() => {
+      localeLoading = null;
+    });
+    return localeLoading;
+  }
+
+  function t(key, fallback = '') {
+    const dictValue = lookupLocale(key);
+    if (typeof dictValue === 'string' && dictValue.length) {
+      return dictValue;
+    }
+    try {
+      const runtimeVal = chrome.i18n?.getMessage?.(key);
+      if (runtimeVal) return runtimeVal;
+    } catch {
+      // ignore
+    }
+    return fallback || key;
   }
 
   const SEND_SILENT = true;
+
+  ensureLocaleLoaded().then(() => {
+    if (state.menu) updateMenu();
+  });
+
+  if (chrome?.storage?.onChanged?.addListener) {
+    chrome.storage.onChanged.addListener((changes, area) => {
+      if (area !== 'local' || !changes.uiLang) return;
+      localeDict = null;
+      localeCode = 'en';
+      ensureLocaleLoaded(true).then(() => {
+        if (state.menu) updateMenu();
+      });
+    });
+  }
 
   function safeSendMessage(message, cb) {
     try {
@@ -206,8 +297,46 @@
     const style = document.createElement('style');
     style.id = STYLE_ID;
     style.textContent = css;
-    document.documentElement.appendChild(style);
-    state.style = style;
+   document.documentElement.appendChild(style);
+   state.style = style;
+ }
+
+  function formatCounter(count) {
+    const base = 'ui.highlighter.counter';
+    let key = `${base}.many`;
+    if (count === 0) key = `${base}.zero`;
+    else if (localeCode.startsWith('ru')) {
+      const mod10 = count % 10;
+      const mod100 = count % 100;
+      if (mod10 === 1 && mod100 !== 11) key = `${base}.one`;
+      else if (mod10 >= 2 && mod10 <= 4 && !(mod100 >= 12 && mod100 <= 14)) key = `${base}.few`;
+      else key = `${base}.many`;
+    } else if (count === 1) {
+      key = `${base}.one`;
+    }
+    const fallback = count === 1 ? `${count} block` : `${count} blocks`;
+    const template = t(key, fallback);
+    return template.replace('{{count}}', String(count));
+  }
+
+  function setAnalyzeIdle(btn) {
+    if (!btn) return;
+    delete btn.dataset.doneSeconds;
+    const label = t('ui.highlighter.analyze', 'Analyze');
+    btn.textContent = label;
+  }
+
+  function setAnalyzeRunning(btn, seconds) {
+    if (!btn) return;
+    const label = t('ui.highlighter.timer', '{{seconds}}s…');
+    btn.textContent = label.replace('{{seconds}}', seconds.toFixed(1));
+  }
+
+  function setAnalyzeDone(btn, seconds) {
+    if (!btn) return;
+    const label = t('ui.highlighter.analyzeDone', 'Done: {{seconds}}s');
+    btn.dataset.doneSeconds = String(seconds.toFixed(2));
+    btn.textContent = label.replace('{{seconds}}', seconds.toFixed(2));
   }
 
   function createMenu() {
@@ -217,6 +346,12 @@
     menu.className = '';
     const titleText = t('ui.highlighter.title', 'Select job description');
     const closeTitle = t('ui.highlighter.close', 'Cancel selection');
+    const undoLabel = t('ui.highlighter.undo', 'Undo');
+    const redoLabel = t('ui.highlighter.redo', 'Redo');
+    const clearLabel = t('ui.highlighter.clear', 'Clear');
+    const analyzeLabel = t('ui.highlighter.analyze', 'Analyze');
+    const counterLabel = formatCounter(0);
+    const hintLabel = t('ui.highlighter.hint', 'Open the extension to read the result');
     menu.innerHTML = `
       <div class="jda-overlay-card">
         <div class="jda-overlay-header" data-drag-handle>
@@ -224,13 +359,13 @@
           <button type="button" data-action="cancel" title="${closeTitle}">✕</button>
         </div>
         <div class="button-row">
-          <button type="button" data-action="undo" disabled>Undo</button>
-          <button type="button" data-action="redo" disabled>Redo</button>
-          <button type="button" data-action="clear" class="danger" disabled>Clear</button>
-          <span class="counter">0 blocks</span>
-          <button type="button" data-action="analyze" class="primary">Analyze</button>
+          <button type="button" data-action="undo" disabled data-i18n="ui.highlighter.undo">${undoLabel}</button>
+          <button type="button" data-action="redo" disabled data-i18n="ui.highlighter.redo">${redoLabel}</button>
+          <button type="button" data-action="clear" class="danger" disabled data-i18n="ui.highlighter.clear">${clearLabel}</button>
+          <span class="counter" data-count="0">${counterLabel}</span>
+          <button type="button" data-action="analyze" class="primary" data-i18n="ui.highlighter.analyze">${analyzeLabel}</button>
         </div>
-        <div class="hint" hidden data-i18n="ui.highlighter.hint">Open the extension to read the result</div>
+        <div class="hint" hidden data-i18n="ui.highlighter.hint">${hintLabel}</div>
       </div>
     `;
     menu.addEventListener('click', (e) => {
@@ -362,23 +497,46 @@
     if (!state.menu) return;
     const count = state.highlights.length;
     const counter = state.menu.querySelector('.counter');
-    if (counter) counter.textContent = count === 1 ? '1 block' : `${count} blocks`;
+    if (counter) {
+      counter.dataset.count = String(count);
+      counter.textContent = formatCounter(count);
+    }
     const undoBtn = state.menu.querySelector('button[data-action="undo"]');
     const redoBtn = state.menu.querySelector('button[data-action="redo"]');
     const clearBtn = state.menu.querySelector('button[data-action="clear"]');
     const analyzeBtn = state.menu.querySelector('button[data-action="analyze"]');
     const hint = state.menu.querySelector('.hint');
-    if (undoBtn) undoBtn.disabled = state.undoStack.length === 0;
-    if (redoBtn) redoBtn.disabled = state.redoStack.length === 0;
-    if (clearBtn) clearBtn.disabled = count === 0;
-    if (analyzeBtn && !state.analyzing) {
-      const mode = analyzeBtn.dataset.mode || '';
-      if (mode === 'done') {
+    if (undoBtn) {
+      undoBtn.disabled = state.undoStack.length === 0;
+      undoBtn.textContent = t('ui.highlighter.undo', undoBtn.textContent || 'Undo');
+    }
+    if (redoBtn) {
+      redoBtn.disabled = state.redoStack.length === 0;
+      redoBtn.textContent = t('ui.highlighter.redo', redoBtn.textContent || 'Redo');
+    }
+    if (clearBtn) {
+      clearBtn.disabled = count === 0;
+      clearBtn.textContent = t('ui.highlighter.clear', clearBtn.textContent || 'Clear');
+    }
+    if (analyzeBtn) {
+      if (state.analyzing) {
         analyzeBtn.disabled = true;
-        if (hint) hint.hidden = false;
-      } else {
-        analyzeBtn.disabled = count === 0;
+        const elapsed = Math.max(0, (performance.now() - state.analyzing.start) / 1000);
+        setAnalyzeRunning(analyzeBtn, elapsed);
         if (hint) hint.hidden = true;
+      } else {
+        const mode = analyzeBtn.dataset.mode || '';
+        if (mode === 'done') {
+          analyzeBtn.disabled = true;
+          const stored = parseFloat(analyzeBtn.dataset.doneSeconds);
+          const seconds = Number.isFinite(stored) ? stored : 0;
+          setAnalyzeDone(analyzeBtn, seconds);
+          if (hint) hint.hidden = false;
+        } else {
+          analyzeBtn.disabled = count === 0;
+          setAnalyzeIdle(analyzeBtn);
+          if (hint) hint.hidden = true;
+        }
       }
     } else if (hint) {
       hint.hidden = true;
@@ -643,9 +801,11 @@
     const count = state.highlights.length;
     if (count && state.lastAnalyzedBlockCount === count) return;
     analyzeBtn.dataset.mode = '';
-    analyzeBtn.textContent = 'Analyze';
+    delete analyzeBtn.dataset.doneSeconds;
+    setAnalyzeIdle(analyzeBtn);
     analyzeBtn.disabled = count === 0;
     state.lastAnalyzedBlockCount = null;
+    updateMenu();
   }
 
   function getTargetFromPointer(event) {
@@ -679,14 +839,21 @@
   function handlePointerMove(event) {
     if (!state.active) return;
     const target = getTargetFromPointer(event);
+    if (!target || target.closest('#jda-app-overlay') || target.closest(`#${MENU_ID}`)) {
+      setHover(null);
+      return;
+    }
     setHover(target);
   }
 
   function handleClick(event) {
     if (!state.active) return;
-    if (event.target.closest(`#${MENU_ID}`)) return;
+    if (event.target.closest(`#${MENU_ID}`) || event.target.closest('#jda-app-overlay')) return;
     const target = getTargetFromPointer(event);
-    if (!target) return;
+    if (!target || target.closest('#jda-app-overlay') || target.closest(`#${MENU_ID}`)) {
+      removeHover();
+      return;
+    }
     event.preventDefault();
     event.stopPropagation();
     toggleHighlight(target);
@@ -717,9 +884,9 @@
 
   function startAnalyze() {
     if (state.analyzing) return;
-    const { text, blocks } = finishSelection();
+    const { text } = finishSelection();
     if (!text) {
-      alert('Select at least one block before analyzing.');
+      alert(t('ui.highlighter.alertNoBlocks', 'Select at least one block before analyzing.'));
       return;
     }
 
@@ -727,16 +894,15 @@
     if (!analyzeBtn) return;
 
     analyzeBtn.dataset.mode = '';
-
-    const originalLabel = analyzeBtn.textContent;
+    delete analyzeBtn.dataset.doneSeconds;
     analyzeBtn.disabled = true;
-    state.analyzing = { start: performance.now(), label: originalLabel };
+    state.analyzing = { start: performance.now() };
     let timerId = 0;
 
     const updateTimer = () => {
       if (!state.analyzing) return;
-      const elapsed = (performance.now() - state.analyzing.start) / 1000;
-      analyzeBtn.textContent = `${elapsed.toFixed(1)}s…`;
+      const elapsed = Math.max(0, (performance.now() - state.analyzing.start) / 1000);
+      setAnalyzeRunning(analyzeBtn, elapsed);
     };
     updateTimer();
     timerId = window.setInterval(updateTimer, 100);
@@ -746,14 +912,24 @@
     chrome.storage.local.get(['ui'], (localData) => {
       const localChosen = localData?.ui?.chosenModel || null;
       safeSendMessage({ type: 'GET_SETTINGS' }, (settings) => {
+        const clearTimer = () => {
+          if (timerId) {
+            clearInterval(timerId);
+            timerId = 0;
+          }
+        };
         try {
           const s = settings || {};
           const models = Array.isArray(s.models) ? s.models.filter(m => m && m.active) : [];
-          if (!models.length) throw new Error('No active model configured. Open Settings to activate a model.');
+          if (!models.length) {
+            throw new Error(t('ui.highlighter.errorNoModel', 'No active model configured. Open Settings to activate a model.'));
+          }
           const chosenId = localChosen || s.ui?.chosenModel || s.chosenModel || models[0].id;
           const modelMeta = models.find(m => m.id === chosenId) || models[0];
           const provider = Array.isArray(s.providers) ? s.providers.find(p => p.id === modelMeta.providerId) : null;
-          if (!provider) throw new Error('Provider for the selected model is missing.');
+          if (!provider) {
+            throw new Error(t('ui.highlighter.errorNoProvider', 'Provider for the selected model is missing.'));
+          }
 
           const callPayload = {
             modelId: modelMeta.modelId,
@@ -766,43 +942,44 @@
           };
 
           safeSendMessage({ type: 'CALL_LLM', payload: callPayload }, (resp) => {
-            if (timerId) { clearInterval(timerId); timerId = 0; }
-            const elapsedMs = performance.now() - state.analyzing.start;
-            const label = `Done: ${(elapsedMs / 1000).toFixed(2)}s`;
-            analyzeBtn.textContent = label;
-            analyzeBtn.disabled = false;
+            clearTimer();
+            const startedAt = state.analyzing?.start || performance.now();
+            const elapsedMs = Math.max(0, performance.now() - startedAt);
             state.analyzing = null;
+            const effectiveMs = Number.isFinite(resp?.ms) ? Math.max(0, resp.ms) : elapsedMs;
+            const elapsedSeconds = effectiveMs / 1000;
 
             if (resp?.ok) {
               try {
-                chrome.storage.local.set({ lastResult: { text: resp.text, when: Date.now(), ms: resp.ms || elapsedMs } }, () => {});
+                chrome.storage.local.set({ lastResult: { text: resp.text, when: Date.now(), ms: effectiveMs } }, () => {});
               } catch {}
               safeSendMessage({ type: 'LLM_RESULT', text: resp.text });
-              analyzeBtn.textContent = `${label}`;
+              setAnalyzeDone(analyzeBtn, elapsedSeconds);
               analyzeBtn.dataset.mode = 'done';
               analyzeBtn.disabled = true;
               state.lastAnalyzedBlockCount = state.highlights.length;
               updateMenu();
-            } else if (resp?.error) {
-              alert('LLM error: ' + resp.error);
-              analyzeBtn.textContent = 'Analyze';
-              analyzeBtn.dataset.mode = '';
-              analyzeBtn.disabled = state.highlights.length === 0;
-              updateMenu();
             } else {
-              analyzeBtn.textContent = 'Analyze';
+              const rawError = resp?.error ? String(resp.error) : '';
+              const message = rawError
+                ? t('ui.highlighter.errorLLM', 'LLM error: {{message}}').replace('{{message}}', rawError)
+                : t('ui.highlighter.errorStart', 'Failed to start analysis.');
+              alert(message);
               analyzeBtn.dataset.mode = '';
+              setAnalyzeIdle(analyzeBtn);
               analyzeBtn.disabled = state.highlights.length === 0;
               updateMenu();
             }
           });
         } catch (err) {
-          if (timerId) { clearInterval(timerId); timerId = 0; }
-          analyzeBtn.disabled = false;
-          analyzeBtn.textContent = 'Analyze';
-          analyzeBtn.dataset.mode = '';
+          clearTimer();
           state.analyzing = null;
-          alert(err?.message || String(err || 'Failed to start analysis.'));
+          analyzeBtn.dataset.mode = '';
+          setAnalyzeIdle(analyzeBtn);
+          analyzeBtn.disabled = state.highlights.length === 0;
+          const fallback = t('ui.highlighter.errorStart', 'Failed to start analysis.');
+          const message = err?.message || (err ? String(err) : '') || fallback;
+          alert(message || fallback);
           updateMenu();
         }
       });
@@ -849,6 +1026,9 @@
     if (state.active) return;
     ensureStyleInjected();
     createMenu();
+    ensureLocaleLoaded().then(() => {
+      if (state.active) updateMenu();
+    });
     state.highlights = [];
     state.undoStack = [];
     state.redoStack = [];

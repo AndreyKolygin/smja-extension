@@ -120,7 +120,7 @@ export function renderSites(settings){
       <td class="word-break">${rule.host || ""}</td>
       <td class="word-break" title="${escapeHtml(summary)}">${escapeHtml(summary)}</td>
       <td class="word-break">${rule.comment || ""}</td>
-      <td class="actions nowrap">
+      <td class="nowrap">
         <button class="btn edit icon-left i-pen" data-act="edit" data-id="${rule.id}" data-i18n="options.btn.edit" title="Edit">Edit</button>
         <button class="btn delete icon-left i-trash" data-act="del" data-id="${rule.id}" data-i18n="options.btn.delete" title="Delete">Delete</button>
       </td>`;

@@ -71,7 +71,7 @@
         min-height: 700px;
         background: #0f172a;
         color: #f8fafc;
-        border-radius: 18px;
+        border-radius: 24px;
         box-shadow: 0 22px 48px rgba(15, 23, 42, 0.35);
         border: 1px solid rgba(148, 163, 184, 0.18);
         overflow: hidden;
@@ -82,13 +82,13 @@
         align-items: center;
         justify-content: space-between;
         gap: 12px;
-        padding: 5px 16px;
-        background: rgba(15, 23, 42, 0.85);
+        padding: 12px 14px;
+        background: #1f2937;
         cursor: grab;
         user-select: none;
         font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-        font-size: 14px;
-        font-weight: 600;
+        font-size: 13px;
+        font-weight: 700;
         letter-spacing: 0.01em;
       }
       #${OVERLAY_ID}.jda-overlay-dragging .jda-app-overlay-header {
@@ -108,14 +108,13 @@
       #${OVERLAY_ID} .jda-app-overlay-actions button {
         border: none;
         border-radius: 999px;
-        width: 30px;
-        height: 30px;
+        width: 28px;
+        height: 28px;
         display: inline-flex;
         align-items: center;
         justify-content: center;
         background: rgba(148, 163, 184, 0.16);
         color: inherit;
-        font-size: 16px;
         padding: 0;
         cursor: pointer;
       }

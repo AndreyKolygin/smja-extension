@@ -224,7 +224,7 @@ export async function clearSelection() {
   const ji = document.getElementById("jobInput"); if (ji) ji.value = "";
   setResult("");
   setLastMeta(null);
-  setProgress("Progress: 0 ms");
+  setProgress(t('ui.popup.progress', 'Progress: {{ms}} ms').replace('{{ms}}', '0'), 0, { i18nKey: 'ui.popup.progress' });
   try { chrome.storage.local.remove(["lastResult","lastError","lastSelection"], ()=>{}); } catch {}
   state.lastResponse = "";
 }
@@ -232,7 +232,7 @@ export async function clearSelection() {
 export function wireCopy() {
   document.getElementById("copyBtn")?.addEventListener("click", async () => {
     const txt = state.lastResponse || "";
-    try { await navigator.clipboard.writeText(txt); setProgress("Copied to clipboard"); setTimeout(()=>setProgress(""),1200);} catch {}
+    try { await navigator.clipboard.writeText(txt); setProgress(t('ui.popup.progressCopied', 'Copied to clipboard'), null, { i18nKey: 'ui.popup.progressCopied' }); setTimeout(()=>setProgress('', null),1200);} catch {}
   });
 }
 
@@ -290,6 +290,15 @@ export function wireSaveToNotion() {
       ? state.settings.providers.find(p => p && p.id === (model?.providerId || notion.providerId))
       : null;
 
+    let activeTab = state.activeTab;
+    try {
+      const freshTab = await getActiveTab({ refresh: true });
+      if (freshTab) activeTab = freshTab;
+    } catch {}
+    if (activeTab && activeTab !== state.activeTab) {
+      state.activeTab = activeTab;
+    }
+
     const payload = {
       analysis: state.lastResponse || "",
       jobDescription: jobInput?.value || "",
@@ -298,24 +307,24 @@ export function wireSaveToNotion() {
       providerId: model?.providerId || "",
       modelLabel: model?.displayName || model?.modelId || "",
       providerName: provider?.name || "",
-      tabUrl: state.activeTab?.url || "",
-      tabTitle: state.activeTab?.title || "",
+      tabUrl: activeTab?.url || "",
+      tabTitle: activeTab?.title || "",
       timestampIso: new Date().toISOString()
     };
 
-    setProgress("Saving to Notion…");
+    setProgress(t('ui.popup.progressSaving', 'Saving to Notion…'), null, { i18nKey: 'ui.popup.progressSaving' });
     btn.disabled = true;
     try {
       const resp = await chrome.runtime.sendMessage({ type: "SAVE_TO_NOTION", payload });
       if (resp?.ok) {
-        setProgress("Saved to Notion");
-        setTimeout(() => setProgress(""), 2000);
+        setProgress(t('ui.popup.progressSaved', 'Saved to Notion'), null, { i18nKey: 'ui.popup.progressSaved' });
+        setTimeout(() => setProgress('', null), 2000);
       } else {
-        setProgress("");
+        setProgress('', null);
         alert("Save to Notion failed: " + (resp?.error || "Unknown error"));
       }
     } catch (e) {
-      setProgress("");
+      setProgress('', null);
       alert("Save to Notion failed: " + String(e && (e.message || e)));
     } finally {
       btn.disabled = false;
@@ -471,7 +480,8 @@ export async function detectAndToggleFastStart() {
   const btn = document.getElementById("fastStartBtn");
   if (!btn) return;
 
-  const tab = await getActiveTab();
+  const tab = await getActiveTab({ refresh: true });
+  if (tab) state.activeTab = tab;
   if (!tab?.url) { btn.hidden = true; return; }
 
   const rules = (state.settings?.sites || []).filter(r => r && (r.active === undefined || r.active));
@@ -515,7 +525,7 @@ export async function detectAndToggleFastStart() {
         return;
       }
 
-      setProgress?.(t('options.faststart.progress', "Grabbing description…"));
+      setProgress(t('options.faststart.progress', "Grabbing description…"), 0, { i18nKey: 'options.faststart.progress' });
 
       const resp = await extractFromRule(tab.id, selectedRule, { waitMs: DEFAULT_EXTRACT_WAIT, pollMs: DEFAULT_EXTRACT_POLL });
 
@@ -539,14 +549,14 @@ export async function detectAndToggleFastStart() {
         } else {
           msg = err || t('options.faststart.notFound', "Nothing matched on this page.");
         }
-        setProgress?.("");
+        setProgress('', null);
         alert(t('options.faststart.failedPrefix', "Extraction failed: ") + msg);
         return;
       }
 
       const text = String(resp.text || "").trim();
       if (!text) {
-        setProgress?.("");
+        setProgress('', null);
         alert(t('options.faststart.notFound', "Nothing matched on this page."));
         return;
       }
@@ -554,8 +564,8 @@ export async function detectAndToggleFastStart() {
       state.selectedText = text;
       setJobInput(text);
       try { chrome.storage.local.set({ lastSelection: text, lastSelectionWhen: Date.now() }); } catch {}
-      setProgress?.("Description grabbed ✔");
-      setTimeout(() => setProgress?.(""), 1500);
+      setProgress(t('options.faststart.grabbed', 'Description grabbed ✔'), null, { i18nKey: 'options.faststart.grabbed' });
+      setTimeout(() => setProgress('', null), 1500);
     } catch (e) {
       dbg("fastStart failed:", e);
       alert("Extraction failed. Ensure content script is injected on this page.");
@@ -580,7 +590,7 @@ export function wireAnalyzeButtons() {
     try { chrome.storage.local.set({ lastSelection: state.selectedText }, ()=>{}); } catch {}
 
     // таймер в строке Progress + таймер на кнопке
-    startTimer("Progress");
+    startTimer();
     startAnalyzeButtonTimer();
 
     chrome.runtime.sendMessage({
@@ -617,7 +627,6 @@ export function wireAnalyzeButtons() {
     });
   };
 
-  document.getElementById("refreshBtn")?.addEventListener("click", analyzeSelectedText);
   document.getElementById("analyzeBtn")?.addEventListener("click", analyzeSelectedText);
 }
 
