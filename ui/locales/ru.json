@@ -102,7 +102,6 @@
   "options.integrations.notion.type.date": "Дата",
   "options.integrations.notion.type.multi_select": "Multi-select",
   "options.integrations.notion.type.status": "Статус",
-
   "options.modal.provider.title": "Провайдер",
   "options.modal.provider.name": "Название",
   "options.modal.provider.namePh": "Отображаемое имя (обязательно)",
@@ -125,17 +124,14 @@
   "options.modal.provider.help.openrouter": "OpenRouter → Keys.",
   "options.modal.provider.help.perplexity": "Perplexity → API quickstart / портал.",
   "options.modal.provider.help.xai": "X.AI Docs → Начало работы (API ключи).",
-
   "options.modal.model.title": "Модель",
   "options.modal.model.provider": "Провайдер",
   "options.modal.model.display": "Отображаемое имя",
   "options.modal.model.displayPh": "Как модель отображается в UI",
   "options.modal.model.id": "ID модели",
   "options.modal.model.idPh": "например gpt-4o-mini",
-
   "options.modal.modelPrompt.title": "Системный промпт (для модели)",
   "options.modal.modelPrompt.textPh": "Оставьте пустым, чтобы наследовать глобальный шаблон. Используйте {{GLOBAL_SYSTEM_PROMPT}} для подстановки глобального текста и {{RESULT_OUTPUT_TEMPLATE}} — чтобы встроить или отключить шаблон выдачи.",
-
   "options.modal.site.title": "Правило автоизвлечения",
   "options.modal.site.host": "Сайт / шаблон",
   "options.modal.site.hostPh": "например example.com/jobs* или /https:\\/\\/foo\\.bar\\/pfx.*/i",
@@ -165,7 +161,6 @@
   "options.modal.site.selectorRequired": "Нужно указать CSS селектор.",
   "options.modal.site.comment": "Комментарий",
   "options.modal.site.commentPh": "Необязательная заметка",
-
   "options.import.title": "Импорт настроек",
   "options.import.mode": "Режим импорта",
   "options.import.mode.merge": "Объединить / добавить (сохранить существующие)",
@@ -173,12 +168,10 @@
   "options.import.groups": "Группы для импорта",
   "options.import.integrations": "Интеграции (Notion)",
   "options.import.note": "Будут применены только отмеченные группы. В режиме объединения существующие элементы сохраняются и обновляются по ID.",
-
   "options.modal.reset.title": "Сброс настроек",
   "options.modal.reset.desc": "Будут восстановлены значения по умолчанию для провайдеров, моделей, правил сайтов и шаблонов.",
   "options.modal.reset.keepKeys": "Сохранить API ключи",
   "options.modal.reset.apply": "Сбросить",
-
   "options.export.title": "Экспорт настроек",
   "options.export.groups": "Группы для экспорта",
   "options.export.providers": "Настройки провайдеров",
@@ -201,5 +194,7 @@
   "options.faststart.unknownStrategy": "Неизвестная стратегия извлечения.",
   "options.faststart.notFound": "На странице ничего не найдено.",
   "options.faststart.failedPrefix": "Не удалось извлечь: ",
-  "ui.highlighter.hint": "Откройте расширение для чтения результата"
+  "ui.highlighter.hint": "Откройте расширение для чтения результата",
+  "ui.highlighter.title": "Выберите блоки описания",
+  "ui.highlighter.close": "Закрыть выделение"
 }

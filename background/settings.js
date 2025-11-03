@@ -157,11 +157,11 @@ export async function saveSettings(newSettings) {
 }
 
 export async function applyUiMode() {
-  try { await chrome.action.setPopup({ popup: 'ui/popup.html' }); } catch {}
+  try { await chrome.action.setPopup({ popup: '' }); } catch {}
 }
 
 export async function applyUiModeForTab(tabId) {
-  try { await chrome.action.setPopup({ tabId, popup: 'ui/popup.html' }); } catch {}
+  try { await chrome.action.setPopup({ tabId, popup: '' }); } catch {}
 }
 
 export async function resetSettings({ keepApiKeys = true } = {}) {

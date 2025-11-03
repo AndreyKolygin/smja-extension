@@ -13,6 +13,7 @@
     active: false,
     hover: null,
     menu: null,
+    menuCard: null,
     highlights: [],
     undoStack: [],
     redoStack: [],
@@ -20,7 +21,17 @@
     rafScheduled: false,
     style: null,
     lastPointer: { x: 0, y: 0 },
-    lastAnalyzedBlockCount: null
+    lastAnalyzedBlockCount: null,
+    drag: {
+      active: false,
+      offsetX: 0,
+      offsetY: 0,
+      moveListener: null,
+      upListener: null,
+      handle: null,
+      downListener: null,
+      pointerId: null
+    }
   };
 
   function t(key, fallback = '') {
@@ -61,7 +72,7 @@
       html.jda-highlighter-active, html.jda-highlighter-active body {
         cursor: crosshair !important;
       }
-      html.jda-highlighter-active .jda-highlighter-menu button {
+      html.jda-highlighter-active #${MENU_ID} button {
         cursor: pointer !important;
       }
       #${HOVER_ID} {
@@ -79,31 +90,60 @@
         pointer-events: none;
         z-index: 2147483644;
       }
-      .jda-highlighter-menu {
+      #${MENU_ID} {
         position: fixed;
         top: 16px;
         left: 50%;
         transform: translateX(-50%);
-        display: flex;
-        flex-direction: column;
-        gap: 6px;
-        padding: 10px 12px;
-        border-radius: 24px;
-        background: #1f2937;
-        color: #f8fafc;
-        box-shadow: 0 8px 20px rgba(15, 23, 42, 0.25);
-        z-index: 2147483646;
         font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
         font-size: 13px;
         font-weight: 600;
         user-select: none;
+        color: #f8fafc;
+        z-index: 2147483646;
+        display: flex;
+        flex-direction: column;
+        align-items: stretch;
+        max-width: min(400px, calc(100vw - 24px));
+        pointer-events: auto;
       }
-      .jda-highlighter-menu .button-row {
+      #${MENU_ID}.jda-menu-dragging {
+        cursor: grabbing;
+      }
+      #${MENU_ID} .jda-overlay-card {
+        background: #1f2937;
+        border-radius: 24px;
+        padding: 12px 14px;
+        box-shadow: 0 10px 28px rgba(15, 23, 42, 0.32);
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        border: 1px solid rgba(148, 163, 184, 0.15);
+      }
+      #${MENU_ID} .jda-overlay-header {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        cursor: grab;
+        font-size: 13px;
+        font-weight: 700;
+        letter-spacing: 0.01em;
+      }
+      #${MENU_ID}.jda-menu-dragging .jda-overlay-header {
+        cursor: grabbing;
+      }
+      #${MENU_ID} .jda-overlay-title {
+        flex: 1;
+        text-transform: none;
+      }
+      #${MENU_ID} .button-row {
         display: flex;
         align-items: center;
         gap: 8px;
+        flex-wrap: wrap;
+        justify-content: flex-start;
       }
-      .jda-highlighter-menu button {
+      #${MENU_ID} button {
         border: none;
         border-radius: 20px;
         padding: 6px 12px;
@@ -114,26 +154,50 @@
         display: inline-flex;
         align-items: center;
         gap: 6px;
+        white-space: nowrap;
       }
-      .jda-highlighter-menu button:disabled {
+      #${MENU_ID} button:disabled {
         opacity: 0.4;
         cursor: default !important;
       }
-      .jda-highlighter-menu button.primary {
+      #${MENU_ID} button.primary {
         background: #0ea5e9;
         color: #0f172a;
       }
-      .jda-highlighter-menu button.danger {
+      #${MENU_ID} button.danger {
         background: rgba(239, 68, 68, 0.18);
         color: #fecaca;
       }
-      .jda-highlighter-menu button.neutral {
+      #${MENU_ID} button.neutral {
         background: rgba(148, 163, 184, 0.15);
       }
-      .jda-highlighter-menu .counter {
-        opacity: 0.7;
+      #${MENU_ID} button[data-action="analyze"] {
+        flex: 1 1 140px;
+        min-width: 140px;
+        justify-content: center;
       }
-      .jda-highlighter-menu .hint {
+      #${MENU_ID} .jda-overlay-header button[data-action="cancel"] {
+        border-radius: 999px;
+        width: 28px;
+        height: 28px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        background: rgba(148, 163, 184, 0.18);
+        color: inherit;
+        padding: 0;
+        min-width: 28px;
+      }
+      #${MENU_ID} .jda-overlay-header button[data-action="cancel"]:hover {
+        background: rgba(148, 163, 184, 0.26);
+      }
+      #${MENU_ID} .counter {
+        opacity: 0.7;
+        margin-left: auto;
+        min-width: 72px;
+        text-align: right;
+      }
+      #${MENU_ID} .hint {
         font-size: 12px;
         opacity: 0.7;
         text-align: center;
@@ -150,17 +214,24 @@
     if (state.menu) return;
     const menu = document.createElement('div');
     menu.id = MENU_ID;
-    menu.className = 'jda-highlighter-menu';
+    menu.className = '';
+    const titleText = t('ui.highlighter.title', 'Select job description');
+    const closeTitle = t('ui.highlighter.close', 'Cancel selection');
     menu.innerHTML = `
-      <div class="button-row">
-        <button type="button" data-action="undo" disabled>Undo</button>
-        <button type="button" data-action="redo" disabled>Redo</button>
-        <button type="button" data-action="clear" class="danger" disabled>Clear</button>
-        <span class="counter">0 blocks</span>
-        <button type="button" data-action="analyze" class="primary">Analyze</button>
-        <button type="button" data-action="cancel" class="neutral" title="Cancel">✕</button>
+      <div class="jda-overlay-card">
+        <div class="jda-overlay-header" data-drag-handle>
+          <span class="jda-overlay-title" data-i18n="ui.highlighter.title">${titleText}</span>
+          <button type="button" data-action="cancel" title="${closeTitle}">✕</button>
+        </div>
+        <div class="button-row">
+          <button type="button" data-action="undo" disabled>Undo</button>
+          <button type="button" data-action="redo" disabled>Redo</button>
+          <button type="button" data-action="clear" class="danger" disabled>Clear</button>
+          <span class="counter">0 blocks</span>
+          <button type="button" data-action="analyze" class="primary">Analyze</button>
+        </div>
+        <div class="hint" hidden data-i18n="ui.highlighter.hint">Open the extension to read the result</div>
       </div>
-      <div class="hint" hidden data-i18n="ui.highlighter.hint">Open the extension to read the result</div>
     `;
     menu.addEventListener('click', (e) => {
       const btn = e.target.closest('button[data-action]');
@@ -182,20 +253,109 @@
           startAnalyze();
           break;
         case 'cancel':
-          cancelSelection();
+          cancelSelection(false);
           break;
         default:
           break;
       }
     }, true);
+    menu.style.left = '50%';
+    menu.style.top = '16px';
+    menu.style.transform = 'translateX(-50%)';
+    menu.classList.remove('jda-menu-dragging');
+
+    const handle = menu.querySelector('[data-drag-handle]');
+    if (handle) {
+      const onPointerMove = (event) => {
+        if (!state.drag.active) return;
+        event.preventDefault();
+        const menuRect = state.menuCard?.getBoundingClientRect();
+        const width = menuRect ? menuRect.width : state.menu?.offsetWidth || 0;
+        const height = menuRect ? menuRect.height : state.menu?.offsetHeight || 0;
+        const maxLeft = Math.max(8, window.innerWidth - width - 8);
+        const maxTop = Math.max(8, window.innerHeight - height - 8);
+        const left = Math.min(maxLeft, Math.max(8, event.clientX - state.drag.offsetX));
+        const top = Math.min(maxTop, Math.max(8, event.clientY - state.drag.offsetY));
+        state.menu.style.left = `${left}px`;
+        state.menu.style.top = `${top}px`;
+      };
+      const onPointerUp = () => {
+        if (!state.drag.active) return;
+        state.drag.active = false;
+        menu.classList.remove('jda-menu-dragging');
+        window.removeEventListener('pointermove', onPointerMove, true);
+        window.removeEventListener('pointerup', onPointerUp, true);
+        window.removeEventListener('pointercancel', onPointerUp, true);
+        state.drag.moveListener = null;
+        state.drag.upListener = null;
+        if (state.drag.pointerId != null) {
+          handle.releasePointerCapture?.(state.drag.pointerId);
+        }
+        state.drag.pointerId = null;
+      };
+      const onPointerDown = (event) => {
+        if (event.button !== 0) return;
+        if (event.target.closest('button')) return;
+        event.preventDefault();
+        const rect = menu.getBoundingClientRect();
+        state.drag.active = true;
+        state.drag.offsetX = event.clientX - rect.left;
+        state.drag.offsetY = event.clientY - rect.top;
+        state.drag.pointerId = event.pointerId;
+        menu.classList.add('jda-menu-dragging');
+        const limitedLeft = Math.max(8, Math.min(rect.left, window.innerWidth - rect.width - 8));
+        const limitedTop = Math.max(8, Math.min(rect.top, window.innerHeight - rect.height - 8));
+        state.drag.offsetX = event.clientX - limitedLeft;
+        state.drag.offsetY = event.clientY - limitedTop;
+        const newLeft = `${limitedLeft}px`;
+        const newTop = `${limitedTop}px`;
+        menu.style.left = newLeft;
+        menu.style.top = newTop;
+        menu.style.transform = 'none';
+        state.menu.style.left = newLeft;
+        state.menu.style.top = newTop;
+        handle.setPointerCapture?.(event.pointerId);
+        window.addEventListener('pointermove', onPointerMove, true);
+        window.addEventListener('pointerup', onPointerUp, true);
+        window.addEventListener('pointercancel', onPointerUp, true);
+        state.drag.moveListener = onPointerMove;
+        state.drag.upListener = onPointerUp;
+      };
+      handle.addEventListener('pointerdown', onPointerDown, true);
+      state.drag.handle = handle;
+      state.drag.downListener = onPointerDown;
+    }
+
     document.body.appendChild(menu);
     state.menu = menu;
+    state.menuCard = menu.querySelector('.jda-overlay-card');
     updateMenu();
   }
 
   function destroyMenu() {
+    if (state.drag.handle && state.drag.downListener) {
+      state.drag.handle.removeEventListener('pointerdown', state.drag.downListener, true);
+    }
+    if (state.drag.moveListener) {
+      window.removeEventListener('pointermove', state.drag.moveListener, true);
+    }
+    if (state.drag.upListener) {
+      window.removeEventListener('pointerup', state.drag.upListener, true);
+      window.removeEventListener('pointercancel', state.drag.upListener, true);
+    }
+    state.drag = {
+      active: false,
+      offsetX: 0,
+      offsetY: 0,
+      moveListener: null,
+      upListener: null,
+      handle: null,
+      downListener: null,
+      pointerId: null
+    };
     if (state.menu?.parentNode) state.menu.parentNode.removeChild(state.menu);
     state.menu = null;
+    state.menuCard = null;
   }
 
   function updateMenu() {
@@ -229,6 +389,16 @@
     if (hint) {
       const text = t('ui.highlighter.hint', hint.textContent || '');
       if (text) hint.textContent = text;
+    }
+    const titleNode = state.menu.querySelector('[data-i18n="ui.highlighter.title"]');
+    if (titleNode) {
+      const titleText = t('ui.highlighter.title', titleNode.textContent || '');
+      if (titleText) titleNode.textContent = titleText;
+    }
+    const closeBtn = state.menu.querySelector('.jda-overlay-header button[data-action="cancel"]');
+    if (closeBtn) {
+      const titleAttr = t('ui.highlighter.close', closeBtn.title || '');
+      if (titleAttr) closeBtn.title = titleAttr;
     }
   }
 
@@ -526,7 +696,7 @@
     if (!state.active) return;
     if (event.key === 'Escape') {
       event.preventDefault();
-      cancelSelection();
+      cancelSelection(false);
       return;
     }
     if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'z') {
@@ -662,9 +832,16 @@
     return { text, blocks };
   }
 
-  function cancelSelection() {
-    clearHighlights(false);
-    safeSendMessage({ type: 'SELECTION_RESULT', text: '', blocks: [] });
+  function cancelSelection(clearResult = false) {
+    if (!state.active) {
+      if (clearResult) {
+        safeSendMessage({ type: 'SELECTION_RESULT', text: '', blocks: [] });
+      }
+      return;
+    }
+    if (clearResult) {
+      safeSendMessage({ type: 'SELECTION_RESULT', text: '', blocks: [] });
+    }
     deactivate();
   }
 
@@ -708,8 +885,7 @@
   }
 
   function cancelExternal() {
-    cancelSelection();
-    deactivate();
+    cancelSelection(true);
   }
 
   chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {

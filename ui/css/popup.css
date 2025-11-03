@@ -5,7 +5,9 @@
   align-content: center;
   justify-content: flex-start;
   align-items: center;
-  width: 400px;
+  width: 100%;
+  max-width: 400px;
+  height: 100%;
   /* Glassmorphism */
   background: linear-gradient(
     to bottom right,
@@ -23,10 +25,11 @@
 html,
 body {
   background: transparent !important;
+  height: 100%;
 }
 .container {
   /* background: var(--bg); */
-  width: 380px;
+  width: 100%;
   display: flex;
   flex-direction: row;
   justify-content: flex-start;
@@ -63,12 +66,13 @@ body {
 }
 .body-analyzer {
   width: 95%;
+  flex: 1;
   display: flex;
   flex-direction: column;
-  /* align-content: stretch; */
-  justify-content: center;
   align-items: stretch;
   padding-bottom: 16px;
+  overflow: auto;
+  gap: 12px;
 }
 .select {
   cursor: pointer;
@@ -105,7 +109,12 @@ body {
   display: flex;
   gap: 12px;
   justify-content: space-between;
-  margin-top: 10px;
+  margin-top: auto;
+  position: sticky;
+  bottom: 0;
+  padding: 12px 0 8px;
+  background: linear-gradient(180deg, rgba(248, 250, 252, 0) 0%, rgba(248, 250, 252, 0.92) 55%);
+  backdrop-filter: blur(8px);
 }
 /* поля можно тянуть по вертикали */
 #jobInput,

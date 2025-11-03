@@ -136,31 +136,8 @@ body.single-column {
   padding: 12px;
   margin-bottom: 12px;
   background: rgba(255, 255, 255, 0.74);
-}
-
-.notion-inline {
-  display: flex;
-  gap: 12px;
-  flex-wrap: wrap;
-}
-
-.notion-inline label {
-  flex: 1 1 64px;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.notion-remove-row {
-  display: flex;
-  justify-content: flex-end;
-  margin-top: 4px;
-}
-
-.notion-remove-row .notion-remove {
-  max-width: 30px;
-  padding: 6px;
-  border-radius: 6px;
+  min-width: 360px;
+  max-width: 695px;
 }
 
 .io-row {
@@ -332,6 +309,7 @@ select {
   font-size: 14px;
   margin-bottom: 4px;
   color: var(--text);
+  font-weight: 600;
 }
 
 .form-row input[type="text"],
@@ -464,4 +442,70 @@ select {
   width: 100%;
   display: flex;
   flex-direction: column;
+}
+
+.notion-row {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.notion-row-top {
+  align-items: flex-end;
+}
+.notion-row-bottom {
+  align-items: flex-start;
+}
+.notion-cell {
+  flex: 1 1 160px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.notion-cell-type {
+  flex: 0 0 180px;
+}
+.notion-cell .notion-source,
+.notion-cell .notion-type,
+.notion-cell .notion-property,
+.notion-cell .notion-static,
+.notion-cell .notion-label {
+  width: 100%;
+}
+.notion-static-row.hidden {
+  display: none;
+}
+.notion-remove-cell {
+  flex: 0 0 auto;
+  display: flex;
+  justify-content: flex-end;
+  align-items: flex-end;
+}
+.notion-remove-cell .notion-remove {
+  max-width: 34px;
+  /* padding: 6px; */
+  border-radius: 6px;
+  margin-top: 30px;
+}
+
+.notion-field-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.notion-field-list .notion-field {
+  flex: 1 1 360px;
+}
+@media (max-width: 1200px) {
+  .notion-field-list .notion-field {
+    flex: 1 1 45%;
+  }
+}
+@media (max-width: 780px) {
+  .notion-field-list {
+    flex-direction: column;
+  }
+  .notion-field-list .notion-field {
+    /* width: 100%; */
+    max-width: none;
+  }
 }

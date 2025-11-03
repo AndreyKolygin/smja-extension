@@ -102,7 +102,6 @@
   "options.integrations.notion.type.date": "Date",
   "options.integrations.notion.type.multi_select": "Multi-select",
   "options.integrations.notion.type.status": "Status",
-
   "options.modal.provider.title": "Provider",
   "options.modal.provider.name": "Name",
   "options.modal.provider.namePh": "Display name (required)",
@@ -125,17 +124,14 @@
   "options.modal.provider.help.openrouter": "OpenRouter dashboard → Keys.",
   "options.modal.provider.help.perplexity": "Perplexity → API quickstart / portal.",
   "options.modal.provider.help.xai": "X.AI Docs → Get started (API keys).",
-
   "options.modal.model.title": "Model",
   "options.modal.model.provider": "Provider",
   "options.modal.model.display": "Display name",
   "options.modal.model.displayPh": "How the model is shown in the UI",
   "options.modal.model.id": "Model ID",
   "options.modal.model.idPh": "e.g. gpt-4o-mini",
-
   "options.modal.modelPrompt.title": "System prompt (per model)",
   "options.modal.modelPrompt.textPh": "Leave blank to inherit global system template. Use {{GLOBAL_SYSTEM_PROMPT}} to embed it, and {{RESULT_OUTPUT_TEMPLATE}} to include or remove the global output format.",
-
   "options.modal.site.title": "Auto-extract rule",
   "options.modal.site.host": "Site / pattern",
   "options.modal.site.hostPh": "e.g. example.com/jobs* or /https:\\/\\/foo\\.bar\\/pfx.*/i",
@@ -165,7 +161,6 @@
   "options.modal.site.selectorRequired": "CSS selector is required.",
   "options.modal.site.comment": "Comment",
   "options.modal.site.commentPh": "Optional note",
-
   "options.import.title": "Import settings",
   "options.import.mode": "Import mode",
   "options.import.mode.merge": "Merge / add (preserve existing)",
@@ -173,12 +168,10 @@
   "options.import.groups": "Groups to import",
   "options.import.integrations": "Integrations (Notion)",
   "options.import.note": "Only selected groups will be applied. Merge preserves existing items and updates by ID.",
-
   "options.modal.reset.title": "Reset settings",
   "options.modal.reset.desc": "This will replace providers, models, site rules, and templates with default values.",
   "options.modal.reset.keepKeys": "Keep API keys",
   "options.modal.reset.apply": "Reset",
-
   "options.export.title": "Export settings",
   "options.export.groups": "Groups to export",
   "options.export.providers": "Provider Settings",
@@ -201,5 +194,7 @@
   "options.faststart.unknownStrategy": "Unknown extraction strategy.",
   "options.faststart.notFound": "Nothing matched on this page.",
   "options.faststart.failedPrefix": "Extraction failed: ",
-  "ui.highlighter.hint": "Open the extension to read the result"
+  "ui.highlighter.hint": "Open the extension to read the result",
+  "ui.highlighter.title": "Select job description",
+  "ui.highlighter.close": "Cancel selection"
 }

@@ -76,34 +76,38 @@ function renderField(field) {
   wrapper.dataset.id = f.id;
 
   wrapper.innerHTML = `
-    <div class="form-row">
-      <label data-i18n="options.integrations.notion.field.property">Notion property</label>
-      <input type="text" class="notion-property" placeholder="Property name" value="${f.propertyName.replace(/"/g, '&quot;')}" />
-    </div>
-    <div class="form-row notion-inline">
-      <label>
-        <span data-i18n="options.integrations.notion.field.type">Type</span>
+    <div class="notion-row notion-row-top">
+      <div class="form-row notion-cell notion-cell-flex">
+        <label data-i18n="options.integrations.notion.field.property">Notion property</label>
+        <input type="text" class="notion-property" placeholder="Property name" value="${f.propertyName.replace(/"/g, '&quot;')}" />
+      </div>
+      <div class="form-row notion-cell notion-cell-type">
+        <label data-i18n="options.integrations.notion.field.type">Property type</label>
         <select class="notion-type"></select>
-      </label>
-      <label>
-        <span data-i18n="options.integrations.notion.field.source">Source</span>
+      </div>
+    </div>
+    <div class="notion-row">
+      <div class="form-row notion-cell notion-cell-flex">
+        <label data-i18n="options.integrations.notion.field.source">Source data</label>
         <select class="notion-source"></select>
-      </label>
+      </div>
+      <div class="form-row notion-cell notion-static-row">
+        <label data-i18n="options.integrations.notion.field.static">Source data value</label>
+        <input type="text" class="notion-static" value="${f.staticValue.replace(/"/g, '&quot;')}" />
+      </div>
     </div>
-    <div class="form-row notion-static-row">
-      <label data-i18n="options.integrations.notion.field.static">Source data value</label>
-      <input type="text" class="notion-static" value="${f.staticValue.replace(/"/g, '&quot;')}" />
-    </div>
-    <div class="form-row">
-      <label data-i18n="options.integrations.notion.field.label">Label (optional)</label>
-      <input type="text" class="notion-label" value="${f.label.replace(/"/g, '&quot;')}" placeholder="Optional label" />
-    </div>
-    <div class="form-row notion-remove-row">
-      <button type="button"
-        class="btn danger icon-only i-trash notion-remove"
-        data-i18n-title="options.integrations.notion.field.remove"
-        data-i18n-attr-aria-label="options.integrations.notion.field.remove"
-        title="Remove"></button>
+    <div class="notion-row notion-row-bottom">
+      <div class="form-row notion-cell notion-cell-flex">
+        <label data-i18n="options.integrations.notion.field.label">Label (optional)</label>
+        <input type="text" class="notion-label" value="${f.label.replace(/"/g, '&quot;')}" placeholder="Optional label" />
+      </div>
+      <div class="form-row notion-cell notion-remove-cell">
+        <button type="button"
+          class="btn danger icon-only i-trash notion-remove"
+          data-i18n-title="options.integrations.notion.field.remove"
+          data-i18n-attr-aria-label="options.integrations.notion.field.remove"
+          title="Remove"></button>
+      </div>
     </div>
   `;
 

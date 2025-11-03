@@ -186,6 +186,28 @@ async function evaluateRuleInPage(rule) {
   }
 }
 
+async function ensureOverlayHelpers(tabId) {
+  await chrome.scripting.executeScript({
+    target: { tabId },
+    files: ['content/app-overlay.js']
+  });
+}
+
+async function runOverlayAction(tabId, action = 'toggle') {
+  await ensureOverlayHelpers(tabId);
+  await chrome.scripting.executeScript({
+    target: { tabId },
+    func: (act) => {
+      const overlay = window.__JDA_APP_OVERLAY__;
+      if (!overlay) return;
+      if (act === 'open') overlay.open();
+      else if (act === 'close') overlay.close();
+      else overlay.toggle();
+    },
+    args: [action]
+  });
+}
+
 async function extractFromPageBG(tabId, ruleInput, { waitMs = 4000, pollMs = 150 } = {}) {
   const rule = normalizeRuleForExec(ruleInput);
   if (!rule) return { ok: false, error: 'invalid_rule' };
@@ -403,11 +425,13 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
       if (message?.type === 'OPEN_POPUP') {
         try {
-          chrome.action.openPopup(() => {
-            const err = chrome.runtime.lastError;
-            sendResponse({ ok: !err, error: err ? String(err.message || err) : undefined });
-          });
+          const tabId = await resolveTabId(message.tabId);
+          await runOverlayAction(tabId, 'open');
+          sendResponse({ ok: true });
         } catch (e) {
+          try {
+            await chrome.tabs.create({ url: chrome.runtime.getURL('ui/popup.html') });
+          } catch {}
           sendResponse({ ok: false, error: String(e?.message || e) });
         }
         return;
@@ -425,3 +449,17 @@ chrome.runtime.onInstalled.addListener(() => { applyUiMode(); });
 chrome.runtime.onStartup?.addListener(() => { applyUiMode(); });
 
 applyUiMode();
+
+chrome.action.onClicked.addListener(async (tab) => {
+  try {
+    if (!tab?.id) return;
+    const url = tab.url || '';
+    if (!/^https?:/i.test(url)) {
+      await chrome.tabs.create({ url: chrome.runtime.getURL('ui/popup.html') });
+      return;
+    }
+    await runOverlayAction(tab.id, 'toggle');
+  } catch (e) {
+    console.warn('[JDA] overlay toggle failed:', e);
+  }
+});
