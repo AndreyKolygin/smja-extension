@@ -13,7 +13,7 @@ function buildPrompt({ cv, systemTemplate, outputTemplate, modelSystemPrompt, te
   const modelPromptRaw = (modelSystemPrompt || '').trim();
   const outputTemplateTrimmed = (outputTemplate || '').trim();
 
-  const globalPlaceholder = /{{\s*GLOBAL_SYSTEM_PROMPT\s*}}/gi;
+  const globalPlaceholder = /((?:не|not)\s+[^{}]*?)?{{\s*GLOBAL_SYSTEM_PROMPT\s*}}/gi;
   const outputPlaceholder = /((?:не|not)\s+[^{}]*?)?{{\s*RESULT_OUTPUT_TEMPLATE\s*}}/gi;
 
   let includeOutputTemplate = !!outputTemplateTrimmed;
@@ -27,13 +27,22 @@ function buildPrompt({ cv, systemTemplate, outputTemplate, modelSystemPrompt, te
     });
   };
 
+  const replaceGlobalPlaceholders = (input) => {
+    if (!input) return input;
+    return input.replace(globalPlaceholder, (_, neg) => {
+      if (neg) return neg.replace(/\s+$/, '');
+      if (globalPromptRaw) {
+        return globalPromptRaw;
+      }
+      return '';
+    });
+  };
+
   let sys = '';
 
   if (modelPromptRaw) {
     let prompt = modelPromptRaw;
-    if (globalPromptRaw) {
-      prompt = prompt.replace(globalPlaceholder, globalPromptRaw);
-    }
+    prompt = replaceGlobalPlaceholders(prompt);
     prompt = replaceOutputPlaceholders(prompt);
     sys = prompt.trim();
   } else {
