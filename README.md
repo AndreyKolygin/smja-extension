@@ -119,3 +119,9 @@ Google Gemini · OpenAI · Ollama · Hugging Face · Anthropic · Perplexity · 
 - [Quickstart](./QUICKSTART.md)
 - [Changelog](./CHANGELOG.md)
 - [Русская документация](./README.ru.md)
+- [Chrome Web Store listing](./docs/store/chrome-web-store.md)
+- [Privacy policy](./docs/policies/privacy.md)
+
+## 🧱 Release Packaging
+
+Run `scripts/build-release.sh` to produce `dist/jda-extension-<version>.zip` with only the files needed for Chrome Web Store submission.
