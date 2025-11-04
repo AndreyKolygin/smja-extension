@@ -23,7 +23,7 @@
           <div class="card glass card_llm">
             <h2 data-i18n="options.title.llmSettings">LLM settings</h2>
             <h3 data-i18n="options.title.providerSettings">Provider settings</h3>
-            <p><button class="btn add-model icon-left i-add" id="addProviderBtn" title="Add LLM provider" data-i18n="options.btn.addProvider">+ Add Provider</button></p>
+            <p><button class="btn add-model icon-left i-add" id="addProviderBtn" title="Add LLM provider" data-i18n="options.btn.addProvider" data-i18n-attr-title="options.btn.addProviderTitle">+ Add Provider</button></p>
             <div class="table-wrapper">
               <table class="table" id="providersTable">
               <thead><tr>
@@ -37,7 +37,7 @@
             </table>
             </div>
             <h3 data-i18n="options.title.models">Models</h3>
-            <p><button class="btn add-model icon-left i-add" id="addModelBtn" title="Add model for provider" data-i18n="options.btn.addModel">+ Add Model</button></p>
+            <p><button class="btn add-model icon-left i-add" id="addModelBtn" title="Add model for provider" data-i18n="options.btn.addModel" data-i18n-attr-title="options.btn.addModelTitle">+ Add Model</button></p>
             <div class="table-wrapper">
             <table class="table" id="modelsTable">
               <thead><tr>
@@ -300,6 +300,7 @@
         <textarea rows="6" id="siteScript"
                   placeholder="const el = document.querySelector('...');\nreturn el ? el.innerText : '';"></textarea>
         <p class="muted" data-i18n="options.modal.site.scriptHint">Runs inside the page with access to <code>document</code>. Return a string with the extracted description.</p>
+        <p class="muted" data-i18n="options.modal.site.scriptWarn">Only paste scripts you trust — they execute in the context of the visited site.</p>
       </div>
 
       <div class="form-row">

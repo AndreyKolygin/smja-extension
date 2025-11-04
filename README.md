@@ -61,6 +61,23 @@ The job description and analysis persist until you clear them explicitly, so you
 
 ---
 
+## 🔒 Permissions
+
+- `activeTab` / `tabs` — injects the floating workspace only on the page you open.
+- `scripting` — highlights DOM blocks and runs per-site extraction rules.
+- `downloads` — saves reports to Markdown on demand.
+- `storage` — keeps your CV, prompts, settings, and API keys locally.
+
+Optional host permissions are requested lazily when you add a specific integration:
+
+- LLM APIs: `https://api.openai.com/*`, `https://*.openai.azure.com/*`, `https://api.anthropic.com/*`, `https://generativelanguage.googleapis.com/*`, `https://openrouter.ai/*`, `https://api.deepseek.com/*`, `https://api.perplexity.ai/*`, `https://api.x.ai/*`, `https://api.llama-api.com/*`, `https://api-inference.huggingface.co/*`.
+- Local models (Ollama): `http://localhost:11434/*`, `http://127.0.0.1:11434/*`.
+- Save to Notion: `https://api.notion.com/*`.
+
+The extension never enables a host permission until you configure the corresponding provider or integration.
+
+---
+
 ## 🔌 Integrations & automation
 
 ### Notion
@@ -79,6 +96,7 @@ Each rule contains:
 - Optional comment and active toggle
 
 DOM chains allow multi-step narrowing (selector + text filter + index). Script mode is fenced by CSP; use it for same-origin iframes only.
+Custom scripts execute inside the visited page with its permissions, so only use code you fully trust.
 
 ---
 

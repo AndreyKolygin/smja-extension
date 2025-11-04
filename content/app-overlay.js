@@ -31,12 +31,114 @@
     keyHandler: null
   };
 
-  function t(key, fallback = '') {
-    try {
-      return chrome.i18n?.getMessage?.(key) || fallback || key;
-    } catch {
-      return fallback || key;
+  let localeCode = 'en';
+  let localeDict = null;
+  let localeLoading = null;
+
+  function lookupLocale(key) {
+    if (!localeDict || !key) return undefined;
+    if (Object.prototype.hasOwnProperty.call(localeDict, key)) {
+      const value = localeDict[key];
+      return typeof value === 'string' ? value : undefined;
     }
+    if (key.includes('.')) {
+      const parts = key.split('.');
+      let ref = localeDict;
+      for (const part of parts) {
+        if (ref && typeof ref === 'object' && Object.prototype.hasOwnProperty.call(ref, part)) {
+          ref = ref[part];
+        } else {
+          ref = undefined;
+          break;
+        }
+      }
+      if (typeof ref === 'string') return ref;
+    }
+    return undefined;
+  }
+
+  async function determineLocale() {
+    try {
+      const res = await new Promise((resolve) => {
+        try {
+          chrome.storage.local.get({ uiLang: 'en' }, (value) => {
+            resolve(value || { uiLang: 'en' });
+          });
+        } catch {
+          resolve({ uiLang: 'en' });
+        }
+      });
+      const lang = (res?.uiLang || 'en') || 'en';
+      const tryLangs = Array.from(new Set([lang, 'en']));
+      for (const candidate of tryLangs) {
+        try {
+          const url = chrome.runtime.getURL(`ui/locales/${candidate}.json`);
+          const resp = await fetch(url, { cache: 'no-cache' });
+          if (!resp.ok) continue;
+          const json = await resp.json();
+          if (json && typeof json === 'object') {
+            localeCode = String(candidate || 'en').toLowerCase();
+            localeDict = json;
+            return;
+          }
+        } catch {
+          // try next candidate
+        }
+      }
+    } catch {
+      // fall through to defaults
+    }
+    localeCode = 'en';
+    localeDict = null;
+  }
+
+  function ensureLocaleLoaded(force = false) {
+    if (!force && localeDict) return Promise.resolve();
+    if (localeLoading) return localeLoading;
+    localeLoading = determineLocale().finally(() => {
+      localeLoading = null;
+      if (state.root) applyOverlayTranslations(state.root);
+    });
+    return localeLoading;
+  }
+
+  function t(key, fallback = '') {
+    const localized = lookupLocale(key);
+    if (typeof localized === 'string' && localized.length) return localized;
+    try {
+      const runtimeVal = chrome.i18n?.getMessage?.(key);
+      if (runtimeVal) return runtimeVal;
+    } catch {
+      // ignore
+    }
+    return fallback || key;
+  }
+
+  function applyOverlayTranslations(root = state.root) {
+    if (!root) return;
+    root.querySelectorAll('[data-i18n-key]').forEach((el) => {
+      const key = el.getAttribute('data-i18n-key');
+      if (!key) return;
+      const fallback = el.textContent || '';
+      el.textContent = t(key, fallback);
+    });
+    root.querySelectorAll('[data-i18n-title-key]').forEach((el) => {
+      const key = el.getAttribute('data-i18n-title-key');
+      if (!key) return;
+      const fallback = el.getAttribute('title') || '';
+      el.setAttribute('title', t(key, fallback));
+    });
+  }
+
+  ensureLocaleLoaded();
+
+  if (chrome?.storage?.onChanged?.addListener) {
+    chrome.storage.onChanged.addListener((changes, area) => {
+      if (area !== 'local' || !changes.uiLang) return;
+      localeDict = null;
+      localeCode = 'en';
+      ensureLocaleLoaded(true);
+    });
   }
 
   function ensureStyle() {
@@ -311,7 +413,15 @@
 
   function openOverlay() {
     if (state.root) {
+      applyOverlayTranslations(state.root);
       focusFrame();
+      return;
+    }
+    if (!localeDict) {
+      ensureLocaleLoaded().then(() => {
+        if (!state.root) openOverlay();
+        else applyOverlayTranslations(state.root);
+      });
       return;
     }
     ensureStyle();
@@ -328,9 +438,9 @@
     container.innerHTML = `
       <div class="${CARD_CLASS}">
         <div class="jda-app-overlay-header" data-drag-handle>
-          <span class="jda-app-overlay-title">${title}</span>
+          <span class="jda-app-overlay-title" data-i18n-key="ui.app.title">${title}</span>
           <div class="jda-app-overlay-actions">
-            <button type="button" data-action="close" title="${closeTitle}">✕</button>
+            <button type="button" data-action="close" data-i18n-title-key="ui.highlighter.close" title="${closeTitle}">✕</button>
           </div>
         </div>
         <div class="jda-app-overlay-body">
@@ -349,6 +459,7 @@
     state.root = container;
     state.card = container.querySelector(`.${CARD_CLASS}`);
     state.frame = container.querySelector('.jda-app-overlay-frame');
+    applyOverlayTranslations(container);
 
     const handle = container.querySelector(HEADER_HANDLE);
     if (handle) attachDrag(handle);

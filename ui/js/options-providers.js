@@ -1,6 +1,6 @@
 // ui/js/options-providers.js
 import { $id, persistSettings, ensureHostPermission, safeShowModal, maskKey } from './options-util.js';
-import { applyTranslations } from './i18n.js';
+import { applyTranslations, t } from './i18n.js';
 
 const PRESETS = {
   custom:      { type: "custom",     baseUrl: "",                                           url: "#" },
@@ -53,16 +53,17 @@ export function renderProviders(settings){
   for (const p of settings.providers) {
     const tr = document.createElement("tr");
     tr.innerHTML = `
-      <td class="prov-name" contenteditable="true" title="Click to edit name">${p.name ?? ""}</td>
+      <td class="prov-name" contenteditable="true" data-i18n-attr-title="options.providers.inlineEdit" title="Click to edit name">${p.name ?? ""}</td>
       <td>${p.baseUrl}</td>
       <td>${p.type || "custom"}</td>
       <td>${maskKey(p.apiKey)}</td>
       <td class="nowrap">
-        <button class="btn edit icon-left i-pen" data-action="edit-provider" data-id="${p.id}" data-i18n-title="options.title.editllmProvider" title="Edit LLM provider settings" data-i18n="options.btn.edit"></button>
-        <button class="btn delete icon-left i-trash" data-action="delete-provider" data-id="${p.id}" data-i18n="options.btn.delete"></button>
+        <button class="btn edit icon-left i-pen" data-action="edit-provider" data-id="${p.id}" data-i18n-attr-title="options.title.editllmProvider" data-i18n="options.btn.edit"></button>
+        <button class="btn delete icon-left i-trash" data-action="delete-provider" data-id="${p.id}" data-i18n="options.btn.delete" data-i18n-attr-title="options.btn.deleteTitle"></button>
       </td>
     `;
     tbody.appendChild(tr);
+    applyTranslations(tr);
 
     // inline edit: Name
     const nameCell = tr.querySelector(".prov-name");
@@ -84,7 +85,9 @@ export function renderProviders(settings){
       if (action === "edit-provider") {
         openProviderModal(settings, prov);
       } else if (action === "delete-provider") {
-        if (confirm(`Delete provider “${prov.name}”?`)) {
+        const label = prov.name || prov.baseUrl || t('options.confirm.fallbackLabel', 'this provider');
+        const confirmText = t('options.confirm.deleteProvider', 'Delete provider “{label}”?').replace('{label}', label);
+        if (confirm(confirmText)) {
           settings.providers = settings.providers.filter(x => x.id !== id);
           renderProviders(settings);
           await persistSettings(settings);
@@ -115,7 +118,7 @@ function openProviderModal(settings, provider) {
   if (nameI) nameI.removeAttribute('required');
 
   if (!dlg || !preset || !base || !key || !link) {
-       alert("Provider dialog markup is missing");
+       alert(t('options.alert.providerDialogMissing', 'Provider dialog markup is missing.'));
        return;
      }
 
@@ -207,7 +210,7 @@ function openProviderModal(settings, provider) {
     const nameVal = (nameI?.value || '').trim();
     if (!nameVal) {
       if (nameI && nameI.reportValidity) nameI.reportValidity();
-      else alert('Please fill out the Name field.');
+      else alert(t('options.alert.providerNameRequired', 'Please fill out the Name field.'));
       nameI?.focus();
       return;
     }

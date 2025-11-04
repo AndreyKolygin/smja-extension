@@ -3,7 +3,7 @@ import { state, fetchSettings, getActiveTab, setActiveTab, setJobInput, setResul
 import { populateModels, wireModelSelector } from "./js/models.js";
 import { startSelection, clearSelection, wireCopy, wireSave, wireSaveToNotion, wireAnalyzeButtons, wireJobInputSync, ensureContentScript, detectAndToggleFastStart, updateNotionButtonVisibility } from "./js/actions.js";
 import { wireRuntimeMessages, warmLoadCaches } from "./js/messaging.js";
-import { loadLocale, applyTranslations, getSavedLang } from "./js/i18n.js";
+import { loadLocale, applyTranslations, getSavedLang, t } from "./js/i18n.js";
 
 let __jdaInitStarted = false;
 
@@ -124,7 +124,7 @@ async function init() {
       <div class="container">
         <div class="header">
           <div class="select hidden" aria-hidden="true"></div>
-          <button id="menu" data-i18n="ui.menu.options" class="menu" title="Settings" data-i18n-title="ui.menu.optionsMenu" >☰</button>
+          <button id="menu" data-i18n="ui.menu.options" class="menu" title="Settings" data-i18n-attr-title="ui.menu.optionsMenu" >☰</button>
         </div>
         <div class="row">
           <p class="muted" data-i18n="ui.popup.warning">Content cannot be analyzed.</p>
@@ -175,15 +175,9 @@ async function init() {
     row.appendChild(fs);
     document.querySelector(".container")?.appendChild(row);
   }
-  fs.textContent = "Fast start: checking…";
+  fs.textContent = t('ui.popup.faststartChecking', 'Fast start: checking…');
 
-  await detectAndToggleFastStart({
-    onDebug: (...args) => console.debug("[FastStart]", ...args),
-    onStatus: (text) => {
-      const el = document.getElementById("fastStartStatus");
-      if (el) el.textContent = `Fast start: ${text}`;
-    }
-  });
+  await detectAndToggleFastStart();
 
   console.debug("[POPUP] init done");
 }

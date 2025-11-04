@@ -12,7 +12,7 @@ import { renderSites, wireSitesModals } from './options-sites.js';
 import { initPrompts, setupAutosave, renameGeneralToCV, injectSingleColumnLayout } from './options-prompts.js';
 import { renderIntegrations } from './options-integrations.js';
 
-import { loadLocale, applyTranslations, getSavedLang, setSavedLang } from './i18n.js';
+import { loadLocale, applyTranslations, getSavedLang, setSavedLang, t } from './i18n.js';
 
 const TAB_STORAGE_KEY = 'optionsActiveTab';
 
@@ -155,19 +155,19 @@ export async function loadSettings() {
     const cvVal = ($id("cv").value || "").trim();
     if (!cvVal) {
       try { $id("cv").focus(); } catch {}
-      alert("CV is required. Please fill it in before saving.");
+      alert(t('options.alert.cvRequired', 'CV is required. Please fill it in before saving.'));
       return;
     }
     settings.cv = cvVal;
     settings.systemTemplate = $id("systemTemplate").value;
     settings.outputTemplate = $id("outputTemplate").value;
     await chrome.runtime.sendMessage({ type: "SAVE_SETTINGS", payload: settings });
-    alert("Saved.");
+    alert(t('options.alert.saved', 'Saved.'));
     const btn = $id("resetCacheBtn");
     const hint = $id("resetHint");
     if (btn) btn.disabled = true;
     if (hint) {
-      hint.textContent = "Cache cleared: prompts and temporary results were removed.";
+      hint.textContent = t('options.alert.cacheCleared', 'Cache cleared: prompts and temporary results were removed.');
       hint.style.color = "green";
       setTimeout(() => {
         hint.textContent = "";
@@ -185,7 +185,7 @@ document.addEventListener('DOMContentLoaded', () => {
       await loadSettings(); // 2) then build the rest of the page
     } catch (e) {
       console.error('[JDA options] init failed:', e);
-      alert('Settings UI failed to initialize. See DevTools console for details.');
+      alert(t('options.alert.initFailed', 'Settings UI failed to initialize. See DevTools console for details.'));
     }
   })();
 });
@@ -213,12 +213,17 @@ function wireResetDefaults(){
     e?.preventDefault?.();
     try {
       const resp = await chrome.runtime.sendMessage({ type: 'RESET_DEFAULTS', payload: { keepApiKeys: !!(keep?.checked ?? true) } });
-      if (!resp?.ok) { alert('Reset failed: ' + (resp?.error || 'Unknown')); return; }
+      if (!resp?.ok) {
+        const msg = resp?.error || 'Unknown';
+        alert(t('options.alert.resetFailed', 'Reset failed: {{error}}').replace('{{error}}', msg));
+        return;
+      }
       try { dlg?.close?.(); } catch {}
       await loadSettings();
-      alert('Defaults restored.');
+      alert(t('options.alert.resetSuccess', 'Defaults restored.'));
     } catch (err) {
-      alert('Reset failed: ' + String(err && (err.message || err)));
+      const msg = String(err && (err.message || err));
+      alert(t('options.alert.resetFailed', 'Reset failed: {{error}}').replace('{{error}}', msg));
     }
   });
 }

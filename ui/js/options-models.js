@@ -14,7 +14,7 @@ export function renderModels(settings){
     const tr = document.createElement("tr");
     tr.dataset.id = m.id;
     tr.innerHTML = `
-      <td class="drag" title="Drag to reorder"><button class="icon-only icon-left i-grab drag-handle" draggable="true" aria-label="Drag"></button></td>
+      <td class="drag" data-i18n-attr-title="options.models.dragTitle" title="Drag to reorder"><button class="icon-only icon-left i-grab drag-handle" draggable="true" aria-label="Drag" data-i18n-attr-aria-label="options.models.dragAria"></button></td>
       <td><input type="checkbox" data-role="active" ${m.active ? "checked" : ""}></td>
       <td contenteditable="true" data-role="display">${m.displayName ?? ""}</td>
       <td>${provider?.name || "?"}</td>
@@ -51,8 +51,8 @@ export function renderModels(settings){
     tr.querySelector('button[data-role="edit-sys-prompt"]')?.addEventListener("click", () => editModelSystemPrompt(settings, m));
     tr.querySelector("button.delete")?.addEventListener("click", async (e) => {
       e.preventDefault(); e.stopPropagation?.();
-      const label = (m.displayName || m.modelId || "this model");
-      const promptText = t('options.confirm.deleteModel', `Delete model “${label}”?`)
+      const label = (m.displayName || m.modelId || t('options.confirm.modelFallback', 'this model'));
+      const promptText = t('options.confirm.deleteModel', 'Delete model “{label}”?')
         .replace('{label}', label);
       if (!confirm(promptText)) return;
       settings.models = settings.models.filter(x => x !== m);
@@ -81,14 +81,15 @@ function editModel(settings, m){
   const idInput = document.getElementById("modelId");
   if (!dlg || !providerSelect || !displayInput || !idInput) {
     // fallback prompts
-    if (!settings.providers.length) { alert('Add a provider first.'); return; }
-    const displayName = prompt('Display name:', m?.displayName || '');
+    const providerRequiredMsg = t('options.alert.addProviderFirst', 'Add a provider first.');
+    if (!settings.providers.length) { alert(providerRequiredMsg); return; }
+    const displayName = prompt(t('options.prompt.displayName', 'Display name:'), m?.displayName || '');
     if (displayName === null) return;
-    const modelId = prompt('Model ID:', m?.modelId || '');
+    const modelId = prompt(t('options.prompt.modelId', 'Model ID:'), m?.modelId || '');
     if (modelId === null) return;
-    const providerName = prompt('Provider:', (settings.providers.find(p=>p.id===m?.providerId)?.name) || settings.providers[0]?.name || '');
+    const providerName = prompt(t('options.prompt.provider', 'Provider:'), (settings.providers.find(p=>p.id===m?.providerId)?.name) || settings.providers[0]?.name || '');
     const prov = settings.providers.find(p => p.name === providerName) || settings.providers[0];
-    if (!prov) { alert('Add a provider first.'); return; }
+    if (!prov) { alert(providerRequiredMsg); return; }
     if (m) {
       m.displayName = displayName.trim();
       m.modelId = modelId.trim();

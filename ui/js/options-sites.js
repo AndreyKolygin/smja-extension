@@ -121,8 +121,8 @@ export function renderSites(settings){
       <td class="word-break" title="${escapeHtml(summary)}">${escapeHtml(summary)}</td>
       <td class="word-break">${rule.comment || ""}</td>
       <td class="nowrap">
-        <button class="btn edit icon-left i-pen" data-act="edit" data-id="${rule.id}" data-i18n="options.btn.edit" title="Edit">Edit</button>
-        <button class="btn delete icon-left i-trash" data-act="del" data-id="${rule.id}" data-i18n="options.btn.delete" title="Delete">Delete</button>
+        <button class="btn edit icon-left i-pen" data-act="edit" data-id="${rule.id}" data-i18n="options.btn.edit" data-i18n-attr-title="options.btn.editTitle" title="Edit">Edit</button>
+        <button class="btn delete icon-left i-trash" data-act="del" data-id="${rule.id}" data-i18n="options.btn.delete" data-i18n-attr-title="options.btn.deleteTitle" title="Delete">Delete</button>
       </td>`;
     tbody.appendChild(tr);
   }
@@ -431,6 +431,14 @@ function openSiteModal(settings, rule){
       }
       data.chain = chainSanitized.chain;
       data.selector = '';
+      const previousScript = String(rule?.script || '').trim();
+      const scriptChanged = !rule || rule.strategy !== 'script' || previousScript !== data.script;
+      if (scriptChanged) {
+        const confirmed = confirm(t('options.modal.site.scriptConfirm', 'Custom scripts run inside the visited page and can access its data. Save this script?'));
+        if (!confirmed) {
+          return;
+        }
+      }
     }
 
     if (hasDuplicateRule(settings, rule?.id, data)) {

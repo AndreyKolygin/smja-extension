@@ -104,7 +104,7 @@ function renderField(field) {
       <div class="form-row notion-cell notion-remove-cell">
         <button type="button"
           class="btn danger icon-only i-trash notion-remove"
-          data-i18n-title="options.integrations.notion.field.remove"
+          data-i18n-attr-title="options.integrations.notion.field.remove"
           data-i18n-attr-aria-label="options.integrations.notion.field.remove"
           title="Remove"></button>
       </div>

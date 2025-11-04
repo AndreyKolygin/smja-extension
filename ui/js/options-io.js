@@ -4,6 +4,7 @@ import { renderProviders } from './options-providers.js';
 import { renderModels } from './options-models.js';
 import { renderSites } from './options-sites.js';
 import { renderIntegrations } from './options-integrations.js';
+import { t } from './i18n.js';
 
 // утилита: merge массива по id, с опцией сохранить существующие (по умолчанию true)
 function mergeById(existing = [], incoming = [], { preserveExisting = true, onMerge = null } = {}) {
@@ -210,7 +211,8 @@ function setupDropZone() {
         const obj = JSON.parse(String(reader.result || ''));
         textArea.value = JSON.stringify(obj, null, 2);
       } catch (err) {
-        alert('Invalid JSON: ' + (err && err.message ? err.message : err));
+        const msg = err && err.message ? err.message : err;
+        alert(t('options.alert.invalidJson', 'Invalid JSON: {{error}}').replace('{{error}}', msg));
       }
     };
     reader.readAsText(f);
@@ -225,7 +227,8 @@ function setupDropZone() {
       const obj = JSON.parse(txt);
       textArea.value = JSON.stringify(obj, null, 2);
     } catch (err) {
-      alert('Invalid JSON: ' + (err && err.message ? err.message : err));
+      const msg = err && err.message ? err.message : err;
+      alert(t('options.alert.invalidJson', 'Invalid JSON: {{error}}').replace('{{error}}', msg));
     } finally {
       fileInput.value = '';
     }
@@ -255,16 +258,17 @@ function openImportDialog(settings) {
     const groups = Array.from(dlg.querySelectorAll('input[name="grp"]:checked')).map(x => x.value);
     const ta = document.getElementById('importText');
     const raw = (ta && ta.value || '').trim();
-    if (!raw) { alert('Paste JSON first or drop a file.'); return; }
+    if (!raw) { alert(t('options.alert.importPaste', 'Paste JSON first or drop a file.')); return; }
     try {
       const obj = JSON.parse(raw);
       await applyImport(settings, obj, { mode, groups });
-      alert('Settings imported successfully.');
+      alert(t('options.alert.importSuccess', 'Settings imported successfully.'));
       if (ta) ta.value = '';
       if (fileInput) fileInput.value = '';
       dlg.close?.();
     } catch (err) {
-      alert('Import failed: ' + (err && err.message ? err.message : err));
+      const msg = err && err.message ? err.message : err;
+      alert(t('options.alert.importFailed', 'Import failed: {{error}}').replace('{{error}}', msg));
     } finally {
       cleanup();
     }
@@ -306,7 +310,8 @@ function openExportDialog(settings){
       await doExport(settings, { groups, includeProviderKeys, includeIntegrationSecrets });
       dlg.close?.();
     } catch (err) {
-      alert('Export failed: ' + String(err && (err.message || err)));
+      const msg = String(err && (err.message || err));
+      alert(t('options.alert.exportFailed', 'Export failed: {{error}}').replace('{{error}}', msg));
     } finally {
       cleanup();
     }

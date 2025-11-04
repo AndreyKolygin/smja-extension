@@ -187,10 +187,11 @@ function startAnalyzeButtonTimer() {
   __anBtnStart = performance.now();
   if (__anBtnTicker) clearInterval(__anBtnTicker);
   // мгновенный показ
-  btn.textContent = `0.0s…`;
+  const tickerTemplate = t('ui.popup.analyzeTicker', '{{seconds}}s…');
+  btn.textContent = tickerTemplate.replace('{{seconds}}', '0.0');
   __anBtnTicker = setInterval(() => {
     const s = (performance.now() - __anBtnStart) / 1000;
-    btn.textContent = `${s.toFixed(1)}s…`;
+    btn.textContent = tickerTemplate.replace('{{seconds}}', s.toFixed(1));
   }, 100);
 }
 
@@ -200,19 +201,23 @@ function stopAnalyzeButtonTimer(finalMs, isError = false) {
   if (__anBtnTicker) clearInterval(__anBtnTicker);
   __anBtnTicker = 0;
 
-  const label = isError ? "Error" : `Done: ${(finalMs / 1000).toFixed(2)}s`;
+  const seconds = (finalMs / 1000).toFixed(2);
+  const label = isError
+    ? t('ui.popup.analyzeError', 'Error')
+    : t('ui.popup.analyzeDone', 'Done: {{seconds}}s').replace('{{seconds}}', seconds);
   btn.textContent = label;
   // вернуть в исходное состояние через 5с
   setTimeout(() => {
     btn.disabled = false;
-    btn.textContent = "Analyze";
+    btn.textContent = t('ui.popup.analyze', 'Analyze');
   }, 5000);
 }
 
 export async function startSelection() {
   const resp = await chrome.runtime.sendMessage({ type: 'BEGIN_SELECTION' });
   if (!resp?.ok) {
-    alert('Cannot start selection: ' + (resp?.error || 'unknown error'));
+    const msg = resp?.error || 'unknown error';
+    alert(t('ui.popup.selectionFailed', 'Cannot start selection: {{error}}').replace('{{error}}', msg));
   }
 }
 
@@ -247,19 +252,19 @@ export function updateNotionButtonVisibility() {
 function validateNotionMappingConfig(notion) {
   const fields = Array.isArray(notion?.fields) ? notion.fields.filter(f => f && f.propertyName) : [];
   if (!fields.length) {
-    return { ok: false, error: "Configure Notion field mapping before saving." };
+    return { ok: false, error: t('ui.popup.notionErrorConfigure', 'Configure Notion field mapping before saving.') };
   }
   const hasTitle = fields.some(f => String(f.propertyType || '').toLowerCase() === 'title');
   if (!hasTitle) {
-    return { ok: false, error: "Add a Notion field mapped to a Title property." };
+    return { ok: false, error: t('ui.popup.notionErrorNeedTitle', 'Add a Notion field mapped to a Title property.') };
   }
   for (const f of fields) {
     const propName = String(f.propertyName || '').trim();
     if (!propName) {
-      return { ok: false, error: "Each Notion field mapping must have a property name." };
+      return { ok: false, error: t('ui.popup.notionErrorPropertyName', 'Each Notion field mapping must have a property name.') };
     }
     if ((f.source === 'analysis' || f.source === 'custom') && !String(f.staticValue || '').trim()) {
-      return { ok: false, error: `Fill Source data value for "${propName}".` };
+      return { ok: false, error: t('ui.popup.notionErrorSourceValue', 'Fill Source data value for “{property}”.').replace('{property}', propName) };
     }
   }
   return { ok: true };
@@ -272,7 +277,7 @@ export function wireSaveToNotion() {
   btn.addEventListener("click", async () => {
     const notion = state.settings?.integrations?.notion;
     if (!notion?.enabled) {
-      alert("Save to Notion is disabled in settings.");
+      alert(t('ui.popup.notionDisabled', 'Save to Notion is disabled in settings.'));
       return;
     }
 
@@ -321,11 +326,13 @@ export function wireSaveToNotion() {
         setTimeout(() => setProgress('', null), 2000);
       } else {
         setProgress('', null);
-        alert("Save to Notion failed: " + (resp?.error || "Unknown error"));
+        const msg = resp?.error || 'Unknown error';
+        alert(t('ui.popup.notionFailed', 'Save to Notion failed: {{error}}').replace('{{error}}', msg));
       }
     } catch (e) {
       setProgress('', null);
-      alert("Save to Notion failed: " + String(e && (e.message || e)));
+      const msg = String(e && (e.message || e));
+      alert(t('ui.popup.notionFailed', 'Save to Notion failed: {{error}}').replace('{{error}}', msg));
     } finally {
       btn.disabled = false;
     }
@@ -478,11 +485,23 @@ async function extractFromRule(tabId, ruleInput, { waitMs = DEFAULT_EXTRACT_WAIT
 // показать/скрыть кнопку Fast start
 export async function detectAndToggleFastStart() {
   const btn = document.getElementById("fastStartBtn");
-  if (!btn) return;
+  const statusEl = document.getElementById("fastStartStatus");
+  const setStatus = (key, fallback) => {
+    if (statusEl) statusEl.textContent = t(key, fallback);
+  };
+
+  if (!btn) {
+    setStatus('ui.popup.faststartUnavailable', 'Fast start: unavailable');
+    return;
+  }
 
   const tab = await getActiveTab({ refresh: true });
   if (tab) state.activeTab = tab;
-  if (!tab?.url) { btn.hidden = true; return; }
+  if (!tab?.url) {
+    btn.hidden = true;
+    setStatus('ui.popup.faststartUnavailable', 'Fast start: unavailable');
+    return;
+  }
 
   const rules = (state.settings?.sites || []).filter(r => r && (r.active === undefined || r.active));
   dbg("url=", tab.url, "rules=", rules);
@@ -496,32 +515,53 @@ export async function detectAndToggleFastStart() {
   }
 
   dbg("matched:", match);
-  if (!match) { btn.hidden = true; return; }
+  if (!match) {
+    btn.hidden = true;
+    setStatus('ui.popup.faststartUnavailable', 'Fast start: unavailable');
+    return;
+  }
 
   const normalizedRule = normalizeRuleForExec(match);
-  if (!normalizedRule) { btn.hidden = true; return; }
+  if (!normalizedRule) {
+    btn.hidden = true;
+    setStatus('ui.popup.faststartUnavailable', 'Fast start: unavailable');
+    return;
+  }
 
   btn.hidden = false;
   btn.classList.remove("hidden");
   btn.__fastRule = normalizedRule;
+  setStatus('ui.popup.faststartReady', 'Fast start: ready');
   btn.onclick = async () => {
     try {
+      setStatus('ui.popup.faststartWorking', 'Fast start: capturing…');
       const ready = await ensureContentScript(tab.id);
-      if (!ready) { alert(t('options.faststart.noAccess', "Cannot access page. Content script isn't available.")); return; }
+      if (!ready) {
+        alert(t('options.faststart.noAccess', "Cannot access page. Content script isn't available."));
+        setStatus('ui.popup.faststartError', 'Fast start: error');
+        return;
+      }
 
       const selectedRule = btn.__fastRule || normalizeRuleForExec(match);
-      if (!selectedRule) { alert(t('options.faststart.invalidRule', "Auto-extraction rule is not configured.")); return; }
+      if (!selectedRule) {
+        alert(t('options.faststart.invalidRule', "Auto-extraction rule is not configured."));
+        setStatus('ui.popup.faststartError', 'Fast start: error');
+        return;
+      }
 
       if (selectedRule.strategy === 'css' && !selectedRule.selector) {
         alert(t('options.faststart.missingSelector', "Auto-extraction rule is missing a selector."));
+        setStatus('ui.popup.faststartError', 'Fast start: error');
         return;
       }
       if (selectedRule.strategy === 'chain' && (!Array.isArray(selectedRule.chain) || !selectedRule.chain.length)) {
         alert(t('options.faststart.missingChain', "Auto-extraction chain has no steps."));
+        setStatus('ui.popup.faststartError', 'Fast start: error');
         return;
       }
       if (selectedRule.strategy === 'script' && !selectedRule.script) {
         alert(t('options.faststart.missingScript', "Auto-extraction script body is empty."));
+        setStatus('ui.popup.faststartError', 'Fast start: error');
         return;
       }
 
@@ -551,6 +591,7 @@ export async function detectAndToggleFastStart() {
         }
         setProgress('', null);
         alert(t('options.faststart.failedPrefix', "Extraction failed: ") + msg);
+        setStatus('ui.popup.faststartError', 'Fast start: error');
         return;
       }
 
@@ -558,6 +599,7 @@ export async function detectAndToggleFastStart() {
       if (!text) {
         setProgress('', null);
         alert(t('options.faststart.notFound', "Nothing matched on this page."));
+        setStatus('ui.popup.faststartError', 'Fast start: error');
         return;
       }
 
@@ -566,9 +608,11 @@ export async function detectAndToggleFastStart() {
       try { chrome.storage.local.set({ lastSelection: text, lastSelectionWhen: Date.now() }); } catch {}
       setProgress(t('options.faststart.grabbed', 'Description grabbed ✔'), null, { i18nKey: 'options.faststart.grabbed' });
       setTimeout(() => setProgress('', null), 1500);
+      setStatus('ui.popup.faststartDone', 'Fast start: description captured');
     } catch (e) {
       dbg("fastStart failed:", e);
-      alert("Extraction failed. Ensure content script is injected on this page.");
+      alert(t('ui.popup.faststartFailed', 'Extraction failed. Ensure content script is injected on this page.'));
+      setStatus('ui.popup.faststartError', 'Fast start: error');
     }
   };
 }
@@ -579,12 +623,12 @@ export function wireAnalyzeButtons() {
     if (jobVal) state.selectedText = jobVal;
 
     if (!state.selectedText) {
-      setResult("Add a job description (select on page or paste above)");
+      setResult(t('ui.popup.messageAddDescription', 'Add a job description (select on page or paste above)'));
       return;
     }
     const models = (state.settings?.models || []).filter(m => m.active);
     const selected = models.find(m => m.id === (state.chosenModel || document.getElementById("modelSelect")?.value));
-    if (!selected) { setResult("No active model is selected."); return; }
+    if (!selected) { setResult(t('ui.popup.messageNoModel', 'No active model is selected.')); return; }
 
     // сохранить текущий ввод для восстановления
     try { chrome.storage.local.set({ lastSelection: state.selectedText }, ()=>{}); } catch {}
@@ -616,13 +660,14 @@ export function wireAnalyzeButtons() {
         try { chrome.storage.local.set({ lastResult: { text: state.lastResponse, when: Date.now(), ms } }, ()=>{}); } catch {}
         stopAnalyzeButtonTimer(ms, false);
       } else {
-        setResult("Error: " + (resp?.error || "Unknown"));
+        const msg = resp?.error || t('ui.popup.messageUnknownError', 'Unknown');
+        setResult(t('ui.popup.messageError', 'Error: {{message}}').replace('{{message}}', msg));
         stopAnalyzeButtonTimer(elapsed || 0, true);
       }
     }).catch(() => {
       const elapsed = Math.max(0, performance.now() - state.timerStart);
       stopTimer(true, elapsed);
-      setResult("Error: request failed");
+      setResult(t('ui.popup.messageError', 'Error: {{message}}').replace('{{message}}', t('ui.popup.messageRequestFailed', 'request failed')));
       stopAnalyzeButtonTimer(elapsed || 0, true);
     });
   };

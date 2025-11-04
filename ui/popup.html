@@ -13,8 +13,8 @@
       <div class="header">
         <div class="row">
 
-            <select id="modelSelect" class="select input" title="Select your LLM"></select>
-            <button id="menu" class="menu icon-left i-menu" data-i18n-title="ui.menu.optionsMenu" title="Settings" aria-label="Settings"></button>
+            <select id="modelSelect" class="select input" data-i18n-attr-title="ui.popup.modelSelectTitle" title="Select your LLM"></select>
+            <button id="menu" class="menu icon-left i-menu" data-i18n-attr-title="ui.menu.optionsMenu" title="Settings" aria-label="Settings"></button>
 
         </div>
       </div>
@@ -25,14 +25,14 @@
   <div class="body-analyzer">
     <div class="row highligter">
       <button id="selectBtn" data-i18n="ui.popup.select" class="btn highlight icon-left i-select">Select job description</button>
-      <button id="fastStartBtn" class="btn third icon-left i-download hidden" hidden data-i18n="ui.popup.autograb" title="Auto-grab job description by site rule" data-i18n-title="ui.popup.autograb">Auto-grab</button>
+      <button id="fastStartBtn" class="btn third icon-left i-download hidden" hidden data-i18n="ui.popup.autograb" title="Auto-grab job description by site rule" data-i18n-attr-title="ui.popup.autograb">Auto-grab</button>
       <button id="clearBtn" data-i18n="ui.popup.startover" class="btn secondary icon-left i-startover">Start over</button>
     </div>
     <!-- text blocks-->
     <label for="jobInput" class="label popup-label" data-i18n="ui.popup.jobDescription">Job description:</label>
     <textarea id="jobInput" class="result" data-i18n-ph="ui.popup.placeholder.jobdesc" placeholder="Paste or select a job description here..."></textarea>
     <div class="row">
-      <button id="analyzeBtn" data-i18n="ui.popup.analyze" class="btn primary analyze icon-left icon-center i-magic" title="Start analyze">Analyze</button>
+      <button id="analyzeBtn" data-i18n="ui.popup.analyze" class="btn primary analyze icon-left icon-center i-magic" data-i18n-attr-title="ui.popup.analyzeTitle" title="Start analyze">Analyze</button>
     </div>
     <label for="jobOutput" class="label" data-i18n="ui.popup.positionMresult">Position matching result:</label>
     <div id="resultView" class="result-view prose" aria-live="polite"></div>
@@ -41,9 +41,9 @@
     <!-- buttons -->
     <div class="footer">
       <!-- <div></div> -->
-        <button id="copyBtn" data-i18n="ui.popup.copy" class="btn ghost icon-left i-copy" title="Copy the result to the clipboard and paste it where you need it">Copy</button>
-        <button id="notionBtn" class="btn ghost icon-left notion-btn i-notion" title="Save to Notion" data-i18n-title="ui.popup.notionTitle" data-i18n="ui.popup.notion" aria-label="Save to Notion" hidden>Notion</button>
-        <button id="saveBtn" data-i18n="ui.popup.save" class="btn ghost icon-left i-file" title="Save the result to Markdown (*.md) file">Save to file</button>
+        <button id="copyBtn" data-i18n="ui.popup.copy" class="btn ghost icon-left i-copy" data-i18n-attr-title="ui.popup.copyTitle" title="Copy the result to the clipboard and paste it where you need it">Copy</button>
+        <button id="notionBtn" class="btn ghost icon-left notion-btn i-notion" data-i18n-attr-title="ui.popup.notionTitle" title="Save to Notion" data-i18n="ui.popup.notion" aria-label="Save to Notion" hidden>Notion</button>
+        <button id="saveBtn" data-i18n="ui.popup.save" class="btn ghost icon-left i-file" data-i18n-attr-title="ui.popup.saveTitle" title="Save the result to Markdown (*.md) file">Save to file</button>
       <!-- <div>
 
       </div> -->
