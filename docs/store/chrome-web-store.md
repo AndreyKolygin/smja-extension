@@ -54,7 +54,7 @@ Privacy-friendly by design:
 • No analytics, no background syncing.
 • Optional host permissions requested only when you enable a provider.
 
-Works with local LLMs (Ollama) and popular cloud APIs (OpenAI, Gemini, Anthropic, OpenRouter, Perplexity, DeepSeek, etc.). Perfect for recruiters, career coaches, or job seekers who want fast, repeatable evaluations of job requirements.
+Works with local engines (for example, Ollama) and a wide range of user-configured cloud LLM providers. Perfect for recruiters, career coaches, or job seekers who want fast, repeatable evaluations of job requirements.
 ```
 
 ### Category
