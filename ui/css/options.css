@@ -513,3 +513,13 @@ select {
     max-width: none;
   }
 }
+.bmc-button {
+  display: inline-block;
+  height: 60px !important;
+  width: 217px !important;
+}
+.bmc-button img {
+  height: 100% !important;
+  width: 100% !important;
+  object-fit: contain;
+}

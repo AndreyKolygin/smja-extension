@@ -125,3 +125,9 @@ Google Gemini · OpenAI · Ollama · Hugging Face · Anthropic · Perplexity · 
 ## 🧱 Release Packaging
 
 Run `scripts/build-release.sh` to produce `dist/jda-extension-<version>.zip` with only the files needed for Chrome Web Store submission.
+
+<div align="center">
+  <a href="https://www.buymeacoffee.com/kolandcom" target="_blank" rel="noopener">
+    <img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me A Coffee" width="217" height="60">
+  </a>
+</div>
