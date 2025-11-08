@@ -517,6 +517,7 @@ select {
   display: inline-block;
   height: 60px !important;
   width: 217px !important;
+  cursor: pointer;
 }
 .bmc-button img {
   height: 100% !important;
