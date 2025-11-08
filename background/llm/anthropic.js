@@ -1,4 +1,5 @@
 // background/llm/anthropic.js
+import { fetchWithTimeout } from '../utils.js';
 
 export async function callAnthropic({ baseUrl, apiKey, model, sys, user, timeoutMs = 120_000, version, maxTokens }) {
   const raw = String(baseUrl || 'https://api.anthropic.com/v1').trim();
@@ -21,14 +22,13 @@ export async function callAnthropic({ baseUrl, apiKey, model, sys, user, timeout
     'anthropic-version': version || '2023-06-01'
   };
 
-  const controller = new AbortController();
-  const to = setTimeout(() => controller.abort(), Math.max(10_000, Number(timeoutMs) || 120_000));
+  const timeout = Math.max(10_000, Number(timeoutMs) || 120_000);
   try {
-    const res = await fetch(url, {
+    const res = await fetchWithTimeout(url, {
       method: 'POST',
       headers,
       body: JSON.stringify(body),
-      signal: controller.signal
+      timeout
     });
     if (!res.ok) {
       const text = await res.text().catch(() => '');
@@ -42,11 +42,9 @@ export async function callAnthropic({ baseUrl, apiKey, model, sys, user, timeout
     return json?.completion ?? '';
   } catch (e) {
     const msg = String(e && (e.message || e));
-    if (msg.includes('AbortError') || msg.includes('aborted')) {
-      throw new Error(`Anthropic request timed out after ${Math.round((Number(timeoutMs)||120000)/1000)}s.`);
+    if (/AbortError/i.test(msg) || /timed out/i.test(msg)) {
+      throw new Error(`Anthropic request timed out after ${Math.round(timeout / 1000)}s.`);
     }
     throw e;
-  } finally {
-    clearTimeout(to);
   }
 }

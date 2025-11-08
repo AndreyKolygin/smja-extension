@@ -1,6 +1,6 @@
 // ui/js/options-prompts.js
 import { $id, persistSettings } from './options-util.js';
-import { applyTranslations } from './i18n.js';
+import { applyTranslations, t } from './i18n.js';
 
 let __autosaveTimer = null;
 
@@ -25,7 +25,7 @@ function ensureNoticeHost() {
 
 function showCacheNotice(message){
   const host = ensureNoticeHost();
-  host.textContent = message || 'Cache cleared.';
+  host.textContent = message || t('options.prompts.cacheNotice', 'Cache cleared.');
   host.hidden = false;
   clearTimeout(showCacheNotice.__tid);
   showCacheNotice.__tid = setTimeout(() => { host.hidden = true; }, 4000);
@@ -55,31 +55,18 @@ export function initPrompts(settings){
     btn.disabled = false;           // override any static disabled
     btn.removeAttribute('disabled');
   }
-  function markChanged() { if (btn) btn.disabled = false; if (hint) hint.textContent = "Prompts changed since last save."; }
-  sys.addEventListener("input", markChanged); out.addEventListener("input", markChanged);
-
-  sys.addEventListener("paste", () => { setTimeout(() => { settings.systemTemplate = sys.value; persistSettings(settings); }, 0); });
-  sys.addEventListener("blur", () => { settings.systemTemplate = sys.value; persistSettings(settings); });
-
-  if (cv) {
-    cv.addEventListener("paste", () => {
-      setTimeout(() => {
-        const v = (cv.value || "").trim();
-        if (v) { settings.cv = v; persistSettings(settings); }
-      }, 0);
-    });
-    cv.addEventListener("blur", () => {
-      const v = (cv.value || "").trim();
-      if (v) { settings.cv = v; persistSettings(settings); }
-    });
+  function markChanged() {
+    if (btn) btn.disabled = false;
+    if (hint) hint.textContent = t('options.prompts.changed', 'Prompts changed since last save.');
   }
-  out.addEventListener("paste", () => { setTimeout(() => { settings.outputTemplate = out.value; persistSettings(settings); }, 0); });
-  out.addEventListener("blur", () => { settings.outputTemplate = out.value; persistSettings(settings); });
+  sys.addEventListener("input", markChanged);
+  out.addEventListener("input", markChanged);
+  cv?.addEventListener('input', markChanged);
 
   btn?.addEventListener("click", async () => {
     console.debug('[JDA options] Reset cache clicked');
     btn.disabled = true;
-    if (hint) hint.textContent = 'Prompt cache reset.';
+    if (hint) hint.textContent = t('options.prompts.resetDone', 'Prompt cache reset.');
 
     const KEYS = ['lastResult', 'lastError', 'lastSelection', 'lastExport'];
     let removedList = [];
@@ -90,8 +77,8 @@ export function initPrompts(settings){
     } catch {}
 
     const message = removedList.length
-      ? `Cache cleared: ${removedList.join(', ')}.`
-      : 'Cache cleared: nothing to remove.';
+      ? t('options.prompts.cacheRemoved', 'Cache cleared: {{items}}.').replace('{{items}}', removedList.join(', '))
+      : t('options.prompts.cacheNone', 'Cache cleared: nothing to remove.');
     showCacheNotice(message);
   });
 
@@ -104,23 +91,45 @@ export function initPrompts(settings){
 }
 
 export function setupAutosave(settings){
-  function debouncePersist(){
+  const cv = document.getElementById('cv');
+  const sys = document.getElementById('systemTemplate');
+  const out = document.getElementById('outputTemplate');
+
+  const queuePersist = () => {
     if (__autosaveTimer) clearTimeout(__autosaveTimer);
-    __autosaveTimer = setTimeout(() => { persistSettings(settings); }, 500);
+    __autosaveTimer = setTimeout(() => {
+      __autosaveTimer = null;
+      persistSettings(settings);
+    }, 500);
+  };
+
+  if (cv) {
+    const update = () => {
+      const val = (cv.value || '').trim();
+      if (val) settings.cv = val;
+      queuePersist();
+    };
+    cv.addEventListener('input', update);
+    cv.addEventListener('blur', update);
   }
 
-  document.addEventListener('input', (e) => {
-    if (e.target && (e.target.closest('#providerModal') || e.target.closest('#modelModal') || e.target.closest('#modelPromptModal'))) return;
-    if (e.target && e.target.id === 'cv') {
-      const v = (e.target.value || '').trim();
-      if (v) settings.cv = v; // do not persist empty CV
-    }
-    if (e.target && e.target.id === 'systemTemplate') settings.systemTemplate = e.target.value;
-    if (e.target && e.target.id === 'outputTemplate') settings.outputTemplate = e.target.value;
-    debouncePersist();
-  }, true);
+  if (sys) {
+    const update = () => {
+      settings.systemTemplate = sys.value;
+      queuePersist();
+    };
+    sys.addEventListener('input', update);
+    sys.addEventListener('blur', update);
+  }
 
-  document.addEventListener('change', () => debouncePersist(), true);
+  if (out) {
+    const update = () => {
+      settings.outputTemplate = out.value;
+      queuePersist();
+    };
+    out.addEventListener('input', update);
+    out.addEventListener('blur', update);
+  }
 }
 
 export function injectSingleColumnLayout() {

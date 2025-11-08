@@ -7,7 +7,7 @@
 ## Каркас расширения
 - `manifest.json` → MV3, `background/index.js` как сервис-воркер; `host_permissions` пусты, `optional_host_permissions` содержит провайдеров.
 - `shared/defaults.js` → единственный источник дефолтных провайдеров, моделей, сайтов, шаблонов.
-- `background/settings.js` → CRUD настроек (`getSettings`, `saveSettings`, `resetSettings`, `applyUiMode*`).
+- `background/settings.js` → CRUD настроек (`getSettings`, `saveSettings`, `resetSettings`).
 - `background/utils.js` → `sanitizeText`, `requireFields`, `guardedCall`, `nowMs`.
 - `background/index.js` → обрабатывает сообщения (`GET_ACTIVE_TAB`, `BEGIN_SELECTION`, `EXTRACT_FROM_PAGE`, `CALL_LLM`, `START_ANALYZE`, ...), инжектит контент-скрипты, вызывает `callLLMRouter`.
 - `background/llm/router.js` → `callLLMRouter` готовит prompt (`sys`,`user`) и шлет в адаптеры (`openai`, `azure`, `anthropic`, `ollama`, `gemini`).

@@ -1,6 +1,7 @@
 // actions.js — Select/Clear/Analyze/Copy/Save
 import { state, setJobInput, setProgress, startTimer, stopTimer, setResult, setLastMeta, getActiveTab } from "./state.js";
 import { t } from "./i18n.js";
+import { normalizeRuleForExec, evaluateRuleInPage, siteMatches, findMatchingRule } from "../../shared/rules.js";
 
 let __anBtnTicker = 0;
 let __anBtnStart = 0;
@@ -9,201 +10,6 @@ let __anBtnStart = 0;
 const DEFAULT_EXTRACT_WAIT = 4000; // ms
 const DEFAULT_EXTRACT_POLL = 150;  // ms
 
-function normalizeRuleForExec(ruleOrSelector) {
-  if (!ruleOrSelector && ruleOrSelector !== '') return null;
-  if (typeof ruleOrSelector === 'string') {
-    const selector = ruleOrSelector.trim();
-    if (!selector) return null;
-    return {
-      strategy: 'css',
-      selector,
-      chain: [],
-      script: ''
-    };
-  }
-  const raw = (ruleOrSelector && typeof ruleOrSelector === 'object') ? ruleOrSelector : {};
-  const strategy = typeof raw.strategy === 'string' ? raw.strategy.toLowerCase() : 'css';
-  const selector = typeof raw.selector === 'string' ? raw.selector.trim() : '';
-  const script = typeof raw.script === 'string' ? raw.script.trim() : '';
-  const chain = Array.isArray(raw.chain)
-    ? raw.chain.map((step) => {
-        const sel = typeof step?.selector === 'string' ? step.selector.trim() : '';
-        if (!sel) return null;
-        const text = typeof step?.text === 'string' ? step.text.trim() : '';
-        let nth = null;
-        if (Number.isFinite(step?.nth)) {
-          nth = Math.max(0, Math.floor(step.nth));
-        } else if (typeof step?.nth === 'string' && step.nth.trim()) {
-          const parsed = Number(step.nth.trim());
-          if (Number.isFinite(parsed) && parsed >= 0) {
-            nth = Math.floor(parsed);
-          }
-        }
-        return { selector: sel, text, nth };
-      }).filter(Boolean)
-    : [];
-  return {
-    strategy: ['css', 'chain', 'script'].includes(strategy) ? strategy : 'css',
-    selector,
-    chain,
-    script,
-    chainSequential: raw.chainSequential === undefined ? false : !!raw.chainSequential
-  };
-}
-
-async function evaluateRuleInPage(rule) {
-  try {
-    const strategy = (rule?.strategy || 'css').toLowerCase();
-
-    function nodesToText(nodes) {
-      const unique = [];
-      const seen = new Set();
-      for (const node of nodes || []) {
-        if (!node || seen.has(node)) continue;
-        seen.add(node);
-        const text = (node.innerText ?? node.textContent ?? '').trim();
-        if (text) unique.push(text);
-      }
-      const text = unique.join('\n\n')
-        .replace(/\u00A0/g, ' ')
-        .replace(/[ \t]+\n/g, '\n')
-        .replace(/\n{3,}/g, '\n\n')
-        .trim();
-      return { text, count: unique.length };
-    }
-
-    function collectNodes(root, selector) {
-      const parts = String(selector || '').split(',').map(s => s.trim()).filter(Boolean);
-      const seen = new Set();
-      const out = [];
-
-      function pushNode(node) {
-        if (node && !seen.has(node)) {
-          seen.add(node);
-          out.push(node);
-        }
-      }
-
-      function collect(rootNode, sel) {
-        if (!rootNode || !sel) return;
-        try {
-          if (rootNode instanceof Element && rootNode.matches?.(sel)) {
-            pushNode(rootNode);
-          }
-        } catch {}
-        try {
-          const list = rootNode.querySelectorAll ? rootNode.querySelectorAll(sel) : [];
-          for (const node of list) pushNode(node);
-        } catch {}
-        const descendants = rootNode.querySelectorAll ? rootNode.querySelectorAll('*') : [];
-        for (const el of descendants) {
-          if (el.shadowRoot) {
-            collect(el.shadowRoot, sel);
-          }
-        }
-      }
-
-      for (const part of parts) {
-        collect(root, part);
-      }
-      return out;
-    }
-
-    if (strategy === 'css') {
-      const selector = String(rule?.selector || '').trim();
-      if (!selector) return { ok: false, error: 'no_selector' };
-      const nodes = collectNodes(document, selector);
-      const { text, count } = nodesToText(nodes);
-      return { ok: !!text, text, count };
-    }
-
-    if (strategy === 'chain') {
-      const chain = Array.isArray(rule?.chain) ? rule.chain : [];
-      if (!chain.length) return { ok: false, error: 'empty_chain' };
-      const sequential = rule?.chainSequential ? true : false;
-      if (!sequential) {
-        let current = [document];
-        for (const step of chain) {
-          const sel = String(step?.selector || '').trim();
-          if (!sel) continue;
-          const next = [];
-          const seen = new Set();
-          for (const scope of current) {
-            const nodes = collectNodes(scope, sel);
-            let filtered = nodes;
-            const textFilter = String(step?.text || '').trim().toLowerCase();
-            if (textFilter) {
-              filtered = filtered.filter(node => {
-                const raw = (node.innerText ?? node.textContent ?? '').toLowerCase();
-                return raw.includes(textFilter);
-              });
-            }
-            const nth = Number.isFinite(step?.nth) ? step.nth : null;
-            if (nth != null) {
-              filtered = filtered[nth] ? [filtered[nth]] : [];
-            }
-            for (const node of filtered) {
-              if (node && !seen.has(node)) {
-                seen.add(node);
-                next.push(node);
-              }
-            }
-          }
-          current = next;
-          if (!current.length) break;
-        }
-        const { text, count } = nodesToText(current);
-        return { ok: !!text, text, count };
-      }
-      const captured = [];
-      for (const step of chain) {
-        const sel = String(step?.selector || '').trim();
-        if (!sel) continue;
-        let nodes = collectNodes(document, sel);
-        const textFilter = String(step?.text || '').trim().toLowerCase();
-        if (textFilter) {
-          nodes = nodes.filter(node => {
-            const raw = (node.innerText ?? node.textContent ?? '').toLowerCase();
-            return raw.includes(textFilter);
-          });
-        }
-        const nth = Number.isFinite(step?.nth) ? step.nth : null;
-        if (nth != null) {
-          nodes = nodes[nth] ? [nodes[nth]] : [];
-        }
-        const { text } = nodesToText(nodes);
-        if (text) captured.push(text);
-      }
-      const combined = captured.join('\n\n').trim();
-      return { ok: !!combined, text: combined, count: captured.length };
-    }
-
-    if (strategy === 'script') {
-      const body = String(rule?.script || '');
-      if (!body.trim()) return { ok: false, error: 'empty_script' };
-      try {
-        const fn = new Function('document', 'window', 'root', '"use strict";' + body);
-        const value = fn(document, window, document);
-        const resolved = value && typeof value.then === 'function' ? await value : value;
-        const text = typeof resolved === 'string'
-          ? resolved
-          : (resolved == null ? '' : String(resolved));
-        const clean = text
-          .replace(/\u00A0/g, ' ')
-          .replace(/[ \t]+\n/g, '\n')
-          .replace(/\n{3,}/g, '\n\n')
-          .trim();
-        return { ok: !!clean, text: clean, count: clean ? 1 : 0 };
-      } catch (err) {
-        return { ok: false, error: String(err && (err.message || err)) };
-      }
-    }
-
-    return { ok: false, error: 'unknown_strategy' };
-  } catch (err) {
-    return { ok: false, error: String(err && (err.message || err)) };
-  }
-}
 
 function startAnalyzeButtonTimer() {
   const btn = document.getElementById("analyzeBtn");
@@ -367,88 +173,7 @@ export function wireSaveToNotion() {
 // --- utils: печать в консоль попапа с узнаваемым префиксом
 const dbg = (...a) => console.debug("[FastStart]", ...a);
 
-// Универсальный матчинг правил сайта
-function wildcardToRegExp(str, { anchor = true } = {}) {
-  const esc = String(str || "").replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  const body = esc.replace(/\\\*/g, ".*").replace(/\\\?/g, ".");
-  return new RegExp((anchor ? "^" : "") + body + (anchor ? "$" : ""), "i");
-}
-
-function siteMatches(url, pattern) {
-  try {
-    const full = String(url || "");
-    const u = new URL(full);
-    const host = (u.hostname || "").toLowerCase();
-    let p = String(pattern || "").trim();
-    if (!p) return false;
-
-    // 0) Регэксп в виде /.../flags — матчим по ПОЛНОМУ URL
-    if (p.startsWith("/") && p.lastIndexOf("/") > 0) {
-      const last = p.lastIndexOf("/");
-      const body = p.slice(1, last);
-      const flags = p.slice(last + 1) || "i";
-      try { return new RegExp(body, flags).test(full); } catch { return false; }
-    }
-
-    // 1) Если шаблон содержит протокол — считаем это маской ПОЛНОГО URL
-    if (p.includes("://")) {
-      const rx = new RegExp(
-        String(p)
-          .replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
-          .replace(/\\\*/g, ".*")
-          .replace(/\\\?/g, "."),
-        "i"
-      );
-      return rx.test(full);
-    }
-
-    // 2) Разделяем шаблон на hostPart и pathPart
-    let hostPart = p;
-    let pathPart = "";
-    if (p.startsWith("/")) {
-      hostPart = "";
-      pathPart = p; // уже с ведущим /
-    } else if (p.includes("/")) {
-      const i = p.indexOf("/");
-      hostPart = p.slice(0, i);
-      pathPart = p.slice(i);
-    }
-
-    hostPart = hostPart.toLowerCase();
-
-    // 3) Матчим hostPart
-    if (hostPart) {
-      // 3a) Явный шаблон с подстановкой "*."
-      if (hostPart.startsWith("*.")) {
-        const bare = hostPart.slice(2); // после "*."
-        // допускаем bare сам по себе и любые поддомены
-        if (!(host === bare || host.endsWith("." + bare))) return false;
-      } else {
-        // 3b) «Голый» домен матчится и на сам домен, и на ЛЮБЫЕ поддомены
-        // (раньше требовалось точное совпадение — из-за этого и было "host mismatch")
-        if (!(host === hostPart || host.endsWith("." + hostPart))) return false;
-      }
-    }
-
-    // 4) Матчим pathPart (если задан) — якорим к началу pathname
-    if (pathPart) {
-      const rx = new RegExp(
-        "^" +
-          String(pathPart)
-            .replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
-            .replace(/\\\*/g, ".*")
-            .replace(/\\\?/g, "."),
-        "i"
-      );
-      return rx.test(u.pathname || "/");
-    }
-
-    // 5) Если pathPart пуст — считаем совпадение по хосту достаточным
-    return true;
-  } catch {
-    return false;
-  }
-}
+// Универсальный матчинг правил сайта оставлен в shared/rules.js
 
 export async function ensureContentScript(tabId) {
   try {
@@ -528,16 +253,10 @@ export async function detectAndToggleFastStart() {
     return;
   }
 
-  const rules = (state.settings?.sites || []).filter(r => r && (r.active === undefined || r.active));
+  const rules = state.settings?.sites || [];
   dbg("url=", tab.url, "rules=", rules);
 
-  let match = null;
-  for (const r of rules) {
-    const pat = r.host || r.pattern || ""; // на всякий — если кто-то называл поле иначе
-    const ok = siteMatches(tab.url, pat);
-    dbg("test:", pat, "→", ok);
-    if (ok) { match = r; break; }
-  }
+  const match = findMatchingRule(rules, tab.url);
 
   dbg("matched:", match);
   if (!match) {

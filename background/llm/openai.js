@@ -1,4 +1,5 @@
 // background/llm/openai.js
+import { fetchWithTimeout } from '../utils.js';
 
 export async function callOpenAI({ baseUrl, apiKey, model, sys, user, orgId, projectId, timeoutMs = 120_000 }) {
   const raw = String(baseUrl || '').trim();
@@ -19,10 +20,9 @@ export async function callOpenAI({ baseUrl, apiKey, model, sys, user, orgId, pro
   if (sys) body.messages.push({ role: 'system', content: sys });
   body.messages.push({ role: 'user', content: user });
 
-  const controller = new AbortController();
-  const to = setTimeout(() => controller.abort(), Math.max(10_000, Number(timeoutMs) || 120_000));
+  const timeout = Math.max(10_000, Number(timeoutMs) || 120_000);
   try {
-    const res = await fetch(url, { method: 'POST', headers, body: JSON.stringify(body), signal: controller.signal });
+    const res = await fetchWithTimeout(url, { method: 'POST', headers, body: JSON.stringify(body), timeout });
     if (!res.ok) {
       const code = res.status;
       let hint = '';
@@ -40,11 +40,9 @@ export async function callOpenAI({ baseUrl, apiKey, model, sys, user, orgId, pro
     return json.choices?.[0]?.message?.content ?? '';
   } catch (e) {
     const msg = String(e && (e.message || e));
-    if (msg.includes('AbortError') || msg.includes('aborted')) {
-      throw new Error(`OpenAI request timed out after ${Math.round((Number(timeoutMs)||120000)/1000)}s.`);
+    if (/AbortError/i.test(msg) || /timed out/i.test(msg)) {
+      throw new Error(`OpenAI request timed out after ${Math.round(timeout / 1000)}s.`);
     }
     throw e;
-  } finally {
-    clearTimeout(to);
   }
 }

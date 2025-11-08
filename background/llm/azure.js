@@ -1,4 +1,5 @@
 // background/llm/azure.js
+import { fetchWithTimeout } from '../utils.js';
 
 export async function callAzureOpenAI({ baseUrl, apiKey, deployment, sys, user, timeoutMs = 120_000, apiVersion }) {
   const raw = String(baseUrl || '').trim();
@@ -42,17 +43,16 @@ export async function callAzureOpenAI({ baseUrl, apiKey, deployment, sys, user, 
   if (sys) body.messages.push({ role: 'system', content: sys });
   body.messages.push({ role: 'user', content: user });
 
-  const controller = new AbortController();
-  const to = setTimeout(() => controller.abort(), Math.max(10_000, Number(timeoutMs) || 120_000));
+  const timeout = Math.max(10_000, Number(timeoutMs) || 120_000);
   try {
-    const res = await fetch(url, {
+    const res = await fetchWithTimeout(url, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'api-key': apiKey
       },
       body: JSON.stringify(body),
-      signal: controller.signal
+      timeout
     });
     if (!res.ok) {
       const text = await res.text().catch(() => '');
@@ -62,11 +62,9 @@ export async function callAzureOpenAI({ baseUrl, apiKey, deployment, sys, user, 
     return json.choices?.[0]?.message?.content ?? '';
   } catch (e) {
     const msg = String(e && (e.message || e));
-    if (msg.includes('AbortError') || msg.includes('aborted')) {
-      throw new Error(`Azure OpenAI request timed out after ${Math.round((Number(timeoutMs)||120000)/1000)}s.`);
+    if (/AbortError/i.test(msg) || /timed out/i.test(msg)) {
+      throw new Error(`Azure OpenAI request timed out after ${Math.round(timeout / 1000)}s.`);
     }
     throw e;
-  } finally {
-    clearTimeout(to);
   }
 }

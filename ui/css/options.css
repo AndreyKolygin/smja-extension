@@ -623,6 +623,18 @@ select {
     max-width: none;
   }
 }
+
+.fieldset-column {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 8px;
+}
+.fieldset-column label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
 .bmc-button {
   display: inline-block;
   height: 60px !important;

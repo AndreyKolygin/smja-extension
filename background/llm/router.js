@@ -62,8 +62,7 @@ function buildPrompt({ cv, systemTemplate, outputTemplate, modelSystemPrompt, te
 }
 
 export async function callLLMRouter(payload) {
-  const settings = await getSettings();
-  const provider = settings.providers.find(p => p.id === payload.providerId);
+  const provider = await getProviderById(payload.providerId);
   if (!provider) throw new Error('Provider not found');
 
   const { sys, user } = buildPrompt(payload);
@@ -116,7 +115,14 @@ export async function callLLMRouter(payload) {
       });
       break;
     case 'gemini':
-      text = await callGemini({ baseUrl: provider.baseUrl, apiKey: provider.apiKey, model: payload.modelId, sys, user });
+      text = await callGemini({
+        baseUrl: provider.baseUrl,
+        apiKey: provider.apiKey,
+        model: payload.modelId,
+        sys,
+        user,
+        timeoutMs: provider.timeoutMs || 120_000
+      });
       break;
     default:
       text = await callOpenAI({ baseUrl: provider.baseUrl, apiKey: provider.apiKey, model: payload.modelId, sys, user });
@@ -124,4 +130,28 @@ export async function callLLMRouter(payload) {
 
   const ms = nowMs() - t0;
   return { ok: true, text, ms };
+}
+
+let providersCache = null;
+let providersPromise = null;
+
+async function getProviderById(providerId) {
+  if (!providerId) return null;
+  if (providersCache) {
+    return providersCache.find(p => p.id === providerId) || null;
+  }
+  if (!providersPromise) {
+    providersPromise = getSettings().then(settings => {
+      providersCache = Array.isArray(settings?.providers) ? settings.providers : [];
+      return providersCache;
+    }).finally(() => {
+      providersPromise = null;
+    });
+  }
+  const providers = await providersPromise;
+  return providers.find(p => p.id === providerId) || null;
+}
+
+export function invalidateLLMProviderCache() {
+  providersCache = null;
 }

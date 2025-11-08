@@ -7,23 +7,54 @@ import { loadLocale, applyTranslations, getSavedLang, t } from "./js/i18n.js";
 
 let __jdaInitStarted = false;
 
+function isExtensionContextValid() {
+  try {
+    return !!(chrome?.runtime?.id);
+  } catch {
+    return false;
+  }
+}
+
+function safeRuntimeGetManifest() {
+  if (!isExtensionContextValid()) return {};
+  try {
+    return chrome.runtime.getManifest?.() || {};
+  } catch {
+    return {};
+  }
+}
+
+function safeRuntimeGetURL(path) {
+  if (!isExtensionContextValid()) return path;
+  try {
+    return chrome.runtime.getURL(path);
+  } catch {
+    return path;
+  }
+}
+
 function wireUI() {
   const menu = document.getElementById("menu");
   if (menu) {
     menu.addEventListener("click", (e) => {
       e.preventDefault();
       e.stopPropagation();
-      const manifest = chrome.runtime.getManifest?.() || {};
+      const manifest = safeRuntimeGetManifest();
       const optionsPath = (manifest.options_ui && manifest.options_ui.page)
         || manifest.options_page
         || "ui/options.html"; // safe default
-      const url = chrome.runtime.getURL(optionsPath);
+      const url = safeRuntimeGetURL(optionsPath);
 
       let fallbackTimer = null;
       const openFallback = () => {
         if (fallbackTimer) { clearTimeout(fallbackTimer); fallbackTimer = null; }
         try { window.open(url, "_blank"); } catch {}
       };
+
+      if (!isExtensionContextValid()) {
+        openFallback();
+        return;
+      }
 
       try {
         // MV3-safe path; if it fails or not supported, fallback fires
@@ -55,40 +86,6 @@ function wireUI() {
   wireRuntimeMessages();
 }
 
-async function hydrateFromStorage() {
-  const { lastSelection, lastResult } = await chrome.storage.local.get(["lastSelection", "lastResult"]);
-  try {
-    if (lastSelection) {
-      // support either setter name used by app
-      window?.app?.setJobText?.(lastSelection);
-      window?.app?.setJobInput?.(lastSelection);
-    }
-    if (lastResult?.text) {
-      // support either renderer name used by app
-      window?.app?.setAnalysisResult?.(lastResult);
-      window?.app?.renderAnalysis?.(lastResult);
-    }
-  } catch (e) {
-    console.debug("[UI] hydrateFromStorage error:", e);
-  }
-}
-
-// первичная загрузка при открытии popup/overlay
-document.addEventListener("DOMContentLoaded", () => {
-  hydrateFromStorage();
-});
-if (document.readyState !== 'loading') {
-  setTimeout(() => hydrateFromStorage(), 0);
-}
-
-// лайв-синхронизация: когда SW кладёт новый результат
-chrome.storage.onChanged.addListener((changes, area) => {
-  if (area !== "local") return;
-  if (changes.lastSelection || changes.lastResult) {
-    hydrateFromStorage();
-  }
-});
-
 // lightweight i18n bootstrap for the popup
 async function initI18nPopup() {
   try {
@@ -108,15 +105,8 @@ async function init() {
   __jdaInitStarted = true;
   console.debug("[POPUP] init()");
   await initI18nPopup();
-  let tab = null;
-  let initialCache = null;
-
-  // no overlay context bootstrap
-
-  if (!tab) {
-    tab = await getActiveTab();
-    setActiveTab(tab);
-  }
+  const tab = await getActiveTab();
+  setActiveTab(tab);
   console.debug("[POPUP] active tab =", tab?.url);
 
   if (!tab?.url || (!tab.url.startsWith("http://") && !tab.url.startsWith("https://"))) {
@@ -143,26 +133,7 @@ async function init() {
   updateNotionButtonVisibility();
   console.debug("[POPUP] settings loaded", state.settings);
   populateModels();
-  if (initialCache) {
-    try {
-      const { lastSelection, lastResult } = initialCache;
-      if (lastSelection) {
-        state.selectedText = lastSelection;
-        setJobInput(lastSelection);
-        try { chrome.storage.local.set({ lastSelection }); } catch {}
-      }
-      if (lastResult?.text) {
-        state.lastResponse = lastResult.text;
-        setResult(lastResult.text);
-        try { setLastMeta(lastResult.when); } catch {}
-      }
-    } catch (e) {
-      console.debug('[POPUP] hydrate from context failed:', e);
-      warmLoadCaches();
-    }
-  } else {
-    warmLoadCaches();
-  }
+  warmLoadCaches();
 
   // Диагностический статус для Fast Start (создаём до вызова)
   let fs = document.getElementById("fastStartStatus");

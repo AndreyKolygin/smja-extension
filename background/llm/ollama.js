@@ -1,4 +1,5 @@
 // background/llm/ollama.js
+import { fetchWithTimeout } from '../utils.js';
 
 export async function callOllama({ baseUrl, model, sys, user, timeoutMs = 120_000 }) {
   const root = baseUrl.replace(/\/$/, '');
@@ -9,15 +10,14 @@ export async function callOllama({ baseUrl, model, sys, user, timeoutMs = 120_00
   if (sys) messages.push({ role: 'system', content: sys });
   messages.push({ role: 'user', content: user });
 
-  const controller = new AbortController();
-  const to = setTimeout(() => controller.abort(), Math.max(10_000, Number(timeoutMs) || 120_000));
+  const timeout = Math.max(10_000, Number(timeoutMs) || 120_000);
 
   async function doFetch(url, body) {
-    return fetch(url, {
+    return fetchWithTimeout(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
-      signal: controller.signal
+      timeout
     });
   }
 
@@ -46,11 +46,9 @@ export async function callOllama({ baseUrl, model, sys, user, timeoutMs = 120_00
     return json?.message?.content ?? json?.response ?? '';
   } catch (e) {
     const msg = String(e && (e.message || e));
-    if (msg.includes('AbortError') || msg.includes('aborted')) {
-      throw new Error(`Request timed out after ${Math.round((Number(timeoutMs)||120000)/1000)}s. Увеличьте timeoutMs в провайдере Ollama или сократите запрос.`);
+    if (/AbortError/i.test(msg) || /timed out/i.test(msg)) {
+      throw new Error(`Request timed out after ${Math.round(timeout / 1000)}s. Увеличьте timeoutMs в провайдере Ollama или сократите запрос.`);
     }
     throw e;
-  } finally {
-    clearTimeout(to);
   }
 }

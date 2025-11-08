@@ -49,6 +49,8 @@ export function renderProviders(settings){
   const tbody = document.querySelector("#providersTable tbody");
   if (!tbody) return;
   tbody.innerHTML = "";
+  const table = document.getElementById("providersTable");
+  if (table) table.__ctx = { settings };
 
   for (const p of settings.providers) {
     const tr = document.createElement("tr");
@@ -71,15 +73,15 @@ export function renderProviders(settings){
     nameCell?.addEventListener("blur", async () => { await persistSettings(settings); });
   }
 
-  const table = document.getElementById("providersTable");
-  if (!table.__wired) {
+  if (table && !table.__wired) {
     table.__wired = true;
     table.addEventListener("click", async (e) => {
+      const currentSettings = table.__ctx?.settings || settings;
       const btn = e.target.closest("button[data-action]");
       if (!btn) return;
       const id = btn.dataset.id;
       const action = btn.dataset.action;
-      const prov = settings.providers.find(x => x.id === id);
+      const prov = currentSettings.providers.find(x => x.id === id);
       if (!prov) return;
 
       if (action === "edit-provider") {
@@ -88,8 +90,8 @@ export function renderProviders(settings){
         const label = prov.name || prov.baseUrl || t('options.confirm.fallbackLabel', 'this provider');
         const confirmText = t('options.confirm.deleteProvider', 'Delete provider “{label}”?').replace('{label}', label);
         if (confirm(confirmText)) {
-          settings.providers = settings.providers.filter(x => x.id !== id);
-          renderProviders(settings);
+          currentSettings.providers = currentSettings.providers.filter(x => x.id !== id);
+          renderProviders(currentSettings);
           await persistSettings(settings);
         }
       }

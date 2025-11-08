@@ -1,3 +1,5 @@
+import { fetchWithTimeout } from '../utils.js';
+
 const NOTION_API_URL = 'https://api.notion.com/v1/pages';
 const NOTION_VERSION = '2025-09-03';
 const TEXT_CHUNK = 1800;
@@ -215,14 +217,15 @@ export async function saveToNotion({ settings, payload }) {
 
   let res;
   try {
-    res = await fetch(NOTION_API_URL, {
+    res = await fetchWithTimeout(NOTION_API_URL, {
       method: 'POST',
       headers,
-      body: JSON.stringify(body)
+      body: JSON.stringify(body),
+      timeout: 20000
     });
   } catch (e) {
     const msg = String(e && (e.message || e));
-    if (/Failed to fetch/i.test(msg)) {
+    if (/Failed to fetch/i.test(msg) || /AbortError/i.test(msg)) {
       return {
         ok: false,
         error: 'Failed to reach Notion API. Allow the extension to access api.notion.com and check your connection.'

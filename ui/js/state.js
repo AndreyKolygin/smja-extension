@@ -99,25 +99,34 @@ export function setResult(text) {
 export async function getActiveTab({ refresh = false } = {}) {
   if (!refresh && state.activeTab?.id) return state.activeTab;
   try {
-    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-    if (tab) return tab;
-  } catch (e) {
-    console.debug('[JDA] chrome.tabs.query failed:', e);
-  }
-  try {
     const resp = await chrome.runtime.sendMessage({ type: 'GET_ACTIVE_TAB' });
-    if (resp?.ok && resp.tab) return resp.tab;
+    if (resp?.ok && resp.tab) {
+      state.activeTab = resp.tab;
+      return resp.tab;
+    }
     if (resp?.ok && resp.tabId) {
-      return { id: resp.tabId };
+      state.activeTab = { id: resp.tabId };
+      return state.activeTab;
     }
   } catch (e) {
-    console.debug('[JDA] GET_ACTIVE_TAB fallback failed:', e);
+    console.debug('[JDA] GET_ACTIVE_TAB failed:', e);
+  }
+  if (chrome?.tabs?.query) {
+    try {
+      const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+      if (tab) {
+        state.activeTab = tab;
+        return tab;
+      }
+    } catch (err) {
+      console.debug('[JDA] chrome.tabs.query fallback failed:', err);
+    }
   }
   return state.activeTab || null;
 }
 
 export function setActiveTab(tab) {
-  state.activeTab = tab || null;
+  state.activeTab = tab ? { id: tab.id ?? null, url: tab.url ?? '', title: tab.title ?? '' } : null;
 }
 
 export function setLastMeta(whenMs) {

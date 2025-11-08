@@ -26,8 +26,6 @@ try { console.debug("[JDA] content loaded:", location.href); } catch {}
     });
 
   const BADGE_ID = "__jda_debug_badge";
-  let pollTid = 0;
-
   function createBadge() {
     const host = document.createElement("div");
     host.id = BADGE_ID;
@@ -83,66 +81,28 @@ try { console.debug("[JDA] content loaded:", location.href); } catch {}
     }
   }
 
-  // Безопасно читаем storage.local, останавливаемся при инвалидировании контекста
-  async function safeReadDebugFlag() {
-    if (!safeHasChrome() || !chrome.storage || !chrome.storage.local || !chrome.storage.local.get) return false;
-    try {
-      const res = await new Promise((resolve, reject) => {
-        try {
-          chrome.storage.local.get(["debugBadge"], (r) => {
-            const err = chrome.runtime?.lastError;
-            if (err) reject(err);
-            else resolve(r || {});
-          });
-        } catch (e) {
-          reject(e);
-        }
+  function initDebugBadge() {
+    if (!safeHasChrome() || !chrome.storage?.local?.get) return;
+    chrome.storage.local.get({ debugBadge: false }, (res) => {
+      if (res?.debugBadge) createBadge();
+    });
+    if (chrome.storage?.onChanged?.addListener) {
+      chrome.storage.onChanged.addListener((changes, area) => {
+        if (area !== 'local' || !Object.prototype.hasOwnProperty.call(changes, 'debugBadge')) return;
+        const next = !!changes.debugBadge.newValue;
+        if (next) createBadge();
+        else removeBadge();
       });
-      return res && res.debugBadge === true;
-    } catch (e) {
-      // If the extension context is invalid, stop polling permanently in this page
-      if (isCtxInvalidError(e)) stopPolling();
-      return false;
     }
   }
 
-  function stopPolling() {
-    if (pollTid) {
-      clearInterval(pollTid);
-      pollTid = 0;
-    }
-  }
-
-  async function initialBadgeCheck() {
-    const on = await safeReadDebugFlag();
-    const exists = !!document.getElementById(BADGE_ID);
-    if (on && !exists) createBadge();
-    if (!on && exists) removeBadge();
-  }
-
-  // ✅ Стартуем только если расширение доступно
   if (safeHasChrome()) {
-    (async () => {
-      try { await initialBadgeCheck(); } catch (e) { if (isCtxInvalidError(e)) stopPolling(); }
-      try {
-        pollTid = setInterval(async () => {
-          if (!safeHasChrome()) { // контекст расширения исчез
-            stopPolling();
-            return;
-          }
-          try { await initialBadgeCheck(); } catch (e) { if (isCtxInvalidError(e)) { stopPolling(); } }
-        }, 5000);
-      } catch (e) {
-        if (isCtxInvalidError(e)) stopPolling();
-      }
-    })();
+    initDebugBadge();
   }
 
-  // Чистим при навигации/скрытии вкладки (SPA)
-  function teardown() { stopPolling(); removeBadge(); }
-  window.addEventListener("pagehide", teardown);
+  window.addEventListener("pagehide", removeBadge);
   document.addEventListener("visibilitychange", () => {
-    if (document.visibilityState === "hidden") teardown();
+    if (document.visibilityState === "hidden") removeBadge();
   });
 
   if (typeof chrome !== "undefined" && chrome.runtime?.onMessage) {

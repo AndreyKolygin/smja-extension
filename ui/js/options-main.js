@@ -1,8 +1,7 @@
 // ui/js/options-main.js
 import {
   $id, safeShowModal, maskKey,
-  normalizeSettings, persistSettings, ensureHostPermission,
-  SETTINGS_KEY
+  getNormalizedSettings, persistSettings
 } from './options-util.js';
 
 import { wireImportExport } from './options-io.js';
@@ -111,9 +110,9 @@ export let settings = null;
 export async function loadSettings() {
   try {
     const raw = await chrome.runtime.sendMessage({ type: "GET_SETTINGS" });
-    settings = normalizeSettings(raw);
+    settings = getNormalizedSettings(raw);
   } catch {
-    settings = normalizeSettings(null);
+    settings = getNormalizedSettings(null);
   }
   // Версия/ссылки
   const verEl = document.getElementById("version");
@@ -136,7 +135,6 @@ export async function loadSettings() {
   renderModels(settings);
   renderSites(settings);
   renderIntegrations(settings);
-  applyTranslations(document);
 
   // Провода
   wireProviderModals(settings);
@@ -161,7 +159,7 @@ export async function loadSettings() {
     settings.cv = cvVal;
     settings.systemTemplate = $id("systemTemplate").value;
     settings.outputTemplate = $id("outputTemplate").value;
-    await chrome.runtime.sendMessage({ type: "SAVE_SETTINGS", payload: settings });
+    await persistSettings(settings, { immediate: true });
     alert(t('options.alert.saved', 'Saved.'));
     const btn = $id("resetCacheBtn");
     const hint = $id("resetHint");

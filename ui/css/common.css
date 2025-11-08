@@ -210,8 +210,8 @@ textarea {
   display: block;
 }
 .row {
-  margin: 5px 0;
-  /* display: flex; */
+  margin: 0;
+  display: flex;
 }
 
 .card {

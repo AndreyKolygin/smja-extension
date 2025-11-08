@@ -31,109 +31,28 @@
       handle: null,
       downListener: null,
       pointerId: null
-    }
+    },
+    localeCode: 'en'
   };
-
-  let localeCode = 'en';
-  let localeDict = null;
-  let localeLoading = null;
-
-  function lookupLocale(key) {
-    if (!localeDict || !key) return undefined;
-    if (Object.prototype.hasOwnProperty.call(localeDict, key)) {
-      const value = localeDict[key];
-      return typeof value === 'string' ? value : undefined;
-    }
-    if (key.includes('.')) {
-      const parts = key.split('.');
-      let ref = localeDict;
-      for (const part of parts) {
-        if (ref && typeof ref === 'object' && Object.prototype.hasOwnProperty.call(ref, part)) {
-          ref = ref[part];
-        } else {
-          ref = undefined;
-          break;
-        }
-      }
-      if (typeof ref === 'string') return ref;
-    }
-    return undefined;
-  }
-
-  async function determineLocale() {
-    try {
-      const res = await new Promise((resolve) => {
-        try {
-          chrome.storage.local.get({ uiLang: 'en' }, (value) => {
-            resolve(value || { uiLang: 'en' });
-          });
-        } catch {
-          resolve({ uiLang: 'en' });
-        }
-      });
-      const lang = (res?.uiLang || 'en') || 'en';
-      const tryLangs = Array.from(new Set([lang, 'en']));
-      for (const candidate of tryLangs) {
-        try {
-          const url = chrome.runtime.getURL(`ui/locales/${candidate}.json`);
-          const resp = await fetch(url, { cache: 'no-cache' });
-          if (!resp.ok) continue;
-          const json = await resp.json();
-          if (json && typeof json === 'object') {
-            localeCode = String(candidate || 'en').toLowerCase();
-            localeDict = json;
-            return;
-          }
-        } catch {
-          // ignore and try next candidate
-        }
-      }
-    } catch {
-      // fall through to defaults
-    }
-    localeCode = 'en';
-    localeDict = null;
-  }
-
-  function ensureLocaleLoaded(force = false) {
-    if (!force && localeDict) return Promise.resolve();
-    if (localeLoading) return localeLoading;
-    localeLoading = determineLocale().finally(() => {
-      localeLoading = null;
-    });
-    return localeLoading;
-  }
-
-  function t(key, fallback = '') {
-    const dictValue = lookupLocale(key);
-    if (typeof dictValue === 'string' && dictValue.length) {
-      return dictValue;
-    }
-    try {
-      const runtimeVal = chrome.i18n?.getMessage?.(key);
-      if (runtimeVal) return runtimeVal;
-    } catch {
-      // ignore
-    }
-    return fallback || key;
-  }
 
   const SEND_SILENT = true;
 
-  ensureLocaleLoaded().then(() => {
-    if (state.menu) updateMenu();
-  });
+  const i18n = window.__JDA_I18N__ || {};
+  const ensureLocaleLoaded = i18n.ensureLocaleLoaded || ((force, cb) => { if (cb) cb(); return Promise.resolve(); });
+  const watchLocaleChanges = i18n.watchLocaleChanges || (() => {});
+  const translate = i18n.t || ((key, fallback) => fallback || key);
+  const getCurrentLang = i18n.currentLang || (() => 'en');
+  const t = (key, fallback = '') => translate(key, fallback);
 
-  if (chrome?.storage?.onChanged?.addListener) {
-    chrome.storage.onChanged.addListener((changes, area) => {
-      if (area !== 'local' || !changes.uiLang) return;
-      localeDict = null;
-      localeCode = 'en';
-      ensureLocaleLoaded(true).then(() => {
-        if (state.menu) updateMenu();
-      });
-    });
-  }
+  state.localeCode = getCurrentLang();
+
+  const refreshLocale = () => {
+    state.localeCode = getCurrentLang();
+    if (state.menu) updateMenu();
+  };
+
+  ensureLocaleLoaded(false, refreshLocale);
+  watchLocaleChanges(() => ensureLocaleLoaded(true, refreshLocale));
 
   function safeSendMessage(message, cb) {
     try {
@@ -305,7 +224,7 @@
     const base = 'ui.highlighter.counter';
     let key = `${base}.many`;
     if (count === 0) key = `${base}.zero`;
-    else if (localeCode.startsWith('ru')) {
+    else if ((state.localeCode || 'en').startsWith('ru')) {
       const mod10 = count % 10;
       const mod100 = count % 100;
       if (mod10 === 1 && mod100 !== 11) key = `${base}.one`;

@@ -1,4 +1,4 @@
-import { $id, ensureHostPermission } from './options-util.js';
+import { $id, ensureHostPermission, persistSettings } from './options-util.js';
 import { applyTranslations } from './i18n.js';
 
 const SOURCE_OPTIONS = [
@@ -28,6 +28,9 @@ const TYPE_OPTIONS = [
 const NOTION_PERMISSION_URL = 'https://api.notion.com/v1/pages';
 
 let settingsRef = null;
+function persistIntegrations() {
+  if (settingsRef) persistSettings(settingsRef);
+}
 
 function ensureSettings(settings) {
   if (!settings.integrations) settings.integrations = {};
@@ -188,6 +191,7 @@ function syncField(field) {
   } else {
     notion.fields[idx] = { ...notion.fields[idx], ...field };
   }
+  persistIntegrations();
 }
 
 function updateField(id, patch) {
@@ -195,6 +199,7 @@ function updateField(id, patch) {
   const idx = notion.fields.findIndex(f => f.id === id);
   if (idx === -1) return;
   notion.fields[idx] = { ...notion.fields[idx], ...patch };
+  persistIntegrations();
 }
 
 function removeField(id) {
@@ -202,6 +207,7 @@ function removeField(id) {
   notion.fields = notion.fields.filter(f => f.id !== id);
   const node = document.querySelector(`.notion-field[data-id="${id}"]`);
   if (node?.parentNode) node.parentNode.removeChild(node);
+  persistIntegrations();
 }
 
 function clearFieldList() {
@@ -232,6 +238,7 @@ async function handleToggle(checkbox, { skipPermission = false } = {}) {
 
   notion.enabled = enabled;
   box.classList.toggle('hidden', !enabled);
+  persistIntegrations();
 }
 
 export function renderIntegrations(settings) {
@@ -251,6 +258,7 @@ export function renderIntegrations(settings) {
   if (!tokenInput.dataset.wired) {
     tokenInput.addEventListener('input', (e) => {
       notion.token = e.target.value;
+      persistIntegrations();
     });
     tokenInput.dataset.wired = '1';
   }
@@ -260,6 +268,7 @@ export function renderIntegrations(settings) {
   if (!dbInput.dataset.wired) {
     dbInput.addEventListener('input', (e) => {
       notion.databaseId = e.target.value;
+      persistIntegrations();
     });
     dbInput.dataset.wired = '1';
   }
@@ -272,6 +281,7 @@ export function renderIntegrations(settings) {
         source: 'analysis'
       });
       renderField(field);
+      persistIntegrations();
     });
     addBtn.dataset.wired = '1';
   }

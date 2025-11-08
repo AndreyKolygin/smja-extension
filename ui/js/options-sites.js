@@ -2,6 +2,14 @@
 import { $id, persistSettings, safeShowModal } from './options-util.js';
 import { applyTranslations, t } from './i18n.js';
 
+const modalElementCache = new Map();
+function getModalEl(id) {
+  if (!modalElementCache.has(id)) {
+    modalElementCache.set(id, document.getElementById(id));
+  }
+  return modalElementCache.get(id);
+}
+
 /** Normalize host/pattern input:
  * - trim
  * - if it's a plain hostname or hostname + path, lower-case hostname part
@@ -113,6 +121,8 @@ export function renderSites(settings){
   const tbody = document.querySelector("#sitesTable tbody");
   if (!tbody) return;
   tbody.innerHTML = "";
+  const table = document.getElementById("sitesTable");
+  if (table) table.__ctx = { settings };
 
   // Render sorted by host, then selector for predictability
   const items = Array.isArray(settings.sites) ? [...settings.sites] : [];
@@ -142,26 +152,27 @@ export function renderSites(settings){
 
   try { applyTranslations(tbody); } catch { /* no i18n yet */ }
 
-  if (!tbody.__wired) {
+  if (tbody && !tbody.__wired) {
     tbody.__wired = true;
 
     // Delegated clicks for Edit/Delete
     tbody.addEventListener("click", (e) => {
+      const currentSettings = table?.__ctx?.settings || settings;
       const btn = e.target.closest("button[data-act]");
       if (!btn) return;
       const id = btn.dataset.id;
       const act = btn.dataset.act;
-      const idx = (settings.sites || []).findIndex(x => x && x.id === id);
+      const idx = (currentSettings.sites || []).findIndex(x => x && x.id === id);
       if (idx < 0) return;
-      const rule = settings.sites[idx];
+      const rule = currentSettings.sites[idx];
 
       if (act === "edit") {
-        openSiteModal(settings, rule);
+        openSiteModal(currentSettings, rule);
       } else if (act === "del") {
         const label = rule.host || rule.selector || rule.id;
         if (confirm(`Delete rule “${label}”?`)) {
-          settings.sites.splice(idx, 1);
-          renderSites(settings);
+          currentSettings.sites.splice(idx, 1);
+          renderSites(currentSettings);
           persistSettings(settings);
         }
       }
@@ -169,10 +180,11 @@ export function renderSites(settings){
 
     // Toggle active
     tbody.addEventListener("change", (e) => {
+      const currentSettings = table?.__ctx?.settings || settings;
       const cb = e.target.closest('input[type="checkbox"][data-act="toggle"]');
       if (!cb) return;
       const id = cb.dataset.id;
-      const rule = (settings.sites || []).find(x => x && x.id === id);
+      const rule = (currentSettings.sites || []).find(x => x && x.id === id);
       if (!rule) return;
       rule.active = !!cb.checked;
       persistSettings(settings);
@@ -186,21 +198,21 @@ export function wireSitesModals(settings){
 }
 
 function openSiteModal(settings, rule){
-  const dlg = document.getElementById("siteModal");
-  const host = document.getElementById("siteHost");
-  const selectorRow = document.getElementById("siteSelectorRow");
-  const sel  = document.getElementById("siteSelector");
-  const strategySel = document.getElementById("siteStrategy");
+  const dlg = getModalEl("siteModal");
+  const host = getModalEl("siteHost");
+  const selectorRow = getModalEl("siteSelectorRow");
+  const sel  = getModalEl("siteSelector");
+  const strategySel = getModalEl("siteStrategy");
   const strategyTabs = Array.from(dlg.querySelectorAll('.site-tab'));
   const strategyPanels = Array.from(dlg.querySelectorAll('.site-strategy-panel'));
-  const chainRow = document.getElementById("siteChainRow");
-  const chainGroupsContainer = document.getElementById("siteChainGroups");
-  const addChainGroupBtn = document.getElementById("addChainGroupBtn");
-  const scriptRow = document.getElementById("siteScriptRow");
-  const scriptInput = document.getElementById("siteScript");
-  const com  = document.getElementById("siteComment");
-  const act  = document.getElementById("siteActive");
-  const save = document.getElementById("saveSiteBtn");
+  const chainRow = getModalEl("siteChainRow");
+  const chainGroupsContainer = getModalEl("siteChainGroups");
+  const addChainGroupBtn = getModalEl("addChainGroupBtn");
+  const scriptRow = getModalEl("siteScriptRow");
+  const scriptInput = getModalEl("siteScript");
+  const com  = getModalEl("siteComment");
+  const act  = getModalEl("siteActive");
+  const save = getModalEl("saveSiteBtn");
   if (!dlg || !host || !sel || !save) return;
 
   const keyTargets = [];

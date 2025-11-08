@@ -1,14 +1,16 @@
 // background/llm/gemini.js
+import { fetchWithTimeout } from '../utils.js';
 
-export async function callGemini({ baseUrl, apiKey, model, sys, user }) {
+export async function callGemini({ baseUrl, apiKey, model, sys, user, timeoutMs = 120_000 }) {
   const url = `${baseUrl.replace(/\/$/, '')}/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(apiKey)}`;
   const parts = [];
   if (sys) parts.push({ text: sys + '\n\n' });
   parts.push({ text: user });
-  const res = await fetch(url, {
+  const res = await fetchWithTimeout(url, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ contents: [{ parts }] })
+    body: JSON.stringify({ contents: [{ parts }] }),
+    timeout: Math.max(10_000, Number(timeoutMs) || 120_000)
   });
   if (!res.ok) {
     const code = res.status;

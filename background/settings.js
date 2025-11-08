@@ -147,8 +147,6 @@ export function normalizeSettings(obj) {
   s.sites = s.sites.map((rule, idx) => normalizeSiteRule(rule, idx));
 
   if (!s.general || typeof s.general !== 'object') s.general = {};
-  const m = s.general.uiDefaultMode;
-  s.general.uiDefaultMode = (m === 'overlay') ? 'overlay' : 'popup';
 
   if (!s.integrations || typeof s.integrations !== 'object') s.integrations = {};
   s.integrations.notion = normalizeNotionSettings(s.integrations.notion);
@@ -185,14 +183,6 @@ export async function saveSettings(newSettings) {
   return new Promise((resolve) => {
     chrome.storage.local.set({ settings: normalized }, () => resolve(normalized));
   });
-}
-
-export async function applyUiMode() {
-  try { await chrome.action.setPopup({ popup: '' }); } catch {}
-}
-
-export async function applyUiModeForTab(tabId) {
-  try { await chrome.action.setPopup({ tabId, popup: '' }); } catch {}
 }
 
 export async function resetSettings({ keepApiKeys = true } = {}) {

@@ -31,115 +31,31 @@
     keyHandler: null
   };
 
-  let localeCode = 'en';
-  let localeDict = null;
-  let localeLoading = null;
+  const i18n = window.__JDA_I18N__ || {};
+  const ensureLocaleLoaded = i18n.ensureLocaleLoaded || ((force, cb) => { if (cb) cb(); return Promise.resolve(); });
+  const watchLocaleChanges = i18n.watchLocaleChanges || (() => {});
+  const translate = i18n.t || ((key, fallback) => fallback || key);
+  const applyI18n = i18n.applyTranslations || (() => {});
 
-  function lookupLocale(key) {
-    if (!localeDict || !key) return undefined;
-    if (Object.prototype.hasOwnProperty.call(localeDict, key)) {
-      const value = localeDict[key];
-      return typeof value === 'string' ? value : undefined;
-    }
-    if (key.includes('.')) {
-      const parts = key.split('.');
-      let ref = localeDict;
-      for (const part of parts) {
-        if (ref && typeof ref === 'object' && Object.prototype.hasOwnProperty.call(ref, part)) {
-          ref = ref[part];
-        } else {
-          ref = undefined;
-          break;
-        }
-      }
-      if (typeof ref === 'string') return ref;
-    }
-    return undefined;
-  }
+  let localeReady = false;
+  const applyTranslationsLater = () => applyOverlayTranslations(state.root);
+  const markReady = () => {
+    localeReady = true;
+    applyTranslationsLater();
+  };
+  ensureLocaleLoaded(false, markReady);
+  watchLocaleChanges(() => {
+    localeReady = false;
+    ensureLocaleLoaded(true, markReady);
+  });
 
-  async function determineLocale() {
-    try {
-      const res = await new Promise((resolve) => {
-        try {
-          chrome.storage.local.get({ uiLang: 'en' }, (value) => {
-            resolve(value || { uiLang: 'en' });
-          });
-        } catch {
-          resolve({ uiLang: 'en' });
-        }
-      });
-      const lang = (res?.uiLang || 'en') || 'en';
-      const tryLangs = Array.from(new Set([lang, 'en']));
-      for (const candidate of tryLangs) {
-        try {
-          const url = chrome.runtime.getURL(`ui/locales/${candidate}.json`);
-          const resp = await fetch(url, { cache: 'no-cache' });
-          if (!resp.ok) continue;
-          const json = await resp.json();
-          if (json && typeof json === 'object') {
-            localeCode = String(candidate || 'en').toLowerCase();
-            localeDict = json;
-            return;
-          }
-        } catch {
-          // try next candidate
-        }
-      }
-    } catch {
-      // fall through to defaults
-    }
-    localeCode = 'en';
-    localeDict = null;
-  }
-
-  function ensureLocaleLoaded(force = false) {
-    if (!force && localeDict) return Promise.resolve();
-    if (localeLoading) return localeLoading;
-    localeLoading = determineLocale().finally(() => {
-      localeLoading = null;
-      if (state.root) applyOverlayTranslations(state.root);
-    });
-    return localeLoading;
-  }
-
-  function t(key, fallback = '') {
-    const localized = lookupLocale(key);
-    if (typeof localized === 'string' && localized.length) return localized;
-    try {
-      const runtimeVal = chrome.i18n?.getMessage?.(key);
-      if (runtimeVal) return runtimeVal;
-    } catch {
-      // ignore
-    }
-    return fallback || key;
-  }
+  const t = (key, fallback = '') => translate(key, fallback);
 
   function applyOverlayTranslations(root = state.root) {
     if (!root) return;
-    root.querySelectorAll('[data-i18n-key]').forEach((el) => {
-      const key = el.getAttribute('data-i18n-key');
-      if (!key) return;
-      const fallback = el.textContent || '';
-      el.textContent = t(key, fallback);
-    });
-    root.querySelectorAll('[data-i18n-title-key]').forEach((el) => {
-      const key = el.getAttribute('data-i18n-title-key');
-      if (!key) return;
-      const fallback = el.getAttribute('title') || '';
-      el.setAttribute('title', t(key, fallback));
-    });
+    applyI18n(root);
   }
 
-  ensureLocaleLoaded();
-
-  if (chrome?.storage?.onChanged?.addListener) {
-    chrome.storage.onChanged.addListener((changes, area) => {
-      if (area !== 'local' || !changes.uiLang) return;
-      localeDict = null;
-      localeCode = 'en';
-      ensureLocaleLoaded(true);
-    });
-  }
 
   function ensureStyle() {
     if (document.getElementById(STYLE_ID)) return;
@@ -417,10 +333,10 @@
       focusFrame();
       return;
     }
-    if (!localeDict) {
-      ensureLocaleLoaded().then(() => {
-        if (!state.root) openOverlay();
-        else applyOverlayTranslations(state.root);
+    if (!localeReady) {
+      ensureLocaleLoaded(false, () => {
+        localeReady = true;
+        openOverlay();
       });
       return;
     }

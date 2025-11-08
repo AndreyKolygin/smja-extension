@@ -353,7 +353,7 @@
       </label>
     </fieldset>
 
-    <fieldset class="mt-12">
+    <fieldset class="mt-12 fieldset-column">
       <legend data-i18n="options.import.groups">Groups to import</legend>
       <label class="row">
         <input type="checkbox" name="grp" value="providers" checked>
@@ -407,13 +407,13 @@
     <form method="dialog">
       <h3 data-i18n="options.export.title">Export settings</h3>
 
-      <fieldset class="mt-12">
+      <fieldset class="mt-12 fieldset-column">
         <legend data-i18n="options.export.groups">Groups to export</legend>
         <label class="row">
           <input type="checkbox" name="exgrp" value="providers" checked>
           <span data-i18n="options.export.providers">Provider Settings</span>
         </label>
-        <label class="row ml-8">
+        <label class="row">
           <input type="checkbox" name="exprovkeys" id="exprovkeys">
           <span data-i18n="options.export.providersKeys">Include API keys</span>
         </label>
@@ -441,7 +441,7 @@
           <input type="checkbox" name="exgrp" value="integrations" checked>
           <span data-i18n="options.export.integrations">Integrations (Notion)</span>
         </label>
-        <label class="row ml-8">
+        <label class="row">
           <input type="checkbox" name="exintsecret" id="exintsecret">
           <span data-i18n="options.export.integrationsSecret">Include Notion integration token</span>
         </label>

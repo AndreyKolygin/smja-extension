@@ -30,3 +30,17 @@ export async function guardedCall(fn) {
 export function nowMs() {
   return Date.now();
 }
+
+export async function fetchWithTimeout(resource, options = {}) {
+  const { timeout = 120000, signal, ...rest } = options;
+  if (signal) {
+    return fetch(resource, { signal, ...rest });
+  }
+  const controller = new AbortController();
+  const id = setTimeout(() => controller.abort(), timeout);
+  try {
+    return await fetch(resource, { signal: controller.signal, ...rest });
+  } finally {
+    clearTimeout(id);
+  }
+}

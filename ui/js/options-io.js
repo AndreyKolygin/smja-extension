@@ -1,5 +1,5 @@
 // ui/js/options-io.js
-import { normalizeSettings, persistSettings } from './options-util.js';
+import { getNormalizedSettings, persistSettings } from './options-util.js';
 import { renderProviders } from './options-providers.js';
 import { renderModels } from './options-models.js';
 import { renderSites } from './options-sites.js';
@@ -36,7 +36,7 @@ function preserveApiKeys(mergedProviders = [], prevProviders = []) {
 }
 
 async function applyImport(settings, imported, { mode = 'merge', groups = [] } = {}) {
-  const src = normalizeSettings(imported);
+  const src = getNormalizedSettings(imported);
   const tgt = settings;
 
   const want = (g) => groups.length === 0 || groups.includes(g);
@@ -117,7 +117,7 @@ async function applyImport(settings, imported, { mode = 'merge', groups = [] } =
     }
   }
 
-  await persistSettings(tgt);
+  await persistSettings(tgt, { immediate: true });
 
   // перерисуем таблицы/поля
   renderProviders(tgt);
