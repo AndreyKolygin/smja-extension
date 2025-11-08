@@ -5,6 +5,8 @@ import { applyUiMode, getSettings, saveSettings, resetSettings } from './setting
 import { callLLMRouter } from './llm/router.js';
 import { saveToNotion } from './integrations/notion.js';
 
+const FALLBACK_POPUP = 'ui/popup.html';
+
 function sanitizeTab(tab) {
   if (!tab) return null;
   return {
@@ -475,12 +477,57 @@ chrome.runtime.onStartup?.addListener(() => { applyUiMode(); });
 
 applyUiMode();
 
+function wantsOverlay(url) {
+  return /^https?:/i.test(url || '');
+}
+
+async function setPopupForTab(tabId, url) {
+  if (!tabId) return;
+  const popupPath = wantsOverlay(url) ? '' : FALLBACK_POPUP;
+  try {
+    await chrome.action.setPopup({ tabId, popup: popupPath });
+  } catch (err) {
+    console.debug('[JDA] setPopupForTab failed', err?.message || err);
+  }
+}
+
+async function syncPopupForActiveTab() {
+  try {
+    const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
+    for (const tab of tabs || []) {
+      await setPopupForTab(tab.id, tab.url || tab.pendingUrl || '');
+    }
+  } catch (err) {
+    console.debug('[JDA] syncPopupForActiveTab failed', err?.message || err);
+  }
+}
+
+chrome.tabs.onActivated.addListener(async ({ tabId }) => {
+  try {
+    const tab = await chrome.tabs.get(tabId);
+    await setPopupForTab(tabId, tab?.url || tab?.pendingUrl || '');
+  } catch (err) {
+    console.debug('[JDA] onActivated popup sync failed', err?.message || err);
+  }
+});
+
+chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
+  if (!changeInfo || (!Object.prototype.hasOwnProperty.call(changeInfo, 'url') && !Object.prototype.hasOwnProperty.call(changeInfo, 'status'))) {
+    return;
+  }
+  if (changeInfo.url || changeInfo.status === 'complete') {
+    setPopupForTab(tabId, (changeInfo.url ?? tab?.url ?? tab?.pendingUrl) || '').catch(() => {});
+  }
+});
+
+syncPopupForActiveTab();
+
 chrome.action.onClicked.addListener(async (tab) => {
   try {
     if (!tab?.id) return;
     const url = tab.url || '';
-    if (!/^https?:/i.test(url)) {
-      await chrome.tabs.create({ url: chrome.runtime.getURL('ui/popup.html') });
+    if (!wantsOverlay(url)) {
+      await chrome.tabs.create({ url: chrome.runtime.getURL(FALLBACK_POPUP) });
       return;
     }
     await runOverlayAction(tab.id, 'toggle');

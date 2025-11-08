@@ -211,7 +211,7 @@ textarea {
 }
 .row {
   margin: 5px 0;
-  display: flex;
+  /* display: flex; */
 }
 
 .card {
