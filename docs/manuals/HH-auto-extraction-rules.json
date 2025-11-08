@@ -1,0 +1,16 @@
+{
+  "sites": [
+    {
+      "id": "site_k4nmhk",
+      "host": "https://hh.ru/vacancy?",
+      "strategy": "css",
+      "selector": "span[class=\"vacancy-company-name\"], div.magritte-v-spacing-container___mkW1c_2-1-1, \ndiv[data-qa=\"vacancy-description\"]",
+      "comment": "HeadHunter (hh.ru) vacancy description",
+      "active": true,
+      "chain": [],
+      "chainGroups": [],
+      "script": "",
+      "chainSequential": false
+    }
+  ]
+}

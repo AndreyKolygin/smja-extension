@@ -1,0 +1,180 @@
+{
+  "sites": [
+    {
+      "id": "site_indeed",
+      "host": "/https?:\\/\\/[^\\/]*indeed\\.[^\\/]+//i",
+      "strategy": "css",
+      "selector": ".jobsearch-JobInfoHeader-title-container, [data-testid=\"jobsearch-CompanyInfoContainer\"], #jobDescriptionText, .jobsearch-jobDescriptionText",
+      "comment": "Indeed job description",
+      "active": true,
+      "chain": [],
+      "chainGroups": [],
+      "script": "",
+      "chainSequential": false
+    },
+    {
+      "id": "site_ymdtqe",
+      "host": "https://www.linkedin.com/jobs/collections/*",
+      "strategy": "css",
+      "selector": ".job-details-jobs-unified-top-card__company-name, \nH1.t-24.t-bold.inline, span.tvm__text.tvm__text--low-emphasis,\n.job-details-about-the-job-module__description",
+      "comment": "Linkedin job",
+      "active": true,
+      "chain": [],
+      "chainGroups": [],
+      "script": "",
+      "chainSequential": false
+    },
+    {
+      "id": "site_g0jcj4",
+      "host": "www.stepstone.de/jobs--*",
+      "strategy": "css",
+      "selector": "article.job-ad-display-147ed8i, span.job-ad-display-nfizss",
+      "comment": "Stepstone jobs",
+      "active": true,
+      "chain": [],
+      "chainGroups": [],
+      "script": "",
+      "chainSequential": false
+    },
+    {
+      "id": "site_k4nmhk",
+      "host": "https://hh.ru/vacancy?",
+      "strategy": "css",
+      "selector": "div.magritte-card___bhGKz_8-0-6.magritte-card-style-primary___eZ6aX_8-0-6.magritte-card-shadow-level-0___RNbQK_8-0-6.magritte-card-stretched___0Uc0J_8-0-6, div.vacancy-description",
+      "comment": "HeadHunter (hh.ru) vacancy description",
+      "active": true,
+      "chain": [],
+      "chainGroups": [],
+      "script": "",
+      "chainSequential": false
+    },
+    {
+      "id": "site_7n3d1l",
+      "host": "https://rs.jooble.org/desc/?",
+      "strategy": "css",
+      "selector": "div.etPzwI._3wvLN9",
+      "comment": "jooble RS",
+      "active": true,
+      "chain": [],
+      "chainGroups": [],
+      "script": "",
+      "chainSequential": false
+    },
+    {
+      "id": "site_jj2m87",
+      "host": "https://www.glassdoor.de/Job/index.htm",
+      "strategy": "css",
+      "selector": "header.JobDetails_jobDetailsHeaderWrapper__JlXWG, div.JobDetails_jobDescription__uW_fK.JobDetails_showHidden__C_FOA, div.SalaryEstimate_salaryEstimateContainer__GkgnI",
+      "comment": "glassdoor.com",
+      "active": true,
+      "chain": [],
+      "chainGroups": [],
+      "script": "",
+      "chainSequential": false
+    },
+    {
+      "id": "site_8trhnj",
+      "host": "https://poslovi.infostud.com/posao/*",
+      "strategy": "css",
+      "selector": "header.ogl-header.uk-position-relative,  [id=\"__fastedit_html_oglas\"]",
+      "comment": "",
+      "active": true,
+      "chain": [],
+      "chainGroups": [],
+      "script": "",
+      "chainSequential": false
+    },
+    {
+      "id": "site_o6lwdz",
+      "host": "*.glassdoor.com/job-listing/*",
+      "strategy": "css",
+      "selector": "h4.heading_Heading__aomVx.heading_Subhead__jiUbT, h1.heading_Heading__aomVx.heading_Level1__w42c9, div.JobDetails_jobDescription__uW_fK.JobDetails_showHidden__C_FOA",
+      "comment": "",
+      "active": true,
+      "chain": [],
+      "chainGroups": [],
+      "script": "",
+      "chainSequential": false
+    },
+    {
+      "id": "site_9ziby2",
+      "host": "https://www.linkedin.com/jobs/view*",
+      "strategy": "chain",
+      "selector": "",
+      "comment": "view",
+      "active": true,
+      "chain": [
+        {
+          "selector": "div[data-testid=\"lazy-column\"]",
+          "text": "",
+          "nth": 1
+        },
+        {
+          "selector": "p",
+          "text": "",
+          "nth": 2
+        },
+        {
+          "selector": "p",
+          "text": "",
+          "nth": 3
+        },
+        {
+          "selector": "span[data-testid=\"expandable-text-box\"]",
+          "text": "",
+          "nth": 0
+        }
+      ],
+      "chainGroups": [
+        {
+          "id": "site_yk9ydwmhq9yw6y_cg0",
+          "label": "Заголовки",
+          "active": true,
+          "steps": [
+            {
+              "selector": "div[data-testid=\"lazy-column\"]",
+              "text": "",
+              "nth": 1
+            },
+            {
+              "selector": "p",
+              "text": "",
+              "nth": 2
+            },
+            {
+              "selector": "p",
+              "text": "",
+              "nth": 3
+            }
+          ]
+        },
+        {
+          "id": "cg_0_gbx4",
+          "label": "Описание",
+          "active": true,
+          "steps": [
+            {
+              "selector": "span[data-testid=\"expandable-text-box\"]",
+              "text": "",
+              "nth": 0
+            }
+          ]
+        }
+      ],
+      "script": "",
+      "chainSequential": true
+    },
+    {
+      "id": "site_af4zrv",
+      "host": "https://www.linkedin.com/jobs/search/*",
+      "strategy": "css",
+      "selector": "div.job-details-jobs-unified-top-card__company-name, \n\ndiv.t-24.job-details-jobs-unified-top-card__job-title,\n\ndiv.job-details-about-the-job-module__description,",
+      "comment": "search",
+      "active": true,
+      "chain": [],
+      "chainGroups": [],
+      "script": "",
+      "chainSequential": false
+    }
+  ]
+}

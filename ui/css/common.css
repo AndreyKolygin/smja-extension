@@ -76,6 +76,8 @@
   --red-border: rgba(216, 67, 91, 0.28); /* из --red-2 */
   --red-surface: rgba(224, 113, 113, 0.12); /* из --red-soft */
   --red-focus: rgba(184, 53, 53, 0.24); /* из --red */
+
+  --blue-text: #3a67a3;
 }
 
 html,

@@ -8,7 +8,7 @@ JDA (Job Description Analyzer) is a Chromium-compatible browser extension that h
 
 - **Floating workspace** — clicking the toolbar icon opens a draggable, resizable overlay with job description input, analysis result, and quick actions.
 - **Smart block highlighter** — select arbitrary fragments on the page, use undo/redo, and track analysis time.
-- **Auto-extraction rules** — per-site strategies with CSS selectors, DOM chains, or custom scripts for tricky pages.
+- **Auto-extraction rules** — per-site strategies with CSS selectors, DOM chain groups, or custom scripts for tricky pages.
 - **Flexible prompts** — global templates plus per-model overrides with `{{GLOBAL_SYSTEM_PROMPT}}` and `{{RESULT_OUTPUT_TEMPLATE}}` tokens.
 - **Save to Notion** — configurable field mapping, optional secrets export, status defaults, and Markdown-friendly output.
 - **Import / export** — granular groups (providers, models, rules, prompts, CV, integrations) with merge or replace modes.
@@ -95,7 +95,7 @@ Each rule contains:
 - Strategy: **CSS**, **DOM chain**, or **Custom script**
 - Optional comment and active toggle
 
-DOM chains allow multi-step narrowing (selector + text filter + index). Script mode is fenced by CSP; use it for same-origin iframes only.
+DOM chains can be split into multiple named groups, and only active groups run. Each group is a sequence of steps (selector + text filter + index) whose extracted fragments are appended to the popup input in order. Script mode is fenced by CSP; use it for same-origin iframes only.
 Custom scripts execute inside the visited page with its permissions, so only use code you fully trust.
 
 ---

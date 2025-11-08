@@ -19,7 +19,7 @@ export function renderModels(settings){
       <td contenteditable="true" data-role="display">${m.displayName ?? ""}</td>
       <td>${provider?.name || "?"}</td>
       <td contenteditable="true" data-role="modelId">${m.modelId ?? ""}</td>
-      <td>
+      <td class="nowrap">
         <button class="btn edit icon-left i-pen"
                 data-i18n="options.btn.edit"
                 data-i18n-attr-title="options.btn.editTitle"

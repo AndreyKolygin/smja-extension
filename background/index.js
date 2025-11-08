@@ -52,7 +52,8 @@ function normalizeRuleForExec(ruleOrSelector) {
     strategy: ['css', 'chain', 'script'].includes(strategy) ? strategy : 'css',
     selector,
     chain,
-    script
+    script,
+    chainSequential: raw.chainSequential === undefined ? false : !!raw.chainSequential
   };
 }
 
@@ -125,38 +126,62 @@ async function evaluateRuleInPage(rule) {
     if (strategy === 'chain') {
       const chain = Array.isArray(rule?.chain) ? rule.chain : [];
       if (!chain.length) return { ok: false, error: 'empty_chain' };
-      let current = [document];
+      const sequential = rule?.chainSequential ? true : false;
+      if (!sequential) {
+        let current = [document];
+        for (const step of chain) {
+          const sel = String(step?.selector || '').trim();
+          if (!sel) continue;
+          const next = [];
+          const seen = new Set();
+          for (const scope of current) {
+            const nodes = collectNodes(scope, sel);
+            let filtered = nodes;
+            const textFilter = String(step?.text || '').trim().toLowerCase();
+            if (textFilter) {
+              filtered = filtered.filter(node => {
+                const raw = (node.innerText ?? node.textContent ?? '').toLowerCase();
+                return raw.includes(textFilter);
+              });
+            }
+            const nth = Number.isFinite(step?.nth) ? step.nth : null;
+            if (nth != null) {
+              filtered = filtered[nth] ? [filtered[nth]] : [];
+            }
+            for (const node of filtered) {
+              if (node && !seen.has(node)) {
+                seen.add(node);
+                next.push(node);
+              }
+            }
+          }
+          current = next;
+          if (!current.length) break;
+        }
+        const { text, count } = nodesToText(current);
+        return { ok: !!text, text, count };
+      }
+      const captured = [];
       for (const step of chain) {
         const sel = String(step?.selector || '').trim();
         if (!sel) continue;
-        const next = [];
-        const seen = new Set();
-        for (const scope of current) {
-          const nodes = collectNodes(scope, sel);
-          let filtered = nodes;
-          const textFilter = String(step?.text || '').trim().toLowerCase();
-          if (textFilter) {
-            filtered = filtered.filter(node => {
-              const raw = (node.innerText ?? node.textContent ?? '').toLowerCase();
-              return raw.includes(textFilter);
-            });
-          }
-          const nth = Number.isFinite(step?.nth) ? step.nth : null;
-          if (nth != null) {
-            filtered = filtered[nth] ? [filtered[nth]] : [];
-          }
-          for (const node of filtered) {
-            if (node && !seen.has(node)) {
-              seen.add(node);
-              next.push(node);
-            }
-          }
+        let nodes = collectNodes(document, sel);
+        const textFilter = String(step?.text || '').trim().toLowerCase();
+        if (textFilter) {
+          nodes = nodes.filter(node => {
+            const raw = (node.innerText ?? node.textContent ?? '').toLowerCase();
+            return raw.includes(textFilter);
+          });
         }
-        current = next;
-        if (!current.length) break;
+        const nth = Number.isFinite(step?.nth) ? step.nth : null;
+        if (nth != null) {
+          nodes = nodes[nth] ? [nodes[nth]] : [];
+        }
+        const { text } = nodesToText(nodes);
+        if (text) captured.push(text);
       }
-      const { text, count } = nodesToText(current);
-      return { ok: !!text, text, count };
+      const combined = captured.join('\n\n').trim();
+      return { ok: !!combined, text: combined, count: captured.length };
     }
 
     if (strategy === 'script') {

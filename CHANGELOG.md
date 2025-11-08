@@ -4,6 +4,18 @@ All notable changes to this project will be documented in this file.
 
 The format is inspired by Keep a Changelog and this project adheres to SemVer via the extension `manifest.json` version field.
 
+## [2.2.0] - 2025-10-27
+
+### Added
+- DOM chain rules now consist of multiple named groups with add/remove actions, active toggles, and delete confirmations; each active group appends its captured text to the popup input in execution order.
+
+### Changed
+- Chain-step editor layout was rebuilt (selector 50 %, index 15 %, text 35 %) with responsive wrapping, unified number/text field styling, and Option hints now rely on localized strings instead of the `muted` helper class.
+- Markdown export writes `# Original job description` so destination templates can treat the preserved vacancy text as a top-level section.
+
+### Fixed
+- Disabled chain groups are skipped during normalization/execution, preventing inactive selectors from leaking into auto-grab results.
+
 ## [2.1.0] - 2025-10-27
 
 ### Added

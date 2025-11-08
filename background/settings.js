@@ -61,6 +61,20 @@ function normalizeChainStep(step, idx = 0) {
     : { selector: '', text: '', nth: null };
 }
 
+function normalizeChainGroup(group, idx = 0, fallbackId = '') {
+  const raw = group && typeof group === 'object' ? group : {};
+  const steps = Array.isArray(raw.steps)
+    ? raw.steps.map((step, i) => normalizeChainStep(step, i)).filter(st => st.selector)
+    : [];
+  if (!steps.length) return null;
+  return {
+    id: typeof raw.id === 'string' && raw.id ? raw.id : `${fallbackId || 'cg'}_${idx}`,
+    label: typeof raw.label === 'string' ? raw.label : '',
+    active: raw.active === undefined ? true : !!raw.active,
+    steps
+  };
+}
+
 function normalizeSiteRule(rule, idx = 0) {
   const baseId = `site_${Math.random().toString(36).slice(2, 8)}${Date.now().toString(36)}`;
   const raw = rule && typeof rule === 'object' ? rule : {};
@@ -72,6 +86,21 @@ function normalizeSiteRule(rule, idx = 0) {
   const active = raw.active === undefined ? true : !!raw.active;
   const chain = Array.isArray(raw.chain) ? raw.chain.map((step, i) => normalizeChainStep(step, i)).filter(st => st.selector) : [];
 
+  const hasChainFlag = Object.prototype.hasOwnProperty.call(raw, 'chainSequential');
+  const chainSequential = hasChainFlag ? !!raw.chainSequential : false;
+  let chainGroups = [];
+  if (Array.isArray(raw.chainGroups) && raw.chainGroups.length) {
+    chainGroups = raw.chainGroups
+      .map((group, groupIdx) => normalizeChainGroup(group, groupIdx, baseId))
+      .filter(Boolean);
+  } else if (chain.length) {
+    chainGroups = [normalizeChainGroup({ id: `${baseId}_cg0`, steps: chain }, 0, baseId)].filter(Boolean);
+  }
+  const activeGroups = chainGroups.filter(group => group.active !== false);
+  const flattenedChain = activeGroups.length
+    ? activeGroups.reduce((acc, group) => acc.concat(group.steps), [])
+    : (chainGroups.length ? [] : chain);
+
   return {
     id: typeof raw.id === 'string' && raw.id ? raw.id : baseId,
     host,
@@ -79,8 +108,10 @@ function normalizeSiteRule(rule, idx = 0) {
     selector: strategy === 'css' ? selector : selector || '',
     comment,
     active,
-    chain,
-    script: strategy === 'script' ? script : ''
+    chain: flattenedChain,
+    chainGroups,
+    script: strategy === 'script' ? script : '',
+    chainSequential
   };
 }
 

@@ -219,6 +219,7 @@ body.single-column {
 
 .modal .form-row input[type="text"],
 .modal .form-row input[type="password"],
+.modal .form-row input[type="number"],
 .modal .form-row textarea {
   width: 100%;
   max-width: 400px; /* ограничение ширины */
@@ -269,10 +270,6 @@ body.single-column {
   align-items: center;
 }
 
-.muted {
-  padding: 0 0 15px 0;
-}
-
 dialog {
   border: none;
   border-radius: 12px;
@@ -293,6 +290,7 @@ dialog menu button {
 }
 input[type="text"],
 input[type="password"],
+input[type="number"],
 textarea,
 select {
   width: 100%;
@@ -317,6 +315,7 @@ select {
 
 .form-row input[type="text"],
 .form-row input[type="password"],
+.form-row input[type="number"],
 .form-row textarea,
 .form-row select {
   width: 100%;
@@ -340,6 +339,7 @@ select {
   justify-content: space-between;
   align-items: center;
   gap: 8px;
+  margin: 10px 5px;
 }
 
 .chain-step-list {
@@ -359,7 +359,7 @@ select {
 .chain-step-header {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-start;
   gap: 8px;
   margin-bottom: 6px;
   font-weight: 600;
@@ -378,8 +378,118 @@ select {
   flex-direction: column;
 }
 
+.chain-step-fields .field.selector-field {
+  flex: 1 1 40%;
+  min-width: 280px;
+}
+
+.chain-step-fields .field.index-field {
+  flex: 0 1 15%;
+  min-width: 120px;
+  max-width: 180px;
+}
+
+.chain-step-fields .field.text-field {
+  flex: 1 1 15%;
+  min-width: 200px;
+}
+
+@media (max-width: 720px) {
+  .chain-step-fields .field.selector-field {
+    flex-basis: 100%;
+    min-width: 100%;
+  }
+  .chain-step-fields .field.index-field,
+  .chain-step-fields .field.text-field {
+    flex: 1 1 calc(50% - 4px);
+    min-width: 160px;
+    max-width: 100%;
+  }
+}
+
 .chain-step-fields .field input {
   width: 100%;
+}
+
+.chain-group {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 12px;
+  background: #efefef;
+  margin-bottom: 12px;
+}
+.chain-group-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+.chain-group-header .left {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 8px 12px;
+  font-weight: 600;
+}
+.chain-group-header .left span[data-i18n="options.modal.site.chainGroupLabel"] {
+  white-space: nowrap;
+}
+.chain-group-header .left input[type="text"] {
+  flex: 1 1 220px;
+  min-width: 180px;
+}
+.chain-group-header .left .checkbox {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.chain-step-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 8px;
+}
+.chain-group .add-step-row {
+  margin-top: 8px;
+  display: flex;
+  justify-content: flex-start;
+}
+
+.site-strategy-tabs {
+  display: inline-flex;
+  gap: 8px;
+  margin-top: 8px;
+  flex-wrap: wrap;
+}
+.site-tab {
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 6px 14px;
+  background: var(--panel);
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+}
+.site-tab.active {
+  background: var(--primary);
+  color: var(--blue-text);
+  border-color: var(--primary);
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.25);
+}
+.site-strategy-panel {
+  margin-top: 12px;
+}
+.site-strategy-panel[hidden] {
+  display: none !important;
+}
+
+.wide-modal::backdrop {
+  background: rgba(15, 23, 42, 0.6);
+}
+.wide-modal {
+  max-width: 800px;
+  width: min(800px, calc(100vw - 32px));
 }
 
 #apiKeyHelp {
@@ -523,4 +633,9 @@ select {
   height: 100% !important;
   width: 100% !important;
   object-fit: contain;
+}
+.chain-group-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }

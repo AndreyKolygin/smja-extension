@@ -42,15 +42,21 @@ function ruleSignature(rule) {
     return `css::${String(rule?.selector || '').trim()}`;
   }
   if (strategy === 'chain') {
-    const chain = Array.isArray(rule?.chain) ? rule.chain : [];
-    const parts = chain.map(step => {
-      const sel = String(step?.selector || '').trim();
-      if (!sel) return '';
-      const nth = Number.isFinite(step?.nth) ? step.nth : null;
-      const nthPart = nth == null ? '' : `#${nth}`;
-      const text = String(step?.text || '').trim();
-      return `${sel}${nthPart}${text ? `|${text}` : ''}`;
-    }).filter(Boolean);
+    const groups = Array.isArray(rule?.chainGroups) && rule.chainGroups.length
+      ? rule.chainGroups
+      : [{ steps: Array.isArray(rule?.chain) ? rule.chain : [] }];
+    const parts = [];
+    groups.forEach((group, gIdx) => {
+      const steps = Array.isArray(group?.steps) ? group.steps : [];
+      steps.forEach((step, sIdx) => {
+        const sel = String(step?.selector || '').trim();
+        if (!sel) return;
+        const nth = Number.isFinite(step?.nth) ? step.nth : null;
+        const nthPart = nth == null ? '' : `#${nth}`;
+        const text = String(step?.text || '').trim();
+        parts.push(`G${gIdx + 1}.${sIdx + 1}:${sel}${nthPart}${text ? `|${text}` : ''}`);
+      });
+    });
     return `chain::${parts.join('>')}`;
   }
   if (strategy === 'script') {
@@ -69,18 +75,25 @@ function summarizeRule(rule) {
   }
 
   if (strategy === 'chain') {
-    const chain = Array.isArray(rule?.chain) ? rule.chain : [];
-    if (!chain.length) {
+    const groups = Array.isArray(rule?.chainGroups) && rule.chainGroups.length
+      ? rule.chainGroups
+      : [{ steps: Array.isArray(rule?.chain) ? rule.chain : [] }];
+    const stepsTotal = groups.reduce((sum, group) => sum + ((group?.steps || []).length), 0);
+    if (!stepsTotal) {
       return `${label} • ${t('options.modal.site.chainSummaryEmpty', 'No steps')}`;
     }
-    const parts = chain.map((step, idx) => {
-      const sel = String(step?.selector || '').trim() || '*';
-      const nth = Number.isFinite(step?.nth) ? step.nth : '';
-      const text = String(step?.text || '').trim();
-      let fragment = `${idx + 1}:${sel}`;
-      if (nth !== '') fragment += `[#${nth}]`;
-      if (text) fragment += ` {${text}}`;
-      return fragment;
+    const parts = [];
+    groups.forEach((group, gIdx) => {
+      const steps = Array.isArray(group?.steps) ? group.steps : [];
+      steps.forEach((step, sIdx) => {
+        const sel = String(step?.selector || '').trim() || '*';
+        const nth = Number.isFinite(step?.nth) ? step.nth : '';
+        const text = String(step?.text || '').trim();
+        let fragment = `G${gIdx + 1}.${sIdx + 1}:${sel}`;
+        if (nth !== '') fragment += `[#${nth}]`;
+        if (text) fragment += ` {${text}}`;
+        parts.push(fragment);
+      });
     });
     const detail = parts.join(' → ');
     return `${label} • ${detail}`;
@@ -178,9 +191,11 @@ function openSiteModal(settings, rule){
   const selectorRow = document.getElementById("siteSelectorRow");
   const sel  = document.getElementById("siteSelector");
   const strategySel = document.getElementById("siteStrategy");
+  const strategyTabs = Array.from(dlg.querySelectorAll('.site-tab'));
+  const strategyPanels = Array.from(dlg.querySelectorAll('.site-strategy-panel'));
   const chainRow = document.getElementById("siteChainRow");
-  const chainList = document.getElementById("siteChainSteps");
-  const addChainBtn = document.getElementById("addChainStepBtn");
+  const chainGroupsContainer = document.getElementById("siteChainGroups");
+  const addChainGroupBtn = document.getElementById("addChainGroupBtn");
   const scriptRow = document.getElementById("siteScriptRow");
   const scriptInput = document.getElementById("siteScript");
   const com  = document.getElementById("siteComment");
@@ -204,126 +219,246 @@ function openSiteModal(settings, rule){
 
   const cleanup = () => {
     detachKeyHandlers();
-    if (addChainBtn) addChainBtn.removeEventListener('click', onAddChainStep);
     if (strategySel) strategySel.removeEventListener('change', onStrategyChange);
-    if (chainList) chainList.removeEventListener('keydown', onKey);
+    strategyTabs.forEach(btn => btn.removeEventListener('click', onStrategyTabClick));
+    if (chainGroupsContainer) chainGroupsContainer.removeEventListener('keydown', onKey);
   };
 
-  let chainState = Array.isArray(rule?.chain)
-    ? rule.chain.map(step => ({
-        selector: String(step?.selector || ''),
-        nth: (step?.nth === 0 || Number.isFinite(step?.nth)) ? String(step.nth) : '',
-        text: String(step?.text || '')
-      }))
-    : [];
+  const createChainStep = (step = {}) => ({
+    selector: typeof step?.selector === 'string' ? step.selector : '',
+    nth: step?.nth === 0 || step?.nth ? String(step.nth) : (typeof step?.nth === 'string' ? step.nth : ''),
+    text: typeof step?.text === 'string' ? step.text : ''
+  });
 
-  function renderChain() {
-    if (!chainList) return;
-    chainList.innerHTML = '';
-    if (!chainState.length) {
-      const empty = document.createElement('div');
-      empty.className = 'muted';
-      empty.dataset.i18n = 'options.modal.site.chainEmpty';
-      empty.textContent = 'No chain steps yet.';
-      chainList.appendChild(empty);
-      try { applyTranslations(chainList); } catch {}
-      return;
-    }
-    chainState.forEach((step, idx) => {
-      const wrapper = document.createElement('div');
-      wrapper.className = 'chain-step';
+  const createChainGroup = (group = {}, idx = 0) => {
+    const steps = Array.isArray(group?.steps) && group.steps.length
+      ? group.steps.map(createChainStep)
+      : [createChainStep()];
+    return {
+      id: group?.id || `cg_${idx}_${Math.random().toString(36).slice(2, 6)}`,
+      label: typeof group?.label === 'string' ? group.label : '',
+      active: group?.active === undefined ? true : !!group.active,
+      steps
+    };
+  };
 
-      const header = document.createElement('div');
-      header.className = 'chain-step-header';
-      const title = document.createElement('span');
-      title.textContent = `${t('options.modal.site.chainStepLabel', 'Step')} ${idx + 1}`;
-      const removeBtn = document.createElement('button');
-      removeBtn.type = 'button';
-      removeBtn.className = 'btn danger icon-left i-trash';
-      removeBtn.dataset.idx = String(idx);
-      removeBtn.setAttribute('data-i18n', 'options.modal.site.chainStepRemove');
-      removeBtn.textContent = t('options.modal.site.chainStepRemove', 'Remove step');
-      removeBtn.addEventListener('click', () => {
-        chainState.splice(idx, 1);
-        renderChain();
-      });
-      header.append(title, removeBtn);
-
-      const fields = document.createElement('div');
-      fields.className = 'chain-step-fields';
-
-      const selectorField = document.createElement('div');
-      selectorField.className = 'field';
-      const selectorLabel = document.createElement('label');
-      selectorLabel.setAttribute('data-i18n', 'options.modal.site.chainStepSelector');
-      selectorLabel.textContent = 'Selector';
-      const selectorInput = document.createElement('input');
-      selectorInput.type = 'text';
-      selectorInput.value = step.selector || '';
-      selectorInput.className = 'chain-selector';
-      selectorInput.addEventListener('input', () => {
-        chainState[idx].selector = selectorInput.value;
-      });
-      selectorField.append(selectorLabel, selectorInput);
-
-      const nthField = document.createElement('div');
-      nthField.className = 'field';
-      const nthLabel = document.createElement('label');
-      nthLabel.setAttribute('data-i18n', 'options.modal.site.chainStepIndex');
-      nthLabel.textContent = 'Index (optional)';
-      const nthInput = document.createElement('input');
-      nthInput.type = 'number';
-      nthInput.min = '0';
-      nthInput.step = '1';
-      nthInput.value = step.nth || '';
-      nthInput.className = 'chain-index';
-      nthInput.addEventListener('input', () => {
-        chainState[idx].nth = nthInput.value;
-      });
-      nthField.append(nthLabel, nthInput);
-
-      const textField = document.createElement('div');
-      textField.className = 'field';
-      const textLabel = document.createElement('label');
-      textLabel.setAttribute('data-i18n', 'options.modal.site.chainStepText');
-      textLabel.textContent = 'Contains text (optional)';
-      const textInput = document.createElement('input');
-      textInput.type = 'text';
-      textInput.value = step.text || '';
-      textInput.className = 'chain-text';
-      textInput.addEventListener('input', () => {
-        chainState[idx].text = textInput.value;
-      });
-      textField.append(textLabel, textInput);
-
-      fields.append(selectorField, nthField, textField);
-      wrapper.append(header, fields);
-      chainList.appendChild(wrapper);
-    });
-    try { applyTranslations(chainList); } catch {}
+  let chainGroupsState = [];
+  if (Array.isArray(rule?.chainGroups) && rule.chainGroups.length) {
+    chainGroupsState = rule.chainGroups.map((group, idx) => createChainGroup(group, idx));
+  } else if (Array.isArray(rule?.chain) && rule.chain.length) {
+    chainGroupsState = [createChainGroup({ steps: rule.chain })];
+  } else {
+    chainGroupsState = [createChainGroup()];
   }
 
-  function sanitizeChainState({ requireNonEmpty = false } = {}) {
-    const out = [];
-    for (const step of chainState) {
-      const selector = String(step?.selector || '').trim();
-      if (!selector) continue;
-      const text = String(step?.text || '').trim();
-      const nthRaw = String(step?.nth ?? '').trim();
-      let nth = null;
-      if (nthRaw) {
-        const parsed = Number(nthRaw);
-        if (!Number.isFinite(parsed) || parsed < 0) {
-          return { ok: false, error: t('options.modal.site.chainIndexError', 'Index must be a non-negative number') };
+  function renderChainGroups() {
+    if (!chainGroupsContainer) return;
+    if (!chainGroupsState.length) chainGroupsState.push(createChainGroup());
+    chainGroupsContainer.innerHTML = '';
+    chainGroupsState.forEach((group, groupIdx) => {
+      const groupEl = document.createElement('div');
+      groupEl.className = 'chain-group';
+      groupEl.dataset.groupIndex = String(groupIdx);
+
+      const header = document.createElement('div');
+      header.className = 'chain-group-header';
+
+      const left = document.createElement('div');
+      left.className = 'left';
+
+      const groupTitle = document.createElement('span');
+      groupTitle.setAttribute('data-i18n', 'options.modal.site.chainGroupLabel');
+      groupTitle.textContent = `${t('options.modal.site.chainGroupLabel', 'Group')} ${groupIdx + 1}`;
+
+      const nameInput = document.createElement('input');
+      nameInput.type = 'text';
+      nameInput.placeholder = t('options.modal.site.chainGroupNamePh', 'Group name (optional)');
+      nameInput.value = group.label || '';
+      nameInput.addEventListener('input', (e) => {
+        chainGroupsState[groupIdx].label = e.target.value;
+      });
+
+      const activeLabel = document.createElement('label');
+      activeLabel.className = 'checkbox';
+      const activeInput = document.createElement('input');
+      activeInput.type = 'checkbox';
+      activeInput.checked = group.active !== false;
+      activeInput.addEventListener('change', (e) => {
+        chainGroupsState[groupIdx].active = !!e.target.checked;
+      });
+      const activeSpan = document.createElement('span');
+      activeSpan.setAttribute('data-i18n', 'options.modal.site.chainGroupActive');
+      activeSpan.textContent = t('options.modal.site.chainGroupActive', 'Active');
+      activeLabel.append(activeInput, activeSpan);
+
+      left.append(groupTitle, nameInput, activeLabel);
+
+      const removeGroupBtn = document.createElement('button');
+      removeGroupBtn.type = 'button';
+      removeGroupBtn.className = 'btn delete icon-left i-trash';
+      removeGroupBtn.setAttribute('data-i18n', 'options.modal.site.chainGroupRemove');
+      removeGroupBtn.textContent = t('options.modal.site.chainGroupRemove', 'Remove group');
+      removeGroupBtn.addEventListener('click', () => {
+        const defaultName = `${t('options.modal.site.chainGroupLabel', 'Group')} ${groupIdx + 1}`;
+        const label = (chainGroupsState[groupIdx].label || '').trim() || defaultName;
+        const confirmMsg = t('options.modal.site.chainGroupDeleteConfirm', 'Remove this group and all its steps?').replace('{group}', label);
+        if (!confirm(confirmMsg)) {
+          return;
         }
-        nth = Math.floor(parsed);
+        if (chainGroupsState.length <= 1) {
+          chainGroupsState = [createChainGroup()];
+        } else {
+          chainGroupsState.splice(groupIdx, 1);
+        }
+        renderChainGroups();
+      });
+
+      header.append(left, removeGroupBtn);
+      groupEl.appendChild(header);
+
+      const stepsList = document.createElement('div');
+      stepsList.className = 'chain-step-list';
+      if (!group.steps.length) group.steps.push(createChainStep());
+      group.steps.forEach((step, stepIdx) => {
+        const stepWrapper = document.createElement('div');
+        stepWrapper.className = 'chain-step';
+
+        const stepHeader = document.createElement('div');
+        stepHeader.className = 'chain-step-header';
+        const stepTitle = document.createElement('span');
+        stepTitle.textContent = `${t('options.modal.site.chainStepLabel', 'Step')} ${stepIdx + 1}`;
+        const removeStepBtn = document.createElement('button');
+        removeStepBtn.type = 'button';
+        removeStepBtn.className = 'btn danger icon-left i-trash';
+        removeStepBtn.setAttribute('data-i18n', 'options.modal.site.chainStepRemove');
+        removeStepBtn.textContent = t('options.modal.site.chainStepRemove', 'Remove step');
+        removeStepBtn.addEventListener('click', () => {
+          const defaultName = `${t('options.modal.site.chainGroupLabel', 'Group')} ${groupIdx + 1}`;
+          const groupLabel = (chainGroupsState[groupIdx].label || '').trim() || defaultName;
+          const stepLabel = `${t('options.modal.site.chainStepLabel', 'Step')} ${stepIdx + 1}`;
+          const confirmMsg = t('options.modal.site.chainStepDeleteConfirm', 'Remove this step from {group}?').replace('{group}', groupLabel).replace('{step}', stepLabel);
+          if (!confirm(confirmMsg)) {
+            return;
+          }
+          chainGroupsState[groupIdx].steps.splice(stepIdx, 1);
+          if (!chainGroupsState[groupIdx].steps.length) {
+            chainGroupsState[groupIdx].steps.push(createChainStep());
+          }
+          renderChainGroups();
+        });
+        stepHeader.append(stepTitle, removeStepBtn);
+
+        const fields = document.createElement('div');
+        fields.className = 'chain-step-fields';
+
+        const selectorField = document.createElement('div');
+        selectorField.className = 'field selector-field';
+        const selectorLabel = document.createElement('label');
+        selectorLabel.setAttribute('data-i18n', 'options.modal.site.chainStepSelector');
+        selectorLabel.textContent = 'Selector';
+        const selectorInput = document.createElement('input');
+        selectorInput.type = 'text';
+        selectorInput.value = step.selector || '';
+        selectorInput.className = 'chain-selector';
+        selectorInput.addEventListener('input', (e) => {
+          chainGroupsState[groupIdx].steps[stepIdx].selector = e.target.value;
+        });
+        selectorField.append(selectorLabel, selectorInput);
+
+        const nthField = document.createElement('div');
+        nthField.className = 'field index-field';
+        const nthLabel = document.createElement('label');
+        nthLabel.setAttribute('data-i18n', 'options.modal.site.chainStepIndex');
+        nthLabel.textContent = 'Index (optional)';
+        const nthInput = document.createElement('input');
+        nthInput.type = 'number';
+        nthInput.min = '0';
+        nthInput.step = '1';
+        nthInput.value = step.nth || '';
+        nthInput.className = 'chain-index';
+        nthInput.addEventListener('input', (e) => {
+          chainGroupsState[groupIdx].steps[stepIdx].nth = e.target.value;
+        });
+        nthField.append(nthLabel, nthInput);
+
+        const textField = document.createElement('div');
+        textField.className = 'field text-field';
+        const textLabel = document.createElement('label');
+        textLabel.setAttribute('data-i18n', 'options.modal.site.chainStepText');
+        textLabel.textContent = 'Contains text (optional)';
+        const textInput = document.createElement('input');
+        textInput.type = 'text';
+        textInput.value = step.text || '';
+        textInput.className = 'chain-text';
+        textInput.addEventListener('input', (e) => {
+          chainGroupsState[groupIdx].steps[stepIdx].text = e.target.value;
+        });
+        textField.append(textLabel, textInput);
+
+        fields.append(selectorField, nthField, textField);
+        stepWrapper.append(stepHeader, fields);
+        stepsList.appendChild(stepWrapper);
+      });
+
+      const addStepRow = document.createElement('div');
+      addStepRow.className = 'add-step-row';
+      const addStepBtn = document.createElement('button');
+      addStepBtn.type = 'button';
+      addStepBtn.className = 'btn add-model icon-left i-add';
+      addStepBtn.setAttribute('data-i18n', 'options.modal.site.chainAdd');
+      addStepBtn.textContent = t('options.modal.site.chainAdd', 'Add step');
+      addStepBtn.addEventListener('click', () => {
+        chainGroupsState[groupIdx].steps.push(createChainStep());
+        renderChainGroups();
+      });
+      addStepRow.appendChild(addStepBtn);
+
+      groupEl.append(stepsList, addStepRow);
+      chainGroupsContainer.appendChild(groupEl);
+    });
+    try { applyTranslations(chainGroupsContainer); } catch {}
+  }
+
+  function sanitizeChainGroups() {
+    const groups = [];
+    let activeSteps = 0;
+    for (const group of chainGroupsState) {
+      const steps = [];
+      for (const step of group.steps) {
+        const selector = String(step?.selector || '').trim();
+        if (!selector) continue;
+        const text = String(step?.text || '').trim();
+        const nthRaw = String(step?.nth ?? '').trim();
+        let nth = null;
+        if (nthRaw) {
+          const parsed = Number(nthRaw);
+          if (!Number.isFinite(parsed) || parsed < 0) {
+            return { ok: false, error: t('options.modal.site.chainIndexError', 'Index must be a non-negative number') };
+          }
+          nth = Math.floor(parsed);
+        }
+        steps.push({ selector, text, nth });
       }
-      out.push({ selector, text, nth });
+      if (!steps.length) continue;
+      const isActive = group?.active !== false;
+      if (isActive) {
+        activeSteps += steps.length;
+      }
+      groups.push({
+        id: group.id || `cg_${Math.random().toString(36).slice(2, 8)}`,
+        label: String(group.label || '').trim(),
+        active: isActive,
+        steps
+      });
     }
-    if (requireNonEmpty && !out.length) {
-      return { ok: false, error: t('options.modal.site.chainRequired', 'Add at least one chain step with a selector') };
+    if (!groups.length || activeSteps === 0) {
+      return { ok: false, error: t('options.modal.site.chainGroupRequired', 'Add at least one active chain group with a selector.') };
     }
-    return { ok: true, chain: out };
+    const flattened = groups.reduce((acc, group) => {
+      if (!group.active) return acc;
+      return acc.concat(group.steps);
+    }, []);
+    return { ok: true, groups, chain: flattened };
   }
 
   // Prefill
@@ -341,7 +476,6 @@ function openSiteModal(settings, rule){
     if (scriptInput) scriptInput.value = "";
     com.value = "";
     act.checked = true;
-    chainState = [];
   }
 
   const onKey = (ev) => {
@@ -350,28 +484,47 @@ function openSiteModal(settings, rule){
   };
 
   function onStrategyChange() {
-    const val = (strategySel?.value || 'css');
-    if (selectorRow) selectorRow.hidden = val !== 'css';
-    if (chainRow) chainRow.hidden = val !== 'chain';
-    if (scriptRow) scriptRow.hidden = val !== 'script';
+    activateStrategy(strategySel?.value || 'css');
+  }
+
+  function activateStrategy(value) {
+    const val = ['css', 'chain', 'script'].includes(value) ? value : 'css';
+    if (strategySel) strategySel.value = val;
+    strategyTabs.forEach(btn => {
+      const isActive = btn.dataset.tab === val;
+      btn.classList.toggle('active', isActive);
+      btn.setAttribute('aria-selected', String(isActive));
+    });
+    strategyPanels.forEach(panel => {
+      const match = panel.dataset.panel === val;
+      panel.hidden = !match;
+    });
     if (sel) sel.required = val === 'css';
   }
 
-  function onAddChainStep() {
-    chainState.push({ selector: '', nth: '', text: '' });
-    renderChain();
+  function onStrategyTabClick(e) {
+    e?.preventDefault?.();
+    const tab = e.currentTarget?.dataset.tab;
+    if (tab) activateStrategy(tab);
   }
 
-  onStrategyChange();
-  renderChain();
+  function onAddChainGroup(e) {
+    e?.preventDefault?.();
+    chainGroupsState.push(createChainGroup());
+    renderChainGroups();
+  }
+
+  activateStrategy(strategySel?.value || 'css');
+  renderChainGroups();
 
   attachKeyHandler(host);
   attachKeyHandler(sel);
   attachKeyHandler(com);
   attachKeyHandler(scriptInput);
-  if (chainList) chainList.addEventListener('keydown', onKey);
+  if (chainGroupsContainer) chainGroupsContainer.addEventListener('keydown', onKey);
   if (strategySel) strategySel.addEventListener('change', onStrategyChange);
-  if (addChainBtn) addChainBtn.addEventListener('click', onAddChainStep);
+  strategyTabs.forEach(btn => btn.addEventListener('click', onStrategyTabClick));
+  addChainGroupBtn?.addEventListener('click', onAddChainGroup);
 
   // Helpers: submit on Ctrl+Enter and Escape closes
   safeShowModal(dlg);
@@ -389,7 +542,9 @@ function openSiteModal(settings, rule){
       comment: com.value.trim(),
       active: !!act.checked,
       chain: [],
-      script: scriptInput?.value?.trim() || ''
+      chainGroups: [],
+      script: scriptInput?.value?.trim() || '',
+      chainSequential: strategy === 'chain'
     };
     if (!data.host) {
       alert(t('options.modal.site.hostRequired', 'Site pattern is required.'));
@@ -402,20 +557,17 @@ function openSiteModal(settings, rule){
         alert(t('options.modal.site.selectorRequired', 'CSS selector is required.'));
         return;
       }
-      const chainSanitized = sanitizeChainState();
-      if (!chainSanitized.ok) {
-        alert(chainSanitized.error);
-        return;
-      }
-      data.chain = chainSanitized.chain;
+      data.chain = [];
+      data.chainGroups = [];
       data.script = '';
     } else if (strategy === 'chain') {
-      const chainSanitized = sanitizeChainState({ requireNonEmpty: true });
+      const chainSanitized = sanitizeChainGroups();
       if (!chainSanitized.ok) {
         alert(chainSanitized.error);
         return;
       }
       data.chain = chainSanitized.chain;
+      data.chainGroups = chainSanitized.groups;
       data.selector = '';
       data.script = '';
     } else if (strategy === 'script') {
@@ -424,12 +576,8 @@ function openSiteModal(settings, rule){
         alert(t('options.modal.site.scriptRequired', 'Provide a script body that returns text.'));
         return;
       }
-      const chainSanitized = sanitizeChainState();
-      if (!chainSanitized.ok) {
-        alert(chainSanitized.error);
-        return;
-      }
-      data.chain = chainSanitized.chain;
+      data.chain = [];
+      data.chainGroups = [];
       data.selector = '';
       const previousScript = String(rule?.script || '').trim();
       const scriptChanged = !rule || rule.strategy !== 'script' || previousScript !== data.script;
