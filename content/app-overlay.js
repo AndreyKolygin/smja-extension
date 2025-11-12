@@ -64,8 +64,8 @@
     style.textContent = `
       #${OVERLAY_ID} {
         position: fixed;
-        top: 24px;
-        right: 24px;
+        top: 15px;
+        right: 15px;
         left: auto;
         transform: none;
         z-index: 2147483645;
@@ -84,8 +84,8 @@
         gap: 0;
         width: min(400px, calc(100vw - 32px));
         max-width: min(720px, calc(100vw - 16px));
-        height: min(45vh, calc(100vh - 64px));
-        max-height: calc(100vh - 32px);
+        height: min(70vh, calc(100vh - 24px));
+        max-height: calc(100vh - 15px);
         min-height: 700px;
         background: #0f172a;
         color: #f8fafc;
@@ -102,6 +102,7 @@
         gap: 12px;
         padding: 12px 14px;
         background: #1f2937;
+        color: var(--bg-light);
         cursor: grab;
         user-select: none;
         font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
@@ -132,6 +133,7 @@
         align-items: center;
         justify-content: center;
         background: rgba(148, 163, 184, 0.16);
+        color: var(--bg-light);
         color: inherit;
         padding: 0;
         cursor: pointer;
@@ -178,6 +180,40 @@
     const clampedLeft = Math.max(8, Math.min(left, maxLeft));
     const clampedTop = Math.max(8, Math.min(top, maxTop));
     return { left: clampedLeft, top: clampedTop };
+  }
+
+  function hasRuntime() {
+    try {
+      return !!(chrome?.runtime?.id);
+    } catch {
+      return false;
+    }
+  }
+
+  function openOptionsPage() {
+    const fallback = () => {
+      try {
+        const base = hasRuntime() ? chrome.runtime.getURL('ui/options.html') : 'ui/options.html';
+        window.open(base, '_blank', 'noopener');
+      } catch {}
+    };
+    if (!hasRuntime()) {
+      fallback();
+      return;
+    }
+    try {
+      chrome.runtime.sendMessage({ type: 'OPEN_OPTIONS_PAGE' }, (resp) => {
+        if (chrome.runtime.lastError) {
+          console.debug('[JDA overlay] OPEN_OPTIONS_PAGE failed:', chrome.runtime.lastError.message);
+          fallback();
+          return;
+        }
+        if (!resp || !resp.ok) fallback();
+      });
+    } catch (err) {
+      console.debug('[JDA overlay] openOptionsPage relay failed:', err);
+      fallback();
+    }
   }
 
   function onKeyDown(event) {
@@ -328,6 +364,10 @@
   }
 
   function openOverlay() {
+    if (!hasRuntime()) {
+      console.warn('[JDA overlay] runtime context missing; cannot open popup');
+      return;
+    }
     if (state.root) {
       applyOverlayTranslations(state.root);
       focusFrame();
@@ -344,6 +384,7 @@
 
     const title = t('ui.app.title', 'Job Description Analyzer');
     const closeTitle = t('ui.highlighter.close', 'Close');
+    const menuTitle = t('ui.menu.optionsMenu', 'Settings menu');
     const frameUrl = chrome.runtime.getURL('ui/popup.html');
 
     const container = document.createElement('div');
@@ -356,6 +397,7 @@
         <div class="jda-app-overlay-header" data-drag-handle>
           <span class="jda-app-overlay-title" data-i18n-key="ui.app.title">${title}</span>
           <div class="jda-app-overlay-actions">
+            <button type="button" id="menu" class="jda-app-overlay-menu" title="${menuTitle}" data-i18n-title-key="ui.menu.optionsMenu">☰</button>
             <button type="button" data-action="close" data-i18n-title-key="ui.highlighter.close" title="${closeTitle}">✕</button>
           </div>
         </div>
@@ -376,6 +418,13 @@
     state.card = container.querySelector(`.${CARD_CLASS}`);
     state.frame = container.querySelector('.jda-app-overlay-frame');
     applyOverlayTranslations(container);
+
+    const menuBtn = container.querySelector('#menu');
+    menuBtn?.addEventListener('click', (event) => {
+      event?.preventDefault?.();
+      event?.stopPropagation?.();
+      openOptionsPage();
+    }, true);
 
     const handle = container.querySelector(HEADER_HANDLE);
     if (handle) attachDrag(handle);

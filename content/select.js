@@ -22,6 +22,8 @@
     style: null,
     lastPointer: { x: 0, y: 0 },
     lastAnalyzedBlockCount: null,
+    cvs: [],
+    selectedCvId: null,
     drag: {
       active: false,
       offsetX: 0,
@@ -101,6 +103,13 @@
         z-index: 2147483644;
       }
       #${MENU_ID} {
+        --menu-bg: #1f2937;
+        --menu-fg: #f8fafc;
+        --menu-border: rgba(148, 163, 184, 0.2);
+        --menu-shadow: 0 10px 28px rgba(15, 23, 42, 0.32);
+        --menu-btn-bg: rgba(148, 163, 184, 0.22);
+        --menu-btn-disabled: rgba(148, 163, 184, 0.12);
+        --menu-counter-opacity: 0.7;
         position: fixed;
         top: 16px;
         left: 50%;
@@ -109,7 +118,7 @@
         font-size: 13px;
         font-weight: 600;
         user-select: none;
-        color: #f8fafc;
+        color: var(--menu-fg);
         z-index: 2147483646;
         display: flex;
         flex-direction: column;
@@ -117,18 +126,63 @@
         max-width: min(400px, calc(100vw - 24px));
         pointer-events: auto;
       }
+      @media (prefers-color-scheme: light) {
+        #${MENU_ID} {
+          --menu-bg: #ffffff;
+          --menu-fg: #0f172a;
+          --menu-border: rgba(15, 23, 42, 0.12);
+          --menu-shadow: 0 10px 24px rgba(15, 23, 42, 0.12);
+          --menu-btn-bg: rgba(15, 23, 42, 0.08);
+          --menu-btn-disabled: rgba(15, 23, 42, 0.04);
+          --menu-counter-opacity: 0.5;
+        }
+      }
+      @media (prefers-color-scheme: dark) {
+        #${MENU_ID} {
+          --menu-bg: #1f2937;
+          --menu-fg: #f8fafc;
+          --menu-border: rgba(148, 163, 184, 0.2);
+          --menu-shadow: 0 10px 28px rgba(15, 23, 42, 0.32);
+          --menu-btn-bg: rgba(148, 163, 184, 0.22);
+          --menu-btn-disabled: rgba(148, 163, 184, 0.12);
+          --menu-counter-opacity: 0.75;
+        }
+      }
       #${MENU_ID}.jda-menu-dragging {
         cursor: grabbing;
       }
       #${MENU_ID} .jda-overlay-card {
-        background: #1f2937;
+        background: #ffffff42;
         border-radius: 24px;
         padding: 12px 14px;
-        box-shadow: 0 10px 28px rgba(15, 23, 42, 0.32);
+        box-shadow: var(--menu-shadow);
         display: flex;
         flex-direction: column;
         gap: 10px;
-        border: 1px solid rgba(148, 163, 184, 0.15);
+        border: 1px solid var(--menu-border);
+        color: var(--menu-fg);
+        backdrop-filter: blur(15px);
+      }
+      #${MENU_ID} .cv-select-row {
+        display: flex;
+        flex-direction: row;
+        flex-wrap: nowrap;
+        align-items: center;
+        gap: 8px;
+      }
+      #${MENU_ID} .cv-select-row label {
+        white-space: nowrap;
+        font-size: 12px;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+      }
+      #${MENU_ID} .cv-select-row select {
+        width: 100%;
+        border-radius: 12px;
+        border: 1px solid var(--menu-border);
+        padding: 6px 10px;
+        background: transparent;
+        color: var(--menu-fg);
       }
       #${MENU_ID} .jda-overlay-header {
         display: flex;
@@ -157,8 +211,8 @@
         border: none;
         border-radius: 20px;
         padding: 6px 12px;
-        background: rgba(148, 163, 184, 0.2);
-        color: inherit;
+        background: var(--menu-btn-bg);
+        color: var(--menu-fg);
         font: inherit;
         font-weight: 600;
         display: inline-flex;
@@ -167,7 +221,8 @@
         white-space: nowrap;
       }
       #${MENU_ID} button:disabled {
-        opacity: 0.4;
+        opacity: 0.5;
+        background: var(--menu-btn-disabled);
         cursor: default !important;
       }
       #${MENU_ID} button.primary {
@@ -176,15 +231,30 @@
       }
       #${MENU_ID} button.danger {
         background: rgba(239, 68, 68, 0.18);
-        color: #fecaca;
+        color: #e58b8b;
       }
       #${MENU_ID} button.neutral {
         background: rgba(148, 163, 184, 0.15);
       }
       #${MENU_ID} button[data-action="analyze"] {
-        flex: 1 1 140px;
-        min-width: 140px;
+        flex: 1 1 150px;
+        min-width: 190px;
         justify-content: center;
+        font-weight: 600;
+        gap: 8px;
+        background: linear-gradient(135deg, #0f766e, #0ea5e9);
+        color: #fff;
+      }
+      #${MENU_ID} button[data-action="analyze"]:hover {
+        background: linear-gradient(135deg, #0c5e59, #0b82b8);
+      }
+      #${MENU_ID} .analyze-btn .icon {
+        width: 16px;
+        height: 16px;
+        display: inline-block;
+        background: currentColor;
+        -webkit-mask: url("data:image/svg+xml,%3Csvg width='24' height='24' viewBox='0 0 24 24' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M7.5 4l1 3 3 1-3 1-1 3-1-3-3-1 3-1 1-3zm9 8l1.2 3.8L21.5 17l-3.3 1.2L17 22l-1.2-3.8L12.5 17l3.3-1.2L16.5 12zM13 2l1 3 3 1-3 1-1 3-1-3-3-1 3-1 1-3z' fill='white'/%3E%3C/svg%3E") center / contain no-repeat;
+        mask: url("data:image/svg+xml,%3Csvg width='24' height='24' viewBox='0 0 24 24' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M7.5 4l1 3 3 1-3 1-1 3-1-3-3-1 3-1 1-3zm9 8l1.2 3.8L21.5 17l-3.3 1.2L17 22l-1.2-3.8L12.5 17l3.3-1.2L16.5 12zM13 2l1 3 3 1-3 1-1 3-1-3-3-1 3-1 1-3z' fill='white'/%3E%3C/svg%3E") center / contain no-repeat;
       }
       #${MENU_ID} .jda-overlay-header button[data-action="cancel"] {
         border-radius: 999px;
@@ -193,16 +263,16 @@
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        background: rgba(148, 163, 184, 0.18);
-        color: inherit;
+        background: var(--menu-btn-bg);
+        color: var(--menu-fg);
         padding: 0;
         min-width: 28px;
       }
       #${MENU_ID} .jda-overlay-header button[data-action="cancel"]:hover {
-        background: rgba(148, 163, 184, 0.26);
+        background: var(--menu-btn-disabled);
       }
       #${MENU_ID} .counter {
-        opacity: 0.7;
+        opacity: var(--menu-counter-opacity);
         margin-left: auto;
         min-width: 72px;
         text-align: right;
@@ -238,24 +308,31 @@
     return template.replace('{{count}}', String(count));
   }
 
+  function setAnalyzeButtonLabel(btn, text) {
+    if (!btn) return;
+    const labelNode = btn.querySelector('.label');
+    if (labelNode) labelNode.textContent = text;
+    else btn.textContent = text;
+  }
+
   function setAnalyzeIdle(btn) {
     if (!btn) return;
     delete btn.dataset.doneSeconds;
     const label = t('ui.highlighter.analyze', 'Analyze');
-    btn.textContent = label;
+    setAnalyzeButtonLabel(btn, label);
   }
 
   function setAnalyzeRunning(btn, seconds) {
     if (!btn) return;
     const label = t('ui.highlighter.timer', '{{seconds}}s…');
-    btn.textContent = label.replace('{{seconds}}', seconds.toFixed(1));
+    setAnalyzeButtonLabel(btn, label.replace('{{seconds}}', seconds.toFixed(1)));
   }
 
   function setAnalyzeDone(btn, seconds) {
     if (!btn) return;
     const label = t('ui.highlighter.analyzeDone', 'Done: {{seconds}}s');
     btn.dataset.doneSeconds = String(seconds.toFixed(2));
-    btn.textContent = label.replace('{{seconds}}', seconds.toFixed(2));
+    setAnalyzeButtonLabel(btn, label.replace('{{seconds}}', seconds.toFixed(2)));
   }
 
   function createMenu() {
@@ -271,18 +348,29 @@
     const analyzeLabel = t('ui.highlighter.analyze', 'Analyze');
     const counterLabel = formatCounter(0);
     const hintLabel = t('ui.highlighter.hint', 'Open the extension to read the result');
+    const cvLabel = t('ui.highlighter.cvLabel', 'Resume');
+    const cvLoading = t('ui.highlighter.cvLoading', 'Loading…');
     menu.innerHTML = `
       <div class="jda-overlay-card">
         <div class="jda-overlay-header" data-drag-handle>
           <span class="jda-overlay-title" data-i18n="ui.highlighter.title">${titleText}</span>
           <button type="button" data-action="cancel" title="${closeTitle}">✕</button>
         </div>
+        <div class="cv-select-row">
+          <label for="jdaCvSelect" data-i18n="ui.highlighter.cvLabel">${cvLabel}</label>
+          <select id="jdaCvSelect">
+            <option value="">${cvLoading}</option>
+          </select>
+        </div>
         <div class="button-row">
           <button type="button" data-action="undo" disabled data-i18n="ui.highlighter.undo">${undoLabel}</button>
           <button type="button" data-action="redo" disabled data-i18n="ui.highlighter.redo">${redoLabel}</button>
           <button type="button" data-action="clear" class="danger" disabled data-i18n="ui.highlighter.clear">${clearLabel}</button>
           <span class="counter" data-count="0">${counterLabel}</span>
-          <button type="button" data-action="analyze" class="primary" data-i18n="ui.highlighter.analyze">${analyzeLabel}</button>
+          <button type="button" data-action="analyze" class="primary analyze-btn icon-left i-magic" data-i18n="ui.highlighter.analyze">
+            <span class="icon"></span>
+            <span class="label">${analyzeLabel}</span>
+          </button>
         </div>
         <div class="hint" hidden data-i18n="ui.highlighter.hint">${hintLabel}</div>
       </div>
@@ -383,7 +471,132 @@
     document.body.appendChild(menu);
     state.menu = menu;
     state.menuCard = menu.querySelector('.jda-overlay-card');
+    initCvSelector();
     updateMenu();
+  }
+
+  function persistCvSelection(id) {
+    if (!chrome?.storage?.local) return;
+    try {
+      chrome.storage.local.get(['ui'], (res) => {
+        const ui = Object.assign({}, res?.ui || {}, { chosenCvId: id || null });
+        chrome.storage.local.set({ ui }, () => {});
+      });
+    } catch {}
+  }
+  let cvStorageWatcherAttached = false;
+
+  function attachCvStorageWatcher() {
+    if (cvStorageWatcherAttached || !chrome?.storage?.onChanged) return;
+    cvStorageWatcherAttached = true;
+    chrome.storage.onChanged.addListener((changes, area) => {
+      if (area !== 'local') return;
+      if (changes.ui) {
+        const newId = changes.ui.newValue?.chosenCvId || null;
+        if (newId && newId !== state.selectedCvId) {
+          state.selectedCvId = newId;
+          renderCvSelectOptions();
+        }
+      }
+      if (changes.settings?.newValue) {
+        updateCvState(changes.settings.newValue, state.selectedCvId);
+      }
+    });
+  }
+
+  function updateCvState(settings, storedId = null) {
+    const list = Array.isArray(settings?.cvs) ? settings.cvs : [];
+    state.cvs = list;
+    const candidates = new Set(
+      list
+        .filter(cv => cv && cv.id)
+        .map(cv => cv.id)
+    );
+    const initial = state.selectedCvId && candidates.has(state.selectedCvId)
+      ? state.selectedCvId
+      : null;
+    let next = initial;
+    if (!next && storedId && candidates.has(storedId)) next = storedId;
+    if (!next && settings?.activeCvId && candidates.has(settings.activeCvId)) {
+      next = settings.activeCvId;
+    }
+    if (!next && list[0]?.id) next = list[0].id;
+    state.selectedCvId = next || null;
+    renderCvSelectOptions();
+  }
+
+  function renderCvSelectOptions() {
+    const select = state.menu?.querySelector('#jdaCvSelect');
+    if (!select) return;
+    select.innerHTML = '';
+    if (!state.cvs.length) {
+      const opt = document.createElement('option');
+      opt.textContent = t('ui.highlighter.cvMissing', 'Add a resume in Options → CV & Prompts');
+      opt.disabled = true;
+      opt.selected = true;
+      select.appendChild(opt);
+      select.disabled = true;
+      return;
+    }
+    state.cvs.forEach((cv, idx) => {
+      if (!cv || !cv.id) return;
+      const option = document.createElement('option');
+      option.value = cv.id;
+      option.textContent = cv.title?.trim() || t('ui.highlighter.cvUntitled', 'CV {{index}}').replace('{{index}}', idx + 1);
+      select.appendChild(option);
+    });
+    const targetId = state.selectedCvId && state.cvs.some(cv => cv.id === state.selectedCvId)
+      ? state.selectedCvId
+      : state.cvs[0]?.id || '';
+    state.selectedCvId = targetId || null;
+    if (targetId) select.value = targetId;
+    select.disabled = false;
+  }
+
+  function initCvSelector() {
+    const select = state.menu?.querySelector('#jdaCvSelect');
+    if (!select) return;
+    select.addEventListener('change', () => {
+      state.selectedCvId = select.value || null;
+      persistCvSelection(state.selectedCvId);
+    }, true);
+
+    const applySettings = (settings, storedId) => {
+      if (!settings) return;
+      updateCvState(settings, storedId);
+    };
+
+    try {
+      chrome.storage.local.get(['settings', 'ui'], (res) => {
+        const storedId = res?.ui?.chosenCvId || null;
+        if (res?.settings) applySettings(res.settings, storedId);
+        safeSendMessage({ type: 'GET_SETTINGS' }, (settings) => {
+          applySettings(settings, storedId);
+        });
+      });
+    } catch {
+      safeSendMessage({ type: 'GET_SETTINGS' }, (settings) => applySettings(settings, null));
+    }
+    attachCvStorageWatcher();
+  }
+
+  function resolveCvForAnalyze(settings) {
+    const list = Array.isArray(settings?.cvs) ? settings.cvs : [];
+    if (!list.length) {
+      state.selectedCvId = null;
+      return { cvText: '', cvId: '', cvTitle: '' };
+    }
+    const hasCandidate = (id) => !!id && list.some(cv => cv.id === id);
+    let preferred = hasCandidate(state.selectedCvId) ? state.selectedCvId : null;
+    if (!preferred && hasCandidate(settings?.activeCvId)) preferred = settings.activeCvId;
+    if (!preferred) preferred = list[0].id;
+    state.selectedCvId = preferred || null;
+    const entry = list.find(cv => cv.id === preferred) || list[0];
+    return {
+      cvText: entry?.content || '',
+      cvId: entry?.id || '',
+      cvTitle: entry?.title || ''
+    };
   }
 
   function destroyMenu() {
@@ -843,6 +1056,9 @@
           if (!models.length) {
             throw new Error(t('ui.highlighter.errorNoModel', 'No active model configured. Open Settings to activate a model.'));
           }
+          state.cvs = Array.isArray(s.cvs) ? s.cvs : [];
+          const cvMeta = resolveCvForAnalyze(s);
+          renderCvSelectOptions();
           const chosenId = localChosen || s.ui?.chosenModel || s.chosenModel || models[0].id;
           const modelMeta = models.find(m => m.id === chosenId) || models[0];
           const provider = Array.isArray(s.providers) ? s.providers.find(p => p.id === modelMeta.providerId) : null;
@@ -853,7 +1069,9 @@
           const callPayload = {
             modelId: modelMeta.modelId,
             providerId: modelMeta.providerId,
-            cv: s.cv || '',
+            cv: cvMeta.cvText || '',
+            cvId: cvMeta.cvId || '',
+            cvTitle: cvMeta.cvTitle || '',
             systemTemplate: s.systemTemplate || '',
             outputTemplate: s.outputTemplate || '',
             modelSystemPrompt: modelMeta.systemPrompt || '',
