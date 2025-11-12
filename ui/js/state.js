@@ -1,5 +1,6 @@
 // state.js — единое состояние и базовые утилиты
 import { t } from "./i18n.js";
+import { getActiveCv } from "../../shared/cv.js";
 export const SETTINGS_KEY = "settings"; // в SW уже унифицировано на local.settings
 export const state = {
   selectedText: "",
@@ -8,6 +9,7 @@ export const state = {
   timerStart: 0,
   settings: null,
   chosenModel: null,
+  chosenCvId: null,
   activeTab: null
 };
 
@@ -217,4 +219,14 @@ export async function fetchSettings() {
 export function setJobInput(text) {
   const el = document.getElementById("jobInput");
   if (el) el.value = text ?? "";
+}
+
+export function getSelectedCvInfo() {
+  const list = Array.isArray(state.settings?.cvs) ? state.settings.cvs : [];
+  const preferredId = state.chosenCvId || state.settings?.activeCvId || null;
+  const { active } = getActiveCv(list, preferredId);
+  if (!active) {
+    return { id: null, title: '', content: '' };
+  }
+  return { id: active.id, title: active.title || '', content: active.content || '' };
 }

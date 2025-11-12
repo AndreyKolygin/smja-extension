@@ -43,13 +43,12 @@ function storageGet(keys){
 }
 
 export function initPrompts(settings){
-  $id("cv").value = settings.cv || "";
   $id("systemTemplate").value = settings.systemTemplate || "";
   $id("outputTemplate").value = settings.outputTemplate || "";
 
   applyTranslations(document);
 
-  const sys = $id("systemTemplate"), out = $id("outputTemplate"), btn = $id("resetCacheBtn"), hint = $id("resetHint"), cv = $id("cv");
+  const sys = $id("systemTemplate"), out = $id("outputTemplate"), btn = $id("resetCacheBtn"), hint = $id("resetHint");
   // ensure Clear Cache is clickable regardless of initial HTML attribute
   if (btn) {
     btn.disabled = false;           // override any static disabled
@@ -61,7 +60,6 @@ export function initPrompts(settings){
   }
   sys.addEventListener("input", markChanged);
   out.addEventListener("input", markChanged);
-  cv?.addEventListener('input', markChanged);
 
   btn?.addEventListener("click", async () => {
     console.debug('[JDA options] Reset cache clicked');
@@ -86,12 +84,10 @@ export function initPrompts(settings){
     if (__autosaveTimer) { clearTimeout(__autosaveTimer); __autosaveTimer = null; }
     settings.systemTemplate = sys.value;
     settings.outputTemplate = out.value;
-    if (cv) settings.cv = cv.value;
   });
 }
 
 export function setupAutosave(settings){
-  const cv = document.getElementById('cv');
   const sys = document.getElementById('systemTemplate');
   const out = document.getElementById('outputTemplate');
 
@@ -102,16 +98,6 @@ export function setupAutosave(settings){
       persistSettings(settings);
     }, 500);
   };
-
-  if (cv) {
-    const update = () => {
-      const val = (cv.value || '').trim();
-      if (val) settings.cv = val;
-      queuePersist();
-    };
-    cv.addEventListener('input', update);
-    cv.addEventListener('blur', update);
-  }
 
   if (sys) {
     const update = () => {

@@ -1,5 +1,6 @@
 // ui/js/options-util.js
 import { getDefaultSettings } from '../../shared/defaults.js';
+import { ensureCvList, getActiveCv } from '../../shared/cv.js';
 
 export const SETTINGS_KEY = "jdaSettings";
 
@@ -168,6 +169,13 @@ export function normalizeSettings(obj){
 
   if (!s.integrations || typeof s.integrations !== 'object') s.integrations = { notion: normalizeNotionSettings(base.integrations.notion) };
   s.integrations.notion = normalizeNotionSettings(s.integrations.notion);
+
+  const legacyCv = typeof s.cv === 'string' ? s.cv : '';
+  const cvs = ensureCvList(s.cvs, { legacyText: legacyCv });
+  const { active, activeId } = getActiveCv(cvs, s.activeCvId);
+  s.cvs = cvs;
+  s.activeCvId = activeId;
+  s.cv = active?.content || '';
 
   return s;
 }

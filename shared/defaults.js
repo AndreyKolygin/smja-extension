@@ -1,5 +1,7 @@
 // shared/defaults.js — single source of default settings
 
+import { ensureCvList } from './cv.js';
+
 // Default providers (stable ids)
 const DEFAULT_PROVIDERS = [
   {
@@ -135,6 +137,18 @@ const DEFAULT_NOTION_FIELDS = [
   }
 ];
 
+const DEFAULT_CVS = ensureCvList([
+  {
+    id: 'cv_default',
+    title: 'CV 1',
+    content: '',
+    updatedAt: 0,
+    isDefault: true
+  }
+]);
+
+const DEFAULT_ACTIVE_CV_ID = DEFAULT_CVS[0]?.id || 'cv_default';
+
 const DEFAULT_NOTION = {
   enabled: false,
   token: '',
@@ -149,7 +163,8 @@ export function getDefaultSettings() {
     providers: DEFAULT_PROVIDERS.map(p => ({ ...p })),
     models: DEFAULT_MODELS.map(m => ({ ...m })),
     sites: DEFAULT_SITES.map(s => ({ ...s })),
-    cv: '',
+    cvs: DEFAULT_CVS.map(cv => ({ ...cv })),
+    activeCvId: DEFAULT_ACTIVE_CV_ID,
     systemTemplate: DEFAULT_SYSTEM_TEMPLATE,
     outputTemplate: DEFAULT_OUTPUT_TEMPLATE,
     integrations: {
@@ -167,6 +182,8 @@ export const DEFAULTS = {
   PROVIDERS: DEFAULT_PROVIDERS,
   MODELS: DEFAULT_MODELS,
   SITES: DEFAULT_SITES,
+  CVS: DEFAULT_CVS,
+  ACTIVE_CV_ID: DEFAULT_ACTIVE_CV_ID,
   SYSTEM_TEMPLATE: DEFAULT_SYSTEM_TEMPLATE,
   OUTPUT_TEMPLATE: DEFAULT_OUTPUT_TEMPLATE,
   NOTION: DEFAULT_NOTION

@@ -1,4 +1,5 @@
 import { fetchWithTimeout } from '../utils.js';
+import { getActiveCv } from '../../shared/cv.js';
 
 const NOTION_API_URL = 'https://api.notion.com/v1/pages';
 const NOTION_VERSION = '2025-09-03';
@@ -173,6 +174,9 @@ export async function saveToNotion({ settings, payload }) {
   const providerId = payload?.providerId || stateModel?.providerId;
   const provider = settings?.providers?.find(p => p?.id === providerId) || null;
 
+  const { active: activeCv } = getActiveCv(settings?.cvs, settings?.activeCvId);
+  const cvText = (typeof payload?.cvText === 'string' ? payload.cvText : '') || activeCv?.content || settings?.cv || '';
+
   const ctx = {
     analysis: payload?.analysis || '',
     jobDescription: payload?.jobDescription || '',
@@ -182,7 +186,7 @@ export async function saveToNotion({ settings, payload }) {
     providerName: payload?.providerName || payload?.providerLabel || provider?.name || '',
     modelName: payload?.modelLabel || stateModel?.displayName || stateModel?.modelId || payload?.modelId || '',
     timestampIso,
-    cv: settings?.cv || ''
+    cv: cvText
   };
 
   const properties = {};

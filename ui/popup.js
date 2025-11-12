@@ -1,6 +1,7 @@
 // popup.js — точка входа
 import { state, fetchSettings, getActiveTab, setActiveTab, setJobInput, setResult, setLastMeta } from "./js/state.js";
 import { populateModels, wireModelSelector } from "./js/models.js";
+import { populateCvSelect, wireCvSelector } from "./js/cv.js";
 import { startSelection, clearSelection, wireCopy, wireSave, wireSaveToNotion, wireAnalyzeButtons, wireJobInputSync, ensureContentScript, detectAndToggleFastStart, updateNotionButtonVisibility } from "./js/actions.js";
 import { wireRuntimeMessages, warmLoadCaches } from "./js/messaging.js";
 import { loadLocale, applyTranslations, getSavedLang, t } from "./js/i18n.js";
@@ -78,6 +79,7 @@ function wireUI() {
   document.getElementById("selectBtn")?.addEventListener("click", startSelection);
   document.getElementById("clearBtn")?.addEventListener("click", clearSelection);
   wireModelSelector();
+  wireCvSelector();
   wireAnalyzeButtons();
   wireCopy();
   wireSave();
@@ -133,20 +135,8 @@ async function init() {
   updateNotionButtonVisibility();
   console.debug("[POPUP] settings loaded", state.settings);
   populateModels();
+  populateCvSelect();
   warmLoadCaches();
-
-  // Диагностический статус для Fast Start (создаём до вызова)
-  let fs = document.getElementById("fastStartStatus");
-  if (!fs) {
-    const row = document.createElement("div");
-    row.className = "row";
-    fs = document.createElement("div");
-    fs.id = "fastStartStatus";
-    fs.className = "muted"; // стиль из common.css/popup.css
-    row.appendChild(fs);
-    document.querySelector(".container")?.appendChild(row);
-  }
-  fs.textContent = t('ui.popup.faststartChecking', 'Fast start: checking…');
 
   await detectAndToggleFastStart();
 

@@ -81,7 +81,42 @@
           <div class="card glass card_general">
             <h2 data-i18n="options.title.general">CV &amp; Prompts</h2>
             <h3 data-i18n="options.title.cv">CV</h3>
-            <textarea class="textInput" id="cv" data-i18n-attr-placeholder="options.title.cv" placeholder="Your CV" required aria-required="true"></textarea>
+            <p class="muted" data-i18n="options.cv.managerHint">Store multiple resumes and pick which one to use before analysis.</p>
+            <div class="cv-manager" id="cvManager">
+              <div class="cv-list-pane">
+                <div class="cv-list-header">
+                  <div>
+                    <p class="label" data-i18n="options.cv.listTitle">Saved resumes</p>
+                  </div>
+                  <button type="button" class="btn third icon-left i-add" id="cvAddBtn" data-i18n="options.cv.add">Add CV</button>
+                </div>
+                <div>
+                  <p class="muted small" data-i18n="options.cv.listDescription">Select a resume to edit or duplicate it.</p>
+                </div>
+                <div class="cv-list" id="cvList" role="listbox" aria-label="Saved resumes"></div>
+              </div>
+              <div class="cv-editor-pane" id="cvEditorPane">
+                <div class="cv-editor-header">
+                  <label for="cvTitleInput" data-i18n="options.cv.nameLabel">Display name</label>
+                  <input type="text" id="cvTitleInput" placeholder="Product Manager CV" data-i18n-attr-placeholder="options.cv.namePlaceholder">
+                </div>
+                <div class="cv-editor-field">
+                  <label for="cvContentInput" data-i18n="options.cv.contentLabel">Resume</label>
+                  <textarea class="textInput" id="cvContentInput" rows="12" placeholder="Paste your resume here" data-i18n-attr-placeholder="options.cv.contentPlaceholder"></textarea>
+                </div>
+                <div class="cv-editor-footer">
+                  <div class="cv-editor-actions">
+                    <button type="button" class="btn third icon-left i-verified" id="cvSetDefaultBtn" data-i18n="options.cv.setDefault">Use by default</button>
+                    <button type="button" class="btn secondary icon-left i-notes" id="cvDuplicateBtn" data-i18n="options.cv.duplicate">Duplicate</button>
+                    <button type="button" class="btn danger icon-left i-trash" id="cvDeleteBtn" data-i18n="options.cv.delete">Delete</button>
+                  </div>
+                  <div class="cv-editor-meta">
+                    <span id="cvCharCounter" class="muted small">0</span>
+                    <span id="cvDefaultBadge" class="badge" hidden data-i18n="options.cv.defaultBadge">Default</span>
+                  </div>
+                </div>
+              </div>
+            </div>
 
             <h3 data-i18n="options.title.systemPromptTempl">System prompt template</h3>
             <textarea class="textInput" id="systemTemplate"></textarea>

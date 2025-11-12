@@ -214,7 +214,9 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                 ms: result.ms || 0,
                 when: Date.now(),
                 providerId: payload.providerId || null,
-                modelId: payload.modelId || null
+                modelId: payload.modelId || null,
+                cvId: payload.cvId || null,
+                cvTitle: payload.cvTitle || ''
               }
             });
           } else if (result?.error) {
@@ -266,6 +268,18 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             await chrome.tabs.create({ url: chrome.runtime.getURL('ui/popup.html') });
           } catch {}
           sendResponse({ ok: false, error: String(e?.message || e) });
+        }
+        return;
+      }
+
+      if (message?.type === 'OPEN_OPTIONS_PAGE') {
+        try {
+          await chrome.runtime.openOptionsPage();
+          sendResponse({ ok: true });
+        } catch (err) {
+          const url = chrome.runtime.getURL('ui/options.html');
+          try { await chrome.tabs.create({ url }); } catch {}
+          sendResponse({ ok: false, error: String(err?.message || err) });
         }
         return;
       }

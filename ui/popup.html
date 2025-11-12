@@ -8,18 +8,20 @@
 </head>
 <body>
 <div class="popup">
-  <div class="container">
+  <div>
 <!-- header -->
-      <div class="header">
-        <div class="row">
-
-            <select id="modelSelect" class="select input" data-i18n-attr-title="ui.popup.modelSelectTitle" title="Select your LLM"></select>
-            <button id="menu" class="menu icon-left i-menu" data-i18n-attr-title="ui.menu.optionsMenu" title="Settings" aria-label="Settings"></button>
-
+      <div class="header"></div>
+      <div class="selectors">
+        <div class="select-row">
+          <span class="select-label" data-i18n="ui.popup.modelLabel">LLM</span>
+          <select id="modelSelect" class="select input" data-i18n-attr-title="ui.popup.modelSelectTitle" title="Select your LLM"></select>
+        </div>
+        <div class="select-row">
+          <span class="select-label" data-i18n="ui.popup.cvLabel">CV</span>
+          <select id="cvSelect" class="select input" data-i18n-attr-title="ui.popup.cvSelectTitle" title="Select resume"></select>
         </div>
       </div>
   </div>
-
 
 <!-- body-->
   <div class="body-analyzer">

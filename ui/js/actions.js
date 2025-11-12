@@ -1,5 +1,5 @@
 // actions.js — Select/Clear/Analyze/Copy/Save
-import { state, setJobInput, setProgress, startTimer, stopTimer, setResult, setLastMeta, getActiveTab } from "./state.js";
+import { state, setJobInput, setProgress, startTimer, stopTimer, setResult, setLastMeta, getActiveTab, getSelectedCvInfo } from "./state.js";
 import { t } from "./i18n.js";
 import { normalizeRuleForExec, evaluateRuleInPage, siteMatches, findMatchingRule } from "../../shared/rules.js";
 
@@ -45,10 +45,15 @@ function stopAnalyzeButtonTimer(finalMs, isError = false) {
 }
 
 export async function startSelection() {
-  const resp = await chrome.runtime.sendMessage({ type: 'BEGIN_SELECTION' });
-  if (!resp?.ok) {
-    const msg = resp?.error || 'unknown error';
-    alert(t('ui.popup.selectionFailed', 'Cannot start selection: {{error}}').replace('{{error}}', msg));
+  try {
+    const resp = await chrome.runtime.sendMessage({ type: 'BEGIN_SELECTION' });
+    if (!resp?.ok) {
+      const msg = resp?.error || 'unknown error';
+      alert(t('ui.popup.selectionFailed', 'Cannot start selection: {{error}}').replace('{{error}}', msg));
+    }
+  } catch (err) {
+    console.warn('[JDA] BEGIN_SELECTION failed:', err);
+    alert(t('ui.popup.selectionFailed', 'Cannot start selection: {{error}}').replace('{{error}}', t('ui.popup.messageRequestFailed', 'request failed')));
   }
 }
 
@@ -148,6 +153,11 @@ export function wireSaveToNotion() {
       timestampIso: new Date().toISOString()
     };
 
+    const cvInfo = getSelectedCvInfo();
+    payload.cvId = cvInfo.id || '';
+    payload.cvTitle = cvInfo.title || '';
+    payload.cvText = cvInfo.content || '';
+
     setProgress(t('ui.popup.progressSaving', 'Saving to Notion…'), null, { i18nKey: 'ui.popup.progressSaving' });
     btn.disabled = true;
     try {
@@ -235,21 +245,12 @@ async function extractFromRule(tabId, ruleInput, { waitMs = DEFAULT_EXTRACT_WAIT
 // показать/скрыть кнопку Fast start
 export async function detectAndToggleFastStart() {
   const btn = document.getElementById("fastStartBtn");
-  const statusEl = document.getElementById("fastStartStatus");
-  const setStatus = (key, fallback) => {
-    if (statusEl) statusEl.textContent = t(key, fallback);
-  };
-
-  if (!btn) {
-    setStatus('ui.popup.faststartUnavailable', 'Fast start: unavailable');
-    return;
-  }
+  if (!btn) return;
 
   const tab = await getActiveTab({ refresh: true });
   if (tab) state.activeTab = tab;
   if (!tab?.url) {
     btn.hidden = true;
-    setStatus('ui.popup.faststartUnavailable', 'Fast start: unavailable');
     return;
   }
 
@@ -261,51 +262,42 @@ export async function detectAndToggleFastStart() {
   dbg("matched:", match);
   if (!match) {
     btn.hidden = true;
-    setStatus('ui.popup.faststartUnavailable', 'Fast start: unavailable');
     return;
   }
 
   const normalizedRule = normalizeRuleForExec(match);
   if (!normalizedRule) {
     btn.hidden = true;
-    setStatus('ui.popup.faststartUnavailable', 'Fast start: unavailable');
     return;
   }
 
   btn.hidden = false;
   btn.classList.remove("hidden");
   btn.__fastRule = normalizedRule;
-  setStatus('ui.popup.faststartReady', 'Fast start: ready');
   btn.onclick = async () => {
     try {
-      setStatus('ui.popup.faststartWorking', 'Fast start: capturing…');
       const ready = await ensureContentScript(tab.id);
       if (!ready) {
         alert(t('options.faststart.noAccess', "Cannot access page. Content script isn't available."));
-        setStatus('ui.popup.faststartError', 'Fast start: error');
         return;
       }
 
       const selectedRule = btn.__fastRule || normalizeRuleForExec(match);
       if (!selectedRule) {
         alert(t('options.faststart.invalidRule', "Auto-extraction rule is not configured."));
-        setStatus('ui.popup.faststartError', 'Fast start: error');
         return;
       }
 
       if (selectedRule.strategy === 'css' && !selectedRule.selector) {
         alert(t('options.faststart.missingSelector', "Auto-extraction rule is missing a selector."));
-        setStatus('ui.popup.faststartError', 'Fast start: error');
         return;
       }
       if (selectedRule.strategy === 'chain' && (!Array.isArray(selectedRule.chain) || !selectedRule.chain.length)) {
         alert(t('options.faststart.missingChain', "Auto-extraction chain has no steps."));
-        setStatus('ui.popup.faststartError', 'Fast start: error');
         return;
       }
       if (selectedRule.strategy === 'script' && !selectedRule.script) {
         alert(t('options.faststart.missingScript', "Auto-extraction script body is empty."));
-        setStatus('ui.popup.faststartError', 'Fast start: error');
         return;
       }
 
@@ -335,7 +327,6 @@ export async function detectAndToggleFastStart() {
         }
         setProgress('', null);
         alert(t('options.faststart.failedPrefix', "Extraction failed: ") + msg);
-        setStatus('ui.popup.faststartError', 'Fast start: error');
         return;
       }
 
@@ -343,7 +334,6 @@ export async function detectAndToggleFastStart() {
       if (!text) {
         setProgress('', null);
         alert(t('options.faststart.notFound', "Nothing matched on this page."));
-        setStatus('ui.popup.faststartError', 'Fast start: error');
         return;
       }
 
@@ -352,11 +342,9 @@ export async function detectAndToggleFastStart() {
       try { chrome.storage.local.set({ lastSelection: text, lastSelectionWhen: Date.now() }); } catch {}
       setProgress(t('options.faststart.grabbed', 'Description grabbed ✔'), null, { i18nKey: 'options.faststart.grabbed' });
       setTimeout(() => setProgress('', null), 1500);
-      setStatus('ui.popup.faststartDone', 'Fast start: description captured');
     } catch (e) {
       dbg("fastStart failed:", e);
       alert(t('ui.popup.faststartFailed', 'Extraction failed. Ensure content script is injected on this page.'));
-      setStatus('ui.popup.faststartError', 'Fast start: error');
     }
   };
 }
@@ -381,12 +369,16 @@ export function wireAnalyzeButtons() {
     startTimer();
     startAnalyzeButtonTimer();
 
+    const cvInfo = getSelectedCvInfo();
+
     chrome.runtime.sendMessage({
       type: "CALL_LLM",
       payload: {
         modelId: selected.modelId,
         providerId: selected.providerId,
-        cv: state.settings.cv || "",
+        cv: cvInfo.content || "",
+        cvId: cvInfo.id || "",
+        cvTitle: cvInfo.title || "",
         systemTemplate: state.settings.systemTemplate || "",
         outputTemplate: state.settings.outputTemplate || "",
         modelSystemPrompt: selected.systemPrompt || "",

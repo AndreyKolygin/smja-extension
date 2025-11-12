@@ -128,7 +128,7 @@
       }
       @media (prefers-color-scheme: light) {
         #${MENU_ID} {
-          --menu-bg: #ffffff;
+          --menu-bg: #ffffff59;
           --menu-fg: #0f172a;
           --menu-border: rgba(15, 23, 42, 0.12);
           --menu-shadow: 0 10px 24px rgba(15, 23, 42, 0.12);
@@ -139,7 +139,7 @@
       }
       @media (prefers-color-scheme: dark) {
         #${MENU_ID} {
-          --menu-bg: #1f2937;
+          --menu-bg: #1f2937b8;
           --menu-fg: #f8fafc;
           --menu-border: rgba(148, 163, 184, 0.2);
           --menu-shadow: 0 10px 28px rgba(15, 23, 42, 0.32);
@@ -152,7 +152,7 @@
         cursor: grabbing;
       }
       #${MENU_ID} .jda-overlay-card {
-        background: #ffffff42;
+        background: var(--menu-bg);
         border-radius: 24px;
         padding: 12px 14px;
         box-shadow: var(--menu-shadow);

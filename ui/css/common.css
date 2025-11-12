@@ -209,9 +209,19 @@ textarea {
   margin: 4px 0;
   display: block;
 }
+/* .row {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+} */
+
 .row {
   margin: 0;
   display: flex;
+  gap: 6px;
+  flex-direction: row;
+  align-items: center;
 }
 
 .card {
@@ -414,6 +424,14 @@ fieldset {
 
 .i-grab {
   --icon: url("../../icons/menu-dots-svgrepo-com.svg");
+}
+
+.i-verified {
+  --icon: url("../../icons/verified-check.svg");
+}
+
+.i-notes {
+  --icon: url("../../icons/notes.svg");
 }
 
 /* Overlay switch icon */

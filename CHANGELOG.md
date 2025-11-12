@@ -4,6 +4,23 @@ All notable changes to this project will be documented in this file.
 
 The format is inspired by Keep a Changelog and this project adheres to SemVer via the extension `manifest.json` version field.
 
+## [2.3.0] - 2025-10-27
+
+### Added
+- Multi-CV storage overhaul: Options → CV & Prompts now keeps multiple resumes with drag-and-drop ordering, inline editor, and synced selection between popup and highlighter.
+- Resume selectors in popup overlay and block highlighter stay in sync with last choice, so Analyze from either UI uses the same CV text/id/title.
+- Dark/light aware styling for the highlighter menu and overlay header buttons, plus safer options button handling when the runtime context is invalidated.
+
+### Changed
+- Highlighter Analyze button adopts popup styling (icon/layout) and now honors the selected CV, system/output templates, and per-model prompts consistently.
+- CV import/export formats upgraded to persist arrays (`settings.cvs`, `activeCvId`) with migration for legacy single-string `settings.cv`.
+- README/Quickstart updated with instructions for storing multiple resumes and selecting them before analysis.
+
+### Fixed
+- Prevented “Extension context invalidated” errors when opening settings from the overlay on sites like LinkedIn.
+- Hid redundant “Fast start: unavailable” text and ensured the auto-grab button alone indicates availability.
+- Removed stale Notion CV text by wiring export to the active resume.
+
 ## [2.2.0] - 2025-10-27
 
 ### Added

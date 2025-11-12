@@ -4,6 +4,7 @@ import { renderProviders } from './options-providers.js';
 import { renderModels } from './options-models.js';
 import { renderSites } from './options-sites.js';
 import { renderIntegrations } from './options-integrations.js';
+import { initCvManager } from './options-cv.js';
 import { t } from './i18n.js';
 
 // утилита: merge массива по id, с опцией сохранить существующие (по умолчанию true)
@@ -33,6 +34,18 @@ function preserveApiKeys(mergedProviders = [], prevProviders = []) {
     }
   }
   return mergedProviders;
+}
+
+const randomCvId = () => `cv_${Math.random().toString(36).slice(2, 8)}${Date.now().toString(36)}`;
+
+function cloneCvList(list = []) {
+  return (list || []).map(cv => ({
+    id: cv?.id || randomCvId(),
+    title: cv?.title || '',
+    content: cv?.content || '',
+    updatedAt: Number.isFinite(cv?.updatedAt) ? Number(cv.updatedAt) : 0,
+    isDefault: !!cv?.isDefault
+  }));
 }
 
 async function applyImport(settings, imported, { mode = 'merge', groups = [] } = {}) {
@@ -75,17 +88,46 @@ async function applyImport(settings, imported, { mode = 'merge', groups = [] } =
     }
   }
 
-  // Prompts (cv/systemTemplate/outputTemplate)
+  // Prompts (CVs/systemTemplate/outputTemplate)
   if (want('prompts')) {
+    if (!Array.isArray(tgt.cvs)) tgt.cvs = [];
     if (mode === 'replace') {
-      tgt.cv = src.cv || '';
+      tgt.cvs = cloneCvList(src.cvs || []);
+      if ((!tgt.cvs || !tgt.cvs.length) && src.cv) {
+        tgt.cvs = [{
+          id: randomCvId(),
+          title: t('options.cv.defaultName', 'CV {{index}}').replace('{{index}}', 1),
+          content: src.cv,
+          updatedAt: Date.now(),
+          isDefault: true
+        }];
+      }
       tgt.systemTemplate = src.systemTemplate || '';
       tgt.outputTemplate = src.outputTemplate || '';
     } else {
-      // merge: заполняем только непустыми значениями
-      if (src.cv) tgt.cv = src.cv;
+      if (Array.isArray(src.cvs) && src.cvs.length) {
+        tgt.cvs = [...(tgt.cvs || []), ...cloneCvList(src.cvs)];
+      } else if (src.cv) {
+        const title = t('options.cv.defaultName', 'CV {{index}}')
+          .replace('{{index}}', (tgt.cvs?.length || 0) + 1);
+        tgt.cvs = [
+          ...(tgt.cvs || []),
+          {
+            id: randomCvId(),
+            title,
+            content: src.cv,
+            updatedAt: Date.now(),
+            isDefault: false
+          }
+        ];
+      }
       if (src.systemTemplate) tgt.systemTemplate = src.systemTemplate;
       if (src.outputTemplate) tgt.outputTemplate = src.outputTemplate;
+    }
+    if (src.activeCvId && Array.isArray(tgt.cvs) && tgt.cvs.some(cv => cv.id === src.activeCvId)) {
+      tgt.activeCvId = src.activeCvId;
+    } else if (!tgt.activeCvId && tgt.cvs?.length) {
+      tgt.activeCvId = tgt.cvs[0].id;
     }
   }
 
@@ -124,10 +166,9 @@ async function applyImport(settings, imported, { mode = 'merge', groups = [] } =
   renderModels(tgt);
   renderSites(tgt);
   renderIntegrations(tgt);
-  const cv = document.getElementById('cv');
+  initCvManager(tgt);
   const sys = document.getElementById('systemTemplate');
   const out = document.getElementById('outputTemplate');
-  if (cv) cv.value = tgt.cv || '';
   if (sys) sys.value = tgt.systemTemplate || '';
   if (out) out.value = tgt.outputTemplate || '';
 }
@@ -153,7 +194,14 @@ async function doExport(settings, { groups = [], includeProviderKeys = false, in
     out.sites = Array.isArray(src.sites) ? JSON.parse(JSON.stringify(src.sites)) : [];
   }
   if (want('cv')) {
-    out.cv = src.cv || '';
+    if (Array.isArray(src.cvs) && src.cvs.length) {
+      out.cvs = JSON.parse(JSON.stringify(src.cvs));
+      out.activeCvId = src.activeCvId || src.cvs[0]?.id || '';
+    }
+    const fallbackCv = Array.isArray(src.cvs) && src.cvs.length
+      ? src.cvs.find(cv => cv.id === (src.activeCvId || '')) || src.cvs[0]
+      : null;
+    out.cv = (fallbackCv?.content || src.cv || '');
   }
   if (want('systemTemplate')) {
     out.systemTemplate = src.systemTemplate || '';

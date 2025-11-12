@@ -11,7 +11,7 @@ JDA (Job Description Analyzer) is a Chromium-compatible browser extension that h
 - **Auto-extraction rules** — per-site strategies with CSS selectors, DOM chain groups, or custom scripts for tricky pages.
 - **Flexible prompts** — global templates plus per-model overrides with `{{GLOBAL_SYSTEM_PROMPT}}` and `{{RESULT_OUTPUT_TEMPLATE}}` tokens.
 - **Save to Notion** — configurable field mapping, optional secrets export, status defaults, and Markdown-friendly output.
-- **Import / export** — granular groups (providers, models, rules, prompts, CV, integrations) with merge or replace modes.
+- **Import / export** — granular groups (providers, models, rules, prompts, CVs, integrations) with merge or replace modes.
 
 ---
 
@@ -40,7 +40,7 @@ Open Options after installation. The extension ships with sensible defaults:
 
 Recommended first steps:
 
-1. Paste your CV under **Options → CV & Prompts**.
+1. Add your resume(s) under **Options → CV & Prompts** (store as many variants as you need).
 2. Add API keys for Gemini/OpenAI if you plan to use cloud models.
 3. Adjust the system/output templates to match your tone of voice.
 4. (Optional) Configure **Integrations → Save to Notion** if you want one-click export.
@@ -66,7 +66,7 @@ The job description and analysis persist until you clear them explicitly, so you
 - `activeTab` / `tabs` — injects the floating workspace only on the page you open.
 - `scripting` — highlights DOM blocks and runs per-site extraction rules.
 - `downloads` — saves reports to Markdown on demand.
-- `storage` — keeps your CV, prompts, settings, and API keys locally.
+- `storage` — keeps your CVs, prompts, settings, and API keys locally.
 
 Optional host permissions are requested lazily when you add a specific integration:
 

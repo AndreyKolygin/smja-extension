@@ -9,6 +9,7 @@ import { renderProviders, wireProviderModals } from './options-providers.js';
 import { renderModels, wireModelModals } from './options-models.js';
 import { renderSites, wireSitesModals } from './options-sites.js';
 import { initPrompts, setupAutosave, renameGeneralToCV, injectSingleColumnLayout } from './options-prompts.js';
+import { initCvManager } from './options-cv.js';
 import { renderIntegrations } from './options-integrations.js';
 
 import { loadLocale, applyTranslations, getSavedLang, setSavedLang, t } from './i18n.js';
@@ -129,6 +130,7 @@ export async function loadSettings() {
 
   // Промпты
   initPrompts(settings);
+  initCvManager(settings);
 
   // Таблицы
   renderProviders(settings);
@@ -150,13 +152,13 @@ export async function loadSettings() {
 
   // Save кнопка (общая)
   $id("saveBtn").addEventListener("click", async () => {
-    const cvVal = ($id("cv").value || "").trim();
-    if (!cvVal) {
-      try { $id("cv").focus(); } catch {}
-      alert(t('options.alert.cvRequired', 'CV is required. Please fill it in before saving.'));
+    const hasFilledCv = Array.isArray(settings.cvs)
+      ? settings.cvs.some(cv => (cv?.content || '').trim())
+      : false;
+    if (!hasFilledCv) {
+      alert(t('options.alert.cvRequired', 'Add at least one resume before saving.'));
       return;
     }
-    settings.cv = cvVal;
     settings.systemTemplate = $id("systemTemplate").value;
     settings.outputTemplate = $id("outputTemplate").value;
     await persistSettings(settings, { immediate: true });

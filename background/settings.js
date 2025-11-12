@@ -1,6 +1,7 @@
 // background/settings.js — работа с настройками и режимами UI
 
 import { getDefaultSettings, DEFAULTS } from '../shared/defaults.js';
+import { ensureCvList, getActiveCv } from '../shared/cv.js';
 
 export const SETTINGS_KEY = 'jdaSettings';
 
@@ -133,6 +134,8 @@ export function normalizeSettings(obj) {
     providers: [],
     models: [],
     sites: [],
+    cvs: [],
+    activeCvId: '',
     cv: '',
     systemTemplate: '',
     outputTemplate: '',
@@ -150,6 +153,13 @@ export function normalizeSettings(obj) {
 
   if (!s.integrations || typeof s.integrations !== 'object') s.integrations = {};
   s.integrations.notion = normalizeNotionSettings(s.integrations.notion);
+
+  const legacyCv = typeof s.cv === 'string' ? s.cv : '';
+  const cvs = ensureCvList(s.cvs, { legacyText: legacyCv });
+  const { active, activeId } = getActiveCv(cvs, s.activeCvId);
+  s.cvs = cvs;
+  s.activeCvId = activeId;
+  s.cv = active?.content || '';
 
   return s;
 }

@@ -29,34 +29,27 @@ body {
 }
 .container {
   /* background: var(--bg); */
-  width: 100%;
+  /* width: 100%; */
+  width: 300px;
   display: flex;
-  flex-direction: row;
+  flex-direction: column;
   justify-content: flex-start;
-  align-items: center;
+  align-items: stretch;
 }
+
+/* .header {
+  position: relative;
+  width: 100%;
+} */
 
 .header {
+  position: relative;
+  /* width: 100%; */
   display: flex;
-  /* gap: 8px; */
-  /* align-items: center; */
-  flex-direction: row;
-  justify-content: space-around;
-  flex-wrap: nowrap;
+  justify-content: flex-end;
+  padding: 5px;
 }
 
-.menu {
-  cursor: pointer;
-  background: transparent;
-  border: 1px solid var(--border);
-  color: var(--text);
-  border-radius: 8px;
-  padding: 10px 10px;
-  position: absolute;
-  margin: 4px;
-  top: 0px;
-  right: 8px;
-}
 .row.highligter {
   display: flex;
   flex-direction: row;
@@ -72,11 +65,35 @@ body {
   align-items: stretch;
   padding-bottom: 16px;
   overflow: auto;
-  gap: 12px;
+  gap: 5px;
 }
 .select {
   cursor: pointer;
-  width: 83vw;
+  width: 100%;
+}
+
+.selectors {
+  width: 100%;
+  padding: 0 12px 8px;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.select-row {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.select-row .select {
+  flex: 1 1 auto;
+}
+.select-label {
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  /* color: var(--muted); */
+  min-width: 30px;
 }
 .popup-label {
   color: var(--text);
@@ -153,7 +170,7 @@ body {
   border: 1px solid var(--border);
   border-radius: 12px;
   padding: 14px;
-  min-height: 140px;
+  min-height: 170px;
   max-height: 70vh; /* не выезжает за экран */
   white-space: pre-line; /* скролл, если много текста */
   overflow: auto;
