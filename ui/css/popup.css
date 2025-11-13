@@ -123,15 +123,6 @@ body {
   min-height: 16px;
 }
 .footer {
-  /* display: flex;
-  gap: 12px;
-  justify-content: space-between;
-  margin-top: auto;
-  position: sticky;
-  bottom: 0;
-  padding: 12px 0 8px;
-  background: linear-gradient(180deg, rgba(248, 250, 252, 0) 0%, rgba(248, 250, 252, 0.92) 55%);
-  backdrop-filter: blur(8px); */
   display: flex;
   gap: 12px;
   justify-content: space-around;
@@ -169,7 +160,7 @@ body {
   background: var(--panel);
   border: 1px solid var(--border);
   border-radius: 12px;
-  padding: 14px;
+  padding: 5px 10px;
   min-height: 170px;
   max-height: 70vh; /* не выезжает за экран */
   white-space: pre-line; /* скролл, если много текста */
@@ -178,27 +169,28 @@ body {
 
 /* простая «prose»-типографика */
 .prose {
-  line-height: 1.55;
+  line-height: 1.2;
 }
 .prose h1,
 .prose h2,
 .prose h3 {
-  margin: 0.7em 0 -1em;
+  /* margin: 0.7em 0 -1em; */
+  margin: 0.4em 0 -1.1em;
 }
 .prose h1 {
-  font-size: 18px;
+  font-size: 15px;
   font-weight: 600;
 }
 .prose h2 {
-  font-size: 16px;
+  font-size: 13px;
   font-weight: 600;
 }
 .prose h3 {
-  font-size: 14px;
+  font-size: 11px;
   font-weight: 500;
 }
 .prose h4 {
-  font-size: 12px;
+  font-size: 10px;
   font-weight: 400;
 }
 .prose p {
@@ -206,10 +198,12 @@ body {
 }
 .prose ul,
 .prose ol {
-  margin: 0.45em 0 0.45em 1em;
+  /* margin: 0.45em 0 0.45em 1em; */
+  margin: 0 0.25em 0 0;
 }
 .prose li {
-  margin: 0.2em 0;
+  margin: 0.7em 0;
+  /* margin: 1em 0; */
 }
 .prose code {
   background: rgba(255, 255, 255, 0.06);

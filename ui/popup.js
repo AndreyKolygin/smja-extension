@@ -118,7 +118,7 @@ async function init() {
           <div class="select hidden" aria-hidden="true"></div>
           <button id="menu" data-i18n="ui.menu.options" class="menu" title="Settings" data-i18n-attr-title="ui.menu.optionsMenu" >☰</button>
         </div>
-        <div class="row">
+        <div class="row_popup">
           <p class="muted" data-i18n="ui.popup.warning">Content cannot be analyzed.</p>
           <p class="muted" data-i18n="ui.popup.warning2">Only http and https URLs are supported.</p>
         </div>

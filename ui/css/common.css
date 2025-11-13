@@ -209,12 +209,12 @@ textarea {
   margin: 4px 0;
   display: block;
 }
-/* .row {
+.row_popup {
   margin: 0;
   display: flex;
   flex-direction: column;
   align-items: center;
-} */
+}
 
 .row {
   margin: 0;

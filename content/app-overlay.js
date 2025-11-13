@@ -408,8 +408,8 @@
       </div>
     `;
 
-    container.style.top = '24px';
-    container.style.right = '24px';
+    container.style.top = '5px';
+    container.style.right = '15px';
     container.style.left = 'auto';
     container.style.transform = 'none';
 
