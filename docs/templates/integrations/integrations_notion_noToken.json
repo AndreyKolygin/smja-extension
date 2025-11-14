@@ -1,0 +1,67 @@
+{
+  "integrations": {
+    "notion": {
+      "enabled": true,
+      "token": "",
+      "databaseId": "3a051b1940ac4f10a4d079b1bfee77b8",
+      "fields": [
+        {
+          "id": "nf_bamekuzfsad",
+          "label": "Company",
+          "propertyName": "Company",
+          "propertyType": "title",
+          "source": "analysis",
+          "staticValue": "- Компания:"
+        },
+        {
+          "id": "nf_2v66jn4p5o",
+          "label": "Role",
+          "propertyName": "Role",
+          "propertyType": "rich_text",
+          "source": "analysis",
+          "staticValue": "- Должность из описания:"
+        },
+        {
+          "id": "nf_kj2fjjsos5o",
+          "label": "Date ap",
+          "propertyName": "Date ap",
+          "propertyType": "date",
+          "source": "timestamp",
+          "staticValue": ""
+        },
+        {
+          "id": "nf_41ttoj2gtez",
+          "label": "URL",
+          "propertyName": "URL",
+          "propertyType": "url",
+          "source": "url",
+          "staticValue": ""
+        },
+        {
+          "id": "nf_ovx98u7rh1",
+          "label": "Salary",
+          "propertyName": "Salary",
+          "propertyType": "rich_text",
+          "source": "analysis",
+          "staticValue": "- Зарплата:"
+        },
+        {
+          "id": "nf_pgr9vbv7oq",
+          "label": "Note",
+          "propertyName": "Note",
+          "propertyType": "rich_text",
+          "source": "analysis",
+          "staticValue": "- Совпадение (1–100%):"
+        },
+        {
+          "id": "nf_x5obz8hndlt",
+          "label": "Status",
+          "propertyName": "Status",
+          "propertyType": "status",
+          "source": "custom",
+          "staticValue": "Applied"
+        }
+      ]
+    }
+  }
+}

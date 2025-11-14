@@ -1,0 +1,16 @@
+{
+  "sites": [
+    {
+      "id": "site_infostud_default",
+      "host": "https://poslovi.infostud.com/posao/*",
+      "strategy": "css",
+      "selector": "header.ogl-header.uk-position-relative,  [id=\"__fastedit_html_oglas\"]",
+      "comment": "Infostud RS",
+      "active": true,
+      "chain": [],
+      "chainGroups": [],
+      "script": "",
+      "chainSequential": false
+    }
+  ]
+}

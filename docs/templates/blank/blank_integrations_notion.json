@@ -1,0 +1,19 @@
+{
+  "integrations": {
+    "notion": {
+      "enabled": false,
+      "token": "",
+      "databaseId": "",
+      "fields": [
+        {
+          "id": "notion_field_title",
+          "label": "Result title",
+          "propertyName": "",
+          "propertyType": "title",
+          "source": "analysis",
+          "staticValue": ""
+        }
+      ]
+    }
+  }
+}

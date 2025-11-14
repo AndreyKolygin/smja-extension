@@ -1,0 +1,3 @@
+{
+  "outputTemplate": "# Keyword Matching (JD ↔ CV)\n\n## Summary\n- Total keywords in JD: ...\n- Found in CV: ...\n- Match rate: ...%\n\n## Match Table\n| Keyword | Found in CV | Evidence (excerpt) | Relevance (1–5) |\n|---------|-------------|--------------------|------------------|\n| ... | Yes/No | \"…\" | ... |\n| ... | Yes/No | \"…\" | ... |\n\n## Conclusion\n- ...\n\n## Recommendations\n- ..."
+}

@@ -1,0 +1,22 @@
+{
+  "providers": [
+    {
+      "id": "prov_ollama",
+      "name": "Ollama Local",
+      "type": "ollama",
+      "baseUrl": "http://localhost:11434",
+      "apiKey": "",
+      "timeoutMs": 120000
+    }
+  ],
+  "models": [
+    {
+      "id": "model_ollama_default",
+      "displayName": "Ollama (default)",
+      "modelId": "llama3.1:8b-instruct",
+      "providerId": "prov_ollama",
+      "active": true,
+      "systemPrompt": ""
+    }
+  ]
+}

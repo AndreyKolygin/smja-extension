@@ -384,7 +384,7 @@
       </label>
       <label class="row">
         <input type="radio" name="importMode" value="replace">
-        <span data-i18n="options.import.mode.replace">Replace selected groups</span>
+        <span data-i18n="options.import.mode.replace">Replace data</span>
       </label>
     </fieldset>
 
@@ -403,8 +403,16 @@
         <span data-i18n="options.section.rules">Auto-extraction Rules</span>
       </label>
       <label class="row">
-        <input type="checkbox" name="grp" value="prompts" checked>
-        <span data-i18n="options.section.prompts">CV and Templates</span>
+        <input type="checkbox" name="grp" value="cvs" checked>
+        <span data-i18n="options.import.cvs">CVs</span>
+      </label>
+      <label class="row">
+        <input type="checkbox" name="grp" value="systemTemplate" checked>
+        <span data-i18n="options.title.systemPromptTempl">System Prompt Template</span>
+      </label>
+      <label class="row">
+        <input type="checkbox" name="grp" value="outputTemplate" checked>
+        <span data-i18n="options.title.resultOutpTempl">Result Output Template</span>
       </label>
       <label class="row">
         <input type="checkbox" name="grp" value="integrations" checked>

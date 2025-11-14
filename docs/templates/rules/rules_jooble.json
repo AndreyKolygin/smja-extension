@@ -1,0 +1,16 @@
+{
+  "sites": [
+    {
+      "id": "site_jooble_rs",
+      "host": "https://rs.jooble.org/desc/?",
+      "strategy": "css",
+      "selector": "div.etPzwI._3wvLN9",
+      "comment": "Jooble RS",
+      "active": true,
+      "chain": [],
+      "chainGroups": [],
+      "script": "",
+      "chainSequential": false
+    }
+  ]
+}

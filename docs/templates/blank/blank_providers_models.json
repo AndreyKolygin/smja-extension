@@ -1,0 +1,22 @@
+{
+  "providers": [
+    {
+      "id": "prov_example",
+      "name": "Provider name",
+      "type": "openai",
+      "baseUrl": "https://api.example.com/v1",
+      "apiKey": "",
+      "timeoutMs": 120000
+    }
+  ],
+  "models": [
+    {
+      "id": "model_example",
+      "displayName": "Model display name",
+      "modelId": "model-identifier",
+      "providerId": "prov_example",
+      "active": true,
+      "systemPrompt": ""
+    }
+  ]
+}
