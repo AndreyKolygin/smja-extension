@@ -1,0 +1,64 @@
+{
+  "sites": [
+    {
+      "id": "site_linkedin_collections",
+      "host": "https://www.linkedin.com/jobs/collections/*",
+      "strategy": "css",
+      "selector": ".job-details-jobs-unified-top-card__company-name, \nH1.t-24.t-bold.inline, span.tvm__text.tvm__text--low-emphasis,\n.job-details-about-the-job-module__description",
+      "comment": "LinkedIn jobs (collections)",
+      "active": true,
+      "chain": [],
+      "chainGroups": [],
+      "script": "",
+      "chainSequential": false
+    },
+    {
+      "id": "site_linkedin_view",
+      "host": "https://www.linkedin.com/jobs/view*",
+      "strategy": "chain",
+      "selector": "",
+      "comment": "LinkedIn job view",
+      "active": true,
+      "chain": [
+        { "selector": "div[data-testid=\"lazy-column\"]", "text": "", "nth": 1 },
+        { "selector": "p", "text": "", "nth": 2 },
+        { "selector": "p", "text": "", "nth": 3 },
+        { "selector": "span[data-testid=\"expandable-text-box\"]", "text": "", "nth": null }
+      ],
+      "chainGroups": [
+        {
+          "id": "cg_linkedin_headers",
+          "label": "Заголовки",
+          "active": true,
+          "steps": [
+            { "selector": "div[data-testid=\"lazy-column\"]", "text": "", "nth": 1 },
+            { "selector": "p", "text": "", "nth": 2 },
+            { "selector": "p", "text": "", "nth": 3 }
+          ]
+        },
+        {
+          "id": "cg_linkedin_description",
+          "label": "Описание",
+          "active": true,
+          "steps": [
+            { "selector": "span[data-testid=\"expandable-text-box\"]", "text": "", "nth": null }
+          ]
+        }
+      ],
+      "script": "",
+      "chainSequential": true
+    },
+    {
+      "id": "site_linkedin_search",
+      "host": "https://www.linkedin.com/jobs/search/*",
+      "strategy": "css",
+      "selector": "div.job-details-jobs-unified-top-card__company-name, \n\ndiv.t-24.job-details-jobs-unified-top-card__job-title,\n\ndiv.job-details-about-the-job-module__description,",
+      "comment": "LinkedIn job search",
+      "active": true,
+      "chain": [],
+      "chainGroups": [],
+      "script": "",
+      "chainSequential": false
+    }
+  ]
+}

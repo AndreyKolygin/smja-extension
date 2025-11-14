@@ -1,0 +1,12 @@
+{
+  "cvs": [
+    {
+      "id": "cv_example",
+      "title": "My Resume",
+      "content": "# Candidate\nSummary here...",
+      "updatedAt": 0,
+      "isDefault": true
+    }
+  ],
+  "activeCvId": "cv_example"
+}

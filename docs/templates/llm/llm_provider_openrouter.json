@@ -1,0 +1,62 @@
+{
+  "providers": [
+    {
+      "id": "prov_openrouter",
+      "name": "OpenRouter",
+      "type": "openrouter",
+      "baseUrl": "https://openrouter.ai/api/v1",
+      "apiKey": "",
+      "timeoutMs": 120000
+    }
+  ],
+  "models": [
+    {
+      "id": "model_or_gpt_oss_20b",
+      "displayName": "gpt-oss-20b (free)",
+      "modelId": "gpt-oss-20b:free",
+      "providerId": "prov_openrouter",
+      "active": true,
+      "systemPrompt": ""
+    },
+    {
+      "id": "model_or_gemma3_27b",
+      "displayName": "Gemma 3 27B (free)",
+      "modelId": "google/gemma-3-27b-it:free",
+      "providerId": "prov_openrouter",
+      "active": true,
+      "systemPrompt": ""
+    },
+    {
+      "id": "model_or_minimax_m2",
+      "displayName": "MiniMax M2 (free)",
+      "modelId": "minimax/minimax-m2:free",
+      "providerId": "prov_openrouter",
+      "active": true,
+      "systemPrompt": ""
+    },
+    {
+      "id": "model_or_deepseek_chat_v31",
+      "displayName": "DeepSeek V3.1 (free)",
+      "modelId": "deepseek/deepseek-chat-v3.1:free",
+      "providerId": "prov_openrouter",
+      "active": true,
+      "systemPrompt": ""
+    },
+    {
+      "id": "model_or_deepseek_r1t2_chimera",
+      "displayName": "DeepSeek R1T2 Chimera",
+      "modelId": "tngtech/deepseek-r1t2-chimera:free",
+      "providerId": "prov_openrouter",
+      "active": true,
+      "systemPrompt": ""
+    },
+    {
+      "id": "model_or_deepseek_r1_0528",
+      "displayName": "DeepSeek R1 0528",
+      "modelId": "deepseek/deepseek-r1-0528:free",
+      "providerId": "prov_openrouter",
+      "active": true,
+      "systemPrompt": ""
+    }
+  ]
+}

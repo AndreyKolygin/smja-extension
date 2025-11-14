@@ -1,0 +1,3 @@
+{
+  "outputTemplate": "# Job match analysis\n- Match (1–100%): ...\n- Overall summary: ...\n\n## Key matches\n- ...\n- ...\n\n## Critical gaps\n- ...\n- ...\n\n## Recommendations to candidate\n- ...\n- ..."
+}

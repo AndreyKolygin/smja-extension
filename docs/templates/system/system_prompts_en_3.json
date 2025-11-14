@@ -1,0 +1,3 @@
+{
+  "systemTemplate": "Do not use GLOBAL_SYSTEM_PROMPT or RESULT_OUTPUT_TEMPLATE. You receive a JD and a CV. Extract language requirements from the JD (languages and levels) and compare them with languages and levels in the CV. Return a very short text listing languages from the JD, their required levels, and whether each one matches the CV or there is a critical mismatch."
+}

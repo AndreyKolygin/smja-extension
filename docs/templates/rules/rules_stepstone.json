@@ -1,0 +1,16 @@
+{
+  "sites": [
+    {
+      "id": "site_stepstone_default",
+      "host": "www.stepstone.de/jobs--*",
+      "strategy": "css",
+      "selector": "span[data-at=\"metadata-company-name\"], \nh1[data-at=\"header-job-title\"],\n*[data-at=\"metadata-location\"],\nspan[data-at=\"salary-range\"],\ndiv[data-at=\"job-ad-content\"]",
+      "comment": "Stepstone jobs",
+      "active": true,
+      "chain": [],
+      "chainGroups": [],
+      "script": "",
+      "chainSequential": false
+    }
+  ]
+}

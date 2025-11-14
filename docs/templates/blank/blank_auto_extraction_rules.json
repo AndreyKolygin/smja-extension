@@ -1,0 +1,16 @@
+{
+  "sites": [
+    {
+      "id": "site_example",
+      "host": "https://example.com/jobs/*",
+      "strategy": "css",
+      "selector": "div.job-description",
+      "comment": "Example site rule",
+      "active": true,
+      "chain": [],
+      "chainGroups": [],
+      "script": "",
+      "chainSequential": false
+    }
+  ]
+}

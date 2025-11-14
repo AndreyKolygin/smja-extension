@@ -1,0 +1,28 @@
+{
+  "sites": [
+    {
+      "id": "site_glassdoor_de_index",
+      "host": "https://www.glassdoor.de/Job/index.htm",
+      "strategy": "css",
+      "selector": "header.JobDetails_jobDetailsHeaderWrapper__JlXWG, div.JobDetails_jobDescription__uW_fK.JobDetails_showHidden__C_FOA, div.SalaryEstimate_salaryEstimateContainer__GkgnI",
+      "comment": "Glassdoor DE index",
+      "active": true,
+      "chain": [],
+      "chainGroups": [],
+      "script": "",
+      "chainSequential": false
+    },
+    {
+      "id": "site_glassdoor_job_listing",
+      "host": "*.glassdoor.com/job-listing/*",
+      "strategy": "css",
+      "selector": "h4.heading_Heading__aomVx.heading_Subhead__jiUbT, h1.heading_Heading__aomVx.heading_Level1__w42c9, div.JobDetails_jobDescription__uW_fK.JobDetails_showHidden__C_FOA",
+      "comment": "Glassdoor job listing",
+      "active": true,
+      "chain": [],
+      "chainGroups": [],
+      "script": "",
+      "chainSequential": false
+    }
+  ]
+}

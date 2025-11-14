@@ -4,6 +4,18 @@ All notable changes to this project will be documented in this file.
 
 The format is inspired by Keep a Changelog and this project adheres to SemVer via the extension `manifest.json` version field.
 
+## [2.3.1] - 2025-10-27
+
+### Added
+- Template blanks under `docs/templates/**/blank_*.json` for providers/models, models-only, auto-extraction rules, CVs, system prompts, output templates, and Notion integrations.
+
+### Changed
+- Import dialog now splits “CV & Prompts” into dedicated groups (CVs, System Prompt Template, Result Output Template) so users can import only the desired piece of data.
+- System/output templates respect `Replace data` even when importing empty strings; Groups to import only apply to sections present in the JSON.
+
+### Fixed
+- System Prompt Template and Result Output Template are properly replaced when importing JSON that contains these keys, even in “Replace data” mode.
+
 ## [2.3.0] - 2025-10-27
 
 ### Added

@@ -1,0 +1,16 @@
+{
+  "sites": [
+    {
+      "id": "site_indeed_default",
+      "host": "/https?:\\/\\/[^\\/]*indeed\\.[^\\/]+//i",
+      "strategy": "css",
+      "selector": ".jobsearch-JobInfoHeader-title-container, [data-testid=\"jobsearch-CompanyInfoContainer\"], #jobDescriptionText, .jobsearch-jobDescriptionText",
+      "comment": "Indeed job description",
+      "active": true,
+      "chain": [],
+      "chainGroups": [],
+      "script": "",
+      "chainSequential": false
+    }
+  ]
+}

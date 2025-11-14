@@ -49,13 +49,26 @@ function cloneCvList(list = []) {
 }
 
 async function applyImport(settings, imported, { mode = 'merge', groups = [] } = {}) {
+  const raw = imported || {};
   const src = getNormalizedSettings(imported);
   const tgt = settings;
 
-  const want = (g) => groups.length === 0 || groups.includes(g);
+  const hasProviders = Array.isArray(raw?.providers);
+  const hasModels = Array.isArray(raw?.models);
+  const hasSites = Array.isArray(raw?.sites);
+  const hasCvs = Array.isArray(raw?.cvs) || typeof raw?.cv === 'string';
+  const hasSystemTemplate = Object.prototype.hasOwnProperty.call(raw, 'systemTemplate');
+  const hasOutputTemplate = Object.prototype.hasOwnProperty.call(raw, 'outputTemplate');
+  const hasIntegrations = raw?.integrations && Object.keys(raw.integrations).length > 0;
+
+  const want = (g, present) => {
+    const groupSelected = groups.length === 0 || groups.includes(g);
+    if (!groupSelected) return false;
+    return present;
+  };
 
   // Providers
-  if (want('providers')) {
+  if (want('providers', hasProviders)) {
     if (mode === 'replace') {
       tgt.providers = preserveApiKeys(src.providers || [], []);
     } else {
@@ -71,7 +84,7 @@ async function applyImport(settings, imported, { mode = 'merge', groups = [] } =
   }
 
   // Models
-  if (want('models')) {
+  if (want('models', hasModels)) {
     if (mode === 'replace') {
       tgt.models = src.models || [];
     } else {
@@ -80,7 +93,7 @@ async function applyImport(settings, imported, { mode = 'merge', groups = [] } =
   }
 
   // Sites (auto-extract rules)
-  if (want('sites')) {
+  if (want('sites', hasSites)) {
     if (mode === 'replace') {
       tgt.sites = src.sites || [];
     } else {
@@ -89,9 +102,9 @@ async function applyImport(settings, imported, { mode = 'merge', groups = [] } =
   }
 
   // Prompts (CVs/systemTemplate/outputTemplate)
-  if (want('prompts')) {
+  if (want('cvs', hasCvs)) {
     if (!Array.isArray(tgt.cvs)) tgt.cvs = [];
-    if (mode === 'replace') {
+    if (mode === 'replace' && (Array.isArray(src.cvs) && src.cvs.length)) {
       tgt.cvs = cloneCvList(src.cvs || []);
       if ((!tgt.cvs || !tgt.cvs.length) && src.cv) {
         tgt.cvs = [{
@@ -102,9 +115,7 @@ async function applyImport(settings, imported, { mode = 'merge', groups = [] } =
           isDefault: true
         }];
       }
-      tgt.systemTemplate = src.systemTemplate || '';
-      tgt.outputTemplate = src.outputTemplate || '';
-    } else {
+    } else if ((Array.isArray(src.cvs) && src.cvs.length) || src.cv) {
       if (Array.isArray(src.cvs) && src.cvs.length) {
         tgt.cvs = [...(tgt.cvs || []), ...cloneCvList(src.cvs)];
       } else if (src.cv) {
@@ -121,8 +132,6 @@ async function applyImport(settings, imported, { mode = 'merge', groups = [] } =
           }
         ];
       }
-      if (src.systemTemplate) tgt.systemTemplate = src.systemTemplate;
-      if (src.outputTemplate) tgt.outputTemplate = src.outputTemplate;
     }
     if (src.activeCvId && Array.isArray(tgt.cvs) && tgt.cvs.some(cv => cv.id === src.activeCvId)) {
       tgt.activeCvId = src.activeCvId;
@@ -131,7 +140,23 @@ async function applyImport(settings, imported, { mode = 'merge', groups = [] } =
     }
   }
 
-  if (want('integrations')) {
+  if (want('systemTemplate', hasSystemTemplate)) {
+    if (mode === 'replace') {
+      tgt.systemTemplate = typeof raw.systemTemplate === 'string' ? raw.systemTemplate : '';
+    } else if (typeof raw.systemTemplate === 'string') {
+      tgt.systemTemplate = raw.systemTemplate;
+    }
+  }
+
+  if (want('outputTemplate', hasOutputTemplate)) {
+    if (mode === 'replace') {
+      tgt.outputTemplate = typeof raw.outputTemplate === 'string' ? raw.outputTemplate : '';
+    } else if (typeof raw.outputTemplate === 'string') {
+      tgt.outputTemplate = raw.outputTemplate;
+    }
+  }
+
+  if (want('integrations', hasIntegrations)) {
     const srcIntegr = src.integrations || {};
     if (!tgt.integrations) tgt.integrations = {};
     const srcNotion = srcIntegr.notion && typeof srcIntegr.notion === 'object' ? srcIntegr.notion : null;
