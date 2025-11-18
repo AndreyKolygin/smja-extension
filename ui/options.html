@@ -6,9 +6,27 @@
   <link rel="stylesheet" href="./css/options.css">
   <title>JDA — Settings</title>
 </head>
-<body>
-  <div class="options container ">
-    <h1 data-i18n="ui.app.title">Job description Analyzer — Settings</h1>
+<body class="options-page single-column theme-landing">
+  <div class="theme-landing-backdrop" aria-hidden="true">
+    <div class="theme-landing-backdrop__grid"></div>
+    <div class="theme-landing-backdrop__glow"></div>
+  </div>
+  <div class="options container options-shell">
+    <header class="options-hero">
+      <div class="options-meta">
+        <span class="options-version">
+          <span class="options-version__label">v</span>
+          <span class="options-version__value" id="version">–</span>
+        </span>
+      </div>
+      <h1 data-i18n="ui.app.title">Job description Analyzer — Settings</h1>
+      <p class="options-hero__lead" data-i18n="options.hero.lead"></p>
+      <nav class="options-hero__links" aria-label="Landing sections">
+        <button type="button" class="link-chip" data-open-url="https://jda.kolygin.com/#features">Features</button>
+        <button type="button" class="link-chip" data-open-url="https://jda.kolygin.com/#workflow">Workflow</button>
+        <button type="button" class="link-chip" data-open-url="https://jda.kolygin.com/#templates">Templates</button>
+      </nav>
+    </header>
     <div class="grid mt-16">
       <div class="tabs" id="optionsTabs" role="tablist">
         <button class="tab-button active" data-tab="llm" role="tab" aria-selected="true" data-i18n="options.tabs.llm">LLM Settings</button>
@@ -17,6 +35,7 @@
         <button class="tab-button" data-tab="integrations" role="tab" aria-selected="false" tabindex="-1" data-i18n="options.tabs.integrations">Integrations</button>
         <button class="tab-button" data-tab="lang" role="tab" aria-selected="false" tabindex="-1" data-i18n="options.tabs.langIO">Lang &amp; I/O settings</button>
       </div>
+      
 
       <div class="tab-panels">
         <section class="tab-panel active" data-tab="llm" role="tabpanel">
@@ -140,9 +159,14 @@
           <div class="card glass card_integrations">
             <h2 data-i18n="options.integrations.title">Integrations</h2>
             <div class="form-row switch-row">
-              <label for="notionEnabled">
-                <input type="checkbox" id="notionEnabled" />
-                <span data-i18n="options.integrations.notion.enable">Enable “Save to Notion” button</span>
+              <label for="notionEnabled" class="toggle">
+                <span class="toggle__text" data-i18n="options.integrations.notion.enable">Enable “Save to Notion” button</span>
+                <span class="toggle__control">
+                  <input type="checkbox" id="notionEnabled" class="toggle__input" />
+                  <span class="toggle__track" aria-hidden="true">
+                    <span class="toggle__thumb"></span>
+                  </span>
+                </span>
               </label>
             </div>
             <div id="notionSettings" class="notion-settings hidden">
@@ -347,7 +371,15 @@
       </div>
 
       <div class="form-row">
-        <label><input type="checkbox" id="siteActive" checked> <span data-i18n="options.tbl.active">Active</span></label>
+        <label class="toggle toggle--inline">
+          <span class="toggle__text" data-i18n="options.tbl.active">Active</span>
+          <span class="toggle__control">
+            <input type="checkbox" id="siteActive" class="toggle__input" checked>
+            <span class="toggle__track" aria-hidden="true">
+              <span class="toggle__thumb"></span>
+            </span>
+          </span>
+        </label>
       </div>
 
       <menu>
@@ -390,33 +422,68 @@
 
     <fieldset class="mt-12 fieldset-column">
       <legend data-i18n="options.import.groups">Groups to import</legend>
-      <label class="row">
-        <input type="checkbox" name="grp" value="providers" checked>
-        <span data-i18n="options.section.llm">Providers and models</span>
+      <label class="toggle toggle--inline">
+        <span class="toggle__text" data-i18n="options.section.llm">Providers and models</span>
+        <span class="toggle__control">
+          <input type="checkbox" name="grp" value="providers" class="toggle__input" checked>
+          <span class="toggle__track" aria-hidden="true">
+            <span class="toggle__thumb"></span>
+          </span>
+        </span>
       </label>
-      <label class="row">
-        <input type="checkbox" name="grp" value="models" checked>
-        <span data-i18n="options.title.models">Models</span>
+      <label class="toggle toggle--inline">
+        <span class="toggle__text" data-i18n="options.title.models">Models</span>
+        <span class="toggle__control">
+          <input type="checkbox" name="grp" value="models" class="toggle__input" checked>
+          <span class="toggle__track" aria-hidden="true">
+            <span class="toggle__thumb"></span>
+          </span>
+        </span>
       </label>
-      <label class="row">
-        <input type="checkbox" name="grp" value="sites" checked>
-        <span data-i18n="options.section.rules">Auto-extraction Rules</span>
+      <label class="toggle toggle--inline">
+        <span class="toggle__text" data-i18n="options.section.rules">Auto-extraction Rules</span>
+        <span class="toggle__control">
+          <input type="checkbox" name="grp" value="sites" class="toggle__input" checked>
+          <span class="toggle__track" aria-hidden="true">
+            <span class="toggle__thumb"></span>
+          </span>
+        </span>
       </label>
-      <label class="row">
-        <input type="checkbox" name="grp" value="cvs" checked>
-        <span data-i18n="options.import.cvs">CVs</span>
+      <label class="toggle toggle--inline">
+        <span class="toggle__text" data-i18n="options.import.cvs">CVs</span>
+        <span class="toggle__control">
+          <input type="checkbox" name="grp" value="cvs" class="toggle__input" checked>
+          <span class="toggle__track" aria-hidden="true">
+            <span class="toggle__thumb"></span>
+          </span>
+        </span>
       </label>
-      <label class="row">
-        <input type="checkbox" name="grp" value="systemTemplate" checked>
-        <span data-i18n="options.title.systemPromptTempl">System Prompt Template</span>
+      <label class="toggle toggle--inline">
+        <span class="toggle__text" data-i18n="options.title.systemPromptTempl">System Prompt Template</span>
+        <span class="toggle__control">
+          <input type="checkbox" name="grp" value="systemTemplate" class="toggle__input" checked>
+          <span class="toggle__track" aria-hidden="true">
+            <span class="toggle__thumb"></span>
+          </span>
+        </span>
       </label>
-      <label class="row">
-        <input type="checkbox" name="grp" value="outputTemplate" checked>
-        <span data-i18n="options.title.resultOutpTempl">Result Output Template</span>
+      <label class="toggle toggle--inline">
+        <span class="toggle__text" data-i18n="options.title.resultOutpTempl">Result Output Template</span>
+        <span class="toggle__control">
+          <input type="checkbox" name="grp" value="outputTemplate" class="toggle__input" checked>
+          <span class="toggle__track" aria-hidden="true">
+            <span class="toggle__thumb"></span>
+          </span>
+        </span>
       </label>
-      <label class="row">
-        <input type="checkbox" name="grp" value="integrations" checked>
-        <span data-i18n="options.import.integrations">Integrations (Notion)</span>
+      <label class="toggle toggle--inline">
+        <span class="toggle__text" data-i18n="options.import.integrations">Integrations (Notion)</span>
+        <span class="toggle__control">
+          <input type="checkbox" name="grp" value="integrations" class="toggle__input" checked>
+          <span class="toggle__track" aria-hidden="true">
+            <span class="toggle__thumb"></span>
+          </span>
+        </span>
       </label>
     </fieldset>
 
@@ -452,41 +519,86 @@
 
       <fieldset class="mt-12 fieldset-column">
         <legend data-i18n="options.export.groups">Groups to export</legend>
-        <label class="row">
-          <input type="checkbox" name="exgrp" value="providers" checked>
-          <span data-i18n="options.export.providers">Provider Settings</span>
+        <label class="toggle toggle--inline">
+          <span class="toggle__text" data-i18n="options.export.providers">Provider Settings</span>
+          <span class="toggle__control">
+            <input type="checkbox" name="exgrp" value="providers" class="toggle__input" checked>
+            <span class="toggle__track" aria-hidden="true">
+              <span class="toggle__thumb"></span>
+            </span>
+          </span>
         </label>
-        <label class="row">
-          <input type="checkbox" name="exprovkeys" id="exprovkeys">
-          <span data-i18n="options.export.providersKeys">Include API keys</span>
+        <label class="toggle toggle--inline">
+          <span class="toggle__text" data-i18n="options.export.providersKeys">Include API keys</span>
+          <span class="toggle__control">
+            <input type="checkbox" name="exprovkeys" id="exprovkeys" class="toggle__input">
+            <span class="toggle__track" aria-hidden="true">
+              <span class="toggle__thumb"></span>
+            </span>
+          </span>
         </label>
-        <label class="row">
-          <input type="checkbox" name="exgrp" value="models" checked>
-          <span data-i18n="options.export.models">Models</span>
+        <label class="toggle toggle--inline">
+          <span class="toggle__text" data-i18n="options.export.models">Models</span>
+          <span class="toggle__control">
+            <input type="checkbox" name="exgrp" value="models" class="toggle__input" checked>
+            <span class="toggle__track" aria-hidden="true">
+              <span class="toggle__thumb"></span>
+            </span>
+          </span>
         </label>
-        <label class="row">
-          <input type="checkbox" name="exgrp" value="sites" checked>
-          <span data-i18n="options.export.sites">Auto-extraction Rules</span>
+        <label class="toggle toggle--inline">
+          <span class="toggle__text" data-i18n="options.export.sites">Auto-extraction Rules</span>
+          <span class="toggle__control">
+            <input type="checkbox" name="exgrp" value="sites" class="toggle__input" checked>
+            <span class="toggle__track" aria-hidden="true">
+              <span class="toggle__thumb"></span>
+            </span>
+          </span>
         </label>
-        <label class="row">
-          <input type="checkbox" name="exgrp" value="cv" checked>
-          <span data-i18n="options.export.cv">CV</span>
+        <label class="toggle toggle--inline">
+          <span class="toggle__text" data-i18n="options.export.cv">CV</span>
+          <span class="toggle__control">
+            <input type="checkbox" name="exgrp" value="cv" class="toggle__input" checked>
+            <span class="toggle__track" aria-hidden="true">
+              <span class="toggle__thumb"></span>
+            </span>
+          </span>
         </label>
-        <label class="row">
-          <input type="checkbox" name="exgrp" value="systemTemplate" checked>
-          <span data-i18n="options.export.system">System Prompt Template</span>
+        <label class="toggle toggle--inline">
+          <span class="toggle__text" data-i18n="options.export.system">System Prompt Template</span>
+          <span class="toggle__control">
+            <input type="checkbox" name="exgrp" value="systemTemplate" class="toggle__input" checked>
+            <span class="toggle__track" aria-hidden="true">
+              <span class="toggle__thumb"></span>
+            </span>
+          </span>
         </label>
-        <label class="row">
-          <input type="checkbox" name="exgrp" value="outputTemplate" checked>
-          <span data-i18n="options.export.output">Result Output Template</span>
+        <label class="toggle toggle--inline">
+          <span class="toggle__text" data-i18n="options.export.output">Result Output Template</span>
+          <span class="toggle__control">
+            <input type="checkbox" name="exgrp" value="outputTemplate" class="toggle__input" checked>
+            <span class="toggle__track" aria-hidden="true">
+              <span class="toggle__thumb"></span>
+            </span>
+          </span>
         </label>
-        <label class="row">
-          <input type="checkbox" name="exgrp" value="integrations" checked>
-          <span data-i18n="options.export.integrations">Integrations (Notion)</span>
+        <label class="toggle toggle--inline">
+          <span class="toggle__text" data-i18n="options.export.integrations">Integrations (Notion)</span>
+          <span class="toggle__control">
+            <input type="checkbox" name="exgrp" value="integrations" class="toggle__input" checked>
+            <span class="toggle__track" aria-hidden="true">
+              <span class="toggle__thumb"></span>
+            </span>
+          </span>
         </label>
-        <label class="row">
-          <input type="checkbox" name="exintsecret" id="exintsecret">
-          <span data-i18n="options.export.integrationsSecret">Include Notion integration token</span>
+        <label class="toggle toggle--inline">
+          <span class="toggle__text" data-i18n="options.export.integrationsSecret">Include Notion integration token</span>
+          <span class="toggle__control">
+            <input type="checkbox" name="exintsecret" id="exintsecret" class="toggle__input">
+            <span class="toggle__track" aria-hidden="true">
+              <span class="toggle__thumb"></span>
+            </span>
+          </span>
         </label>
       </fieldset>
 
@@ -503,9 +615,14 @@
       <h3 data-i18n="options.modal.reset.title">Reset settings</h3>
       <p data-i18n="options.modal.reset.desc">This will replace providers, models, site rules, and templates with default values.</p>
 
-      <label class="row">
-        <input type="checkbox" id="keepApiKeys" checked>
-        <span data-i18n="options.modal.reset.keepKeys">Keep API keys</span>
+      <label class="toggle toggle--inline">
+        <span class="toggle__text" data-i18n="options.modal.reset.keepKeys">Keep API keys</span>
+        <span class="toggle__control">
+          <input type="checkbox" id="keepApiKeys" class="toggle__input" checked>
+          <span class="toggle__track" aria-hidden="true">
+            <span class="toggle__thumb"></span>
+          </span>
+        </span>
       </label>
 
       <menu>
@@ -516,20 +633,6 @@
   </dialog>
 
     
-  
-  <!-- Simple footer with dynamic version and help link -->
-  <div class="container mt-12">
-    <div class="mb-8">
-      <a href="https://www.buymeacoffee.com/kolandcom" target="_blank" rel="noopener" class="bmc-button">
-        <img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me A Coffee">
-      </a>
-    </div>
-    <span>Version: <span id="version"></span></span>
-    <span class="ml-8">· <a id="helpLink" href="#" target="_blank" rel="noopener">Help</a></span>
-  </div>
-
-
-
     <script type="module" src="./js/options-main.js"></script>
 </body>
 </html>

@@ -80,6 +80,55 @@
   --blue-text: #3a67a3;
 }
 
+body.theme-landing {
+  --bg: #06090f;
+  --bg-light: rgba(13, 20, 33, 0.92);
+  --bg-dark: #03070f;
+  --panel: rgba(9, 15, 26, 0.65);
+  --panel-light: rgba(255, 255, 255, 0.06);
+  --panel-dark: rgba(255, 255, 255, 0.18);
+  --accent: #1ac1b4;
+  --accent-light: #49e5ae;
+  --accent-dark: #0f766e;
+  --accent-2: #e23a5e;
+  --accent-2-light: #f37f9e;
+  --accent-2-dark: #9b1d37;
+  --accent-3: rgba(26, 193, 180, 0.25);
+  --accent-3-light: rgba(26, 193, 180, 0.4);
+  --accent-3-dark: rgba(26, 193, 180, 0.15);
+  --text: #e5f4f0;
+  --text-light: rgba(255, 255, 255, 0.85);
+  --text-dark: #06090f;
+  --muted: rgba(255, 255, 255, 0.6);
+  --muted-light: rgba(255, 255, 255, 0.9);
+  --muted-dark: rgba(255, 255, 255, 0.4);
+  --border: rgba(255, 255, 255, 0.1);
+  --border-light: rgba(255, 255, 255, 0.25);
+  --border-dark: rgba(26, 193, 180, 0.6);
+  --shadow: 0 20px 60px rgba(0, 0, 0, 0.55);
+  --red: #e23a5e;
+  --red-light: #f392a7;
+  --red-dark: #9b1d37;
+  --red-2: #e23a5e;
+  --red-2-light: #f392a7;
+  --red-2-dark: #9b1d37;
+  --red-soft: rgba(226, 58, 94, 0.6);
+  --red-soft-light: rgba(226, 58, 94, 0.35);
+  --red-soft-dark: rgba(226, 58, 94, 0.8);
+  --red-deep: #851c31;
+  --red-deep-light: #b23f55;
+  --red-deep-dark: #520f1e;
+  --red-rose: #e23a5e;
+  --red-rose-light: #f392a7;
+  --red-rose-dark: #9b1d37;
+  --danger: #e23a5e;
+  --danger-hover: #9b1d37;
+  --danger-bg: rgba(226, 58, 94, 0.08);
+  --red-border: rgba(226, 58, 94, 0.35);
+  --red-surface: rgba(226, 58, 94, 0.15);
+  --red-focus: rgba(226, 58, 94, 0.25);
+}
+
 html,
 body {
   margin: 0;
@@ -87,6 +136,14 @@ body {
   font: var(--mainfont);
   color: var(--text);
   background: var(--bg);
+}
+
+body.theme-landing {
+  font-family: "Inter", "Segoe UI", system-ui, -apple-system, BlinkMacSystemFont, "Helvetica Neue",
+    sans-serif;
+  color: var(--text);
+  min-height: 100vh;
+  background-color: #06090f;
 }
 
 .btn {
@@ -222,6 +279,19 @@ textarea {
   gap: 6px;
   flex-direction: row;
   align-items: center;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  clip-path: inset(50%);
+  border: 0;
+  white-space: nowrap;
 }
 
 .card {
@@ -423,7 +493,7 @@ fieldset {
 }
 
 .i-grab {
-  --icon: url("../../icons/menu-dots-svgrepo-com.svg");
+  --icon: url("../../icons/drag-handle.svg");
 }
 
 .i-verified {

@@ -138,8 +138,25 @@ export function renderSites(settings){
   for (const rule of items) {
     const tr = document.createElement("tr");
     const summary = summarizeRule(rule);
+    const activeLabel = t('options.tbl.active', 'Active');
     tr.innerHTML = `
-      <td><input type="checkbox" ${rule.active ? "checked" : ""} data-act="toggle" data-id="${rule.id}" aria-label="Toggle rule"></td>
+      <td class="table-toggle">
+        <label class="toggle toggle--compact toggle--icon-only">
+          <span class="sr-only" data-i18n="options.tbl.active">${activeLabel}</span>
+          <span class="toggle__control">
+            <input type="checkbox"
+                   class="toggle__input"
+                   ${rule.active ? "checked" : ""}
+                   data-act="toggle"
+                   data-id="${rule.id}"
+                   data-i18n-attr-aria-label="options.tbl.active"
+                   aria-label="${activeLabel}">
+            <span class="toggle__track" aria-hidden="true">
+              <span class="toggle__thumb"></span>
+            </span>
+          </span>
+        </label>
+      </td>
       <td class="word-break">${rule.host || ""}</td>
       <td class="word-break" title="${escapeHtml(summary)}">${escapeHtml(summary)}</td>
       <td class="word-break">${rule.comment || ""}</td>
@@ -291,17 +308,31 @@ function openSiteModal(settings, rule){
       });
 
       const activeLabel = document.createElement('label');
-      activeLabel.className = 'checkbox';
+      activeLabel.className = 'toggle toggle--compact chain-group-toggle';
+      const activeText = document.createElement('span');
+      activeText.className = 'toggle__text';
+      activeText.setAttribute('data-i18n', 'options.modal.site.chainGroupActive');
+      const activeLabelText = t('options.modal.site.chainGroupActive', 'Active');
+      activeText.textContent = activeLabelText;
+      const activeControl = document.createElement('span');
+      activeControl.className = 'toggle__control';
       const activeInput = document.createElement('input');
       activeInput.type = 'checkbox';
+      activeInput.className = 'toggle__input';
       activeInput.checked = group.active !== false;
+      activeInput.setAttribute('data-i18n-attr-aria-label', 'options.modal.site.chainGroupActive');
+      activeInput.setAttribute('aria-label', activeLabelText);
       activeInput.addEventListener('change', (e) => {
         chainGroupsState[groupIdx].active = !!e.target.checked;
       });
-      const activeSpan = document.createElement('span');
-      activeSpan.setAttribute('data-i18n', 'options.modal.site.chainGroupActive');
-      activeSpan.textContent = t('options.modal.site.chainGroupActive', 'Active');
-      activeLabel.append(activeInput, activeSpan);
+      const activeTrack = document.createElement('span');
+      activeTrack.className = 'toggle__track';
+      activeTrack.setAttribute('aria-hidden', 'true');
+      const activeThumb = document.createElement('span');
+      activeThumb.className = 'toggle__thumb';
+      activeTrack.appendChild(activeThumb);
+      activeControl.append(activeInput, activeTrack);
+      activeLabel.append(activeText, activeControl);
 
       left.append(groupTitle, nameInput, activeLabel);
 
