@@ -44,9 +44,26 @@ function stopAnalyzeButtonTimer(finalMs, isError = false) {
   }, 5000);
 }
 
+async function sendMessageWithRetry(message, { retries = 1, delayMs = 200 } = {}) {
+  let attempt = 0;
+  for (;;) {
+    try {
+      return await chrome.runtime.sendMessage(message);
+    } catch (err) {
+      const msg = String(err?.message || err || '');
+      if (msg.includes('Extension context invalidated') && attempt < retries) {
+        attempt += 1;
+        await new Promise(resolve => setTimeout(resolve, delayMs));
+        continue;
+      }
+      throw err;
+    }
+  }
+}
+
 export async function startSelection() {
   try {
-    const resp = await chrome.runtime.sendMessage({ type: 'BEGIN_SELECTION' });
+    const resp = await sendMessageWithRetry({ type: 'BEGIN_SELECTION' }, { retries: 2, delayMs: 250 });
     if (!resp?.ok) {
       const msg = resp?.error || 'unknown error';
       alert(t('ui.popup.selectionFailed', 'Cannot start selection: {{error}}').replace('{{error}}', msg));
@@ -59,7 +76,7 @@ export async function startSelection() {
 
 export async function clearSelection() {
   try {
-    await chrome.runtime.sendMessage({ type: 'CLEAR_SELECTION' });
+    await sendMessageWithRetry({ type: 'CLEAR_SELECTION' }, { retries: 2, delayMs: 250 });
   } catch {}
   state.selectedText = "";
   const ji = document.getElementById("jobInput"); if (ji) ji.value = "";
@@ -187,7 +204,7 @@ const dbg = (...a) => console.debug("[FastStart]", ...a);
 
 export async function ensureContentScript(tabId) {
   try {
-    const resp = await chrome.runtime.sendMessage({ type: 'ENSURE_CONTENT_SCRIPT', tabId });
+    const resp = await sendMessageWithRetry({ type: 'ENSURE_CONTENT_SCRIPT', tabId }, { retries: 2, delayMs: 250 });
     return !!resp?.ok;
   } catch (e) {
     console.warn('[JDA] ensureContentScript failed:', e);
@@ -296,8 +313,8 @@ export async function detectAndToggleFastStart() {
         alert(t('options.faststart.missingChain', "Auto-extraction chain has no steps."));
         return;
       }
-      if (selectedRule.strategy === 'script' && !selectedRule.script) {
-        alert(t('options.faststart.missingScript', "Auto-extraction script body is empty."));
+      if (selectedRule.strategy === 'template' && !selectedRule.template) {
+        alert(t('options.faststart.missingTemplate', "Auto-extraction template is empty."));
         return;
       }
 
@@ -314,8 +331,8 @@ export async function detectAndToggleFastStart() {
           msg = t('options.faststart.missingSelector', "Auto-extraction rule is missing a selector.");
         } else if (err === 'empty_chain') {
           msg = t('options.faststart.missingChain', "Auto-extraction chain has no steps.");
-        } else if (err === 'empty_script') {
-          msg = t('options.faststart.missingScript', "Auto-extraction script body is empty.");
+        } else if (err === 'empty_template') {
+          msg = t('options.faststart.missingTemplate', "Auto-extraction template is empty.");
         } else if (err === 'unknown_strategy') {
           msg = t('options.faststart.unknownStrategy', "Unknown extraction strategy.");
         } else if (err === 'invalid_rule' || err === 'no_rule') {

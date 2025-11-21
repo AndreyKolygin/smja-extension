@@ -114,10 +114,134 @@ try { console.debug("[JDA] content loaded:", location.href); } catch {}
   } catch {}
 }
 
+  function collectMetaTags() {
+    if (!document || !document.querySelectorAll) return [];
+    return Array.from(document.querySelectorAll('meta'))
+      .map(meta => {
+        const name = meta.getAttribute('name');
+        const property = meta.getAttribute('property');
+        const itemprop = meta.getAttribute('itemprop');
+        const content = meta.getAttribute('content') || meta.getAttribute('value') || '';
+        return { name, property, itemprop, content };
+      })
+      .filter(entry => entry.content && (entry.name || entry.property || entry.itemprop));
+  }
+
+  function collectSchemaOrgData() {
+    if (!document || !document.querySelectorAll) return [];
+    const scripts = Array.from(document.querySelectorAll('script[type="application/ld+json"]'));
+    const result = [];
+    scripts.forEach(script => {
+      const raw = script.textContent || script.innerText;
+      if (!raw) return;
+      try {
+        const data = JSON.parse(raw);
+        if (data) result.push(data);
+      } catch {
+        // ignore invalid JSON
+      }
+    });
+    return result;
+  }
+
+  function getMainImage() {
+    const selectors = [
+      'meta[property="og:image"]',
+      'meta[name="og:image"]',
+      'meta[name="twitter:image"]',
+      'link[rel="image_src"]',
+      'meta[itemprop="image"]'
+    ];
+    for (const sel of selectors) {
+      try {
+        const el = document.querySelector(sel);
+        const val = el?.getAttribute('content') || el?.getAttribute('href') || '';
+        if (val) return val;
+      } catch {}
+    }
+    return '';
+  }
+
+  function getFavicon() {
+    const rels = ['icon', 'shortcut icon', 'apple-touch-icon'];
+    for (const rel of rels) {
+      try {
+        const el = document.querySelector(`link[rel="${rel}"]`);
+        const href = el?.getAttribute('href');
+        if (href) return new URL(href, document.baseURI).href;
+      } catch {}
+    }
+    return '';
+  }
+
+  function collectSelection() {
+    try {
+      const sel = window.getSelection();
+      if (!sel || sel.rangeCount === 0) return { text: '', html: '' };
+      const text = sel.toString().trim();
+      const range = sel.getRangeAt(0).cloneContents();
+      const div = document.createElement('div');
+      div.appendChild(range);
+      const html = div.innerHTML;
+      return { text, html };
+    } catch {
+      return { text: '', html: '' };
+    }
+  }
+
+  function collectBaseVariables() {
+    const title = document.title || '';
+    const url = location.href || '';
+    const site = location.hostname || '';
+    const description = document.querySelector('meta[name="description"]')?.content || '';
+    const author = document.querySelector('meta[name="author"]')?.content || '';
+    const published = document.querySelector('meta[property="article:published_time"]')?.content || '';
+    const language = document.documentElement?.getAttribute('lang') || '';
+    const selection = collectSelection();
+    const bodyText = document.body ? (document.body.innerText || document.body.textContent || '') : '';
+    const wordCount = bodyText ? bodyText.trim().split(/\s+/).length : 0;
+    return {
+      title,
+      url,
+      site,
+      domain: site.replace(/^www\./, ''),
+      description,
+      author,
+      published,
+      language,
+      content: bodyText.trim(),
+      contentHtml: document.documentElement?.outerHTML || '',
+      selection: selection.text,
+      selectionHtml: selection.html,
+      date: new Date().toISOString(),
+      time: new Date().toISOString(),
+      words: wordCount.toString(),
+      image: getMainImage(),
+      favicon: getFavicon()
+    };
+  }
+
+  function collectPageVariables() {
+    return {
+      base: collectBaseVariables(),
+      meta: collectMetaTags(),
+      schema: collectSchemaOrgData()
+    };
+  }
+
 // === EXTRACT_SELECTOR (robust async, handles SPA delays) ===
 if (safeHasChrome()) {
   try {
     chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
+      if (msg?.type === "COLLECT_PAGE_VARIABLES") {
+        try {
+          const variables = collectPageVariables();
+          sendResponse({ ok: true, variables });
+        } catch (e) {
+          sendResponse({ ok: false, error: String(e?.message || e) });
+        }
+        return true;
+      }
       if (msg?.type !== "EXTRACT_SELECTOR") return;
 
       try {

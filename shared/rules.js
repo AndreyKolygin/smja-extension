@@ -15,7 +15,7 @@ export function normalizeRuleForExec(ruleOrSelector) {
   const raw = (ruleOrSelector && typeof ruleOrSelector === 'object') ? ruleOrSelector : {};
   const strategy = typeof raw.strategy === 'string' ? raw.strategy.toLowerCase() : 'css';
   const selector = typeof raw.selector === 'string' ? raw.selector.trim() : '';
-  const script = typeof raw.script === 'string' ? raw.script.trim() : '';
+  const template = typeof raw.template === 'string' ? raw.template.trim() : '';
   const chain = Array.isArray(raw.chain)
     ? raw.chain.map((step) => {
         const sel = typeof step?.selector === 'string' ? step.selector.trim() : '';
@@ -33,11 +33,12 @@ export function normalizeRuleForExec(ruleOrSelector) {
         return { selector: sel, text, nth };
       }).filter(Boolean)
     : [];
+  const supported = ['css', 'chain', 'template'];
   return {
-    strategy: ['css', 'chain', 'script'].includes(strategy) ? strategy : 'css',
+    strategy: supported.includes(strategy) ? strategy : 'css',
     selector,
     chain,
-    script,
+    template,
     chainSequential: raw.chainSequential === undefined ? false : !!raw.chainSequential
   };
 }
@@ -45,6 +46,150 @@ export function normalizeRuleForExec(ruleOrSelector) {
 export async function evaluateRuleInPage(rule) {
   try {
     const strategy = (rule?.strategy || 'css').toLowerCase();
+
+    function getSelectionContent() {
+      try {
+        const sel = window.getSelection();
+        if (!sel || sel.rangeCount === 0) return { text: '', html: '' };
+        const text = sel.toString().trim();
+        const range = sel.getRangeAt(0).cloneContents();
+        const div = document.createElement('div');
+        div.appendChild(range);
+        return { text, html: div.innerHTML };
+      } catch {
+        return { text: '', html: '' };
+      }
+    }
+
+    function collectMetaTags() {
+      if (!document || !document.querySelectorAll) return [];
+      return Array.from(document.querySelectorAll('meta'))
+        .map(meta => {
+          const name = meta.getAttribute('name');
+          const property = meta.getAttribute('property');
+          const itemprop = meta.getAttribute('itemprop');
+          const content = meta.getAttribute('content') || meta.getAttribute('value') || '';
+          return { name, property, itemprop, content };
+        })
+        .filter(entry => entry.content && (entry.name || entry.property || entry.itemprop));
+    }
+
+    function collectSchemaOrgData() {
+      if (!document || !document.querySelectorAll) return [];
+      const scripts = Array.from(document.querySelectorAll('script[type="application/ld+json"]'));
+      const result = [];
+      scripts.forEach(script => {
+        const raw = script.textContent || script.innerText;
+        if (!raw) return;
+        try {
+          const data = JSON.parse(raw);
+          if (data) result.push(data);
+        } catch {
+          // ignore invalid JSON
+        }
+      });
+      return result;
+    }
+
+    function getMainImage() {
+      const selectors = [
+        'meta[property="og:image"]',
+        'meta[name="og:image"]',
+        'meta[name="twitter:image"]',
+        'link[rel="image_src"]',
+        'meta[itemprop="image"]'
+      ];
+      for (const sel of selectors) {
+        try {
+          const el = document.querySelector(sel);
+          const val = el?.getAttribute('content') || el?.getAttribute('href') || '';
+          if (val) return val;
+        } catch {}
+      }
+      return '';
+    }
+
+    function getFavicon() {
+      const rels = ['icon', 'shortcut icon', 'apple-touch-icon'];
+      for (const rel of rels) {
+        try {
+          const el = document.querySelector(`link[rel="${rel}"]`);
+          const href = el?.getAttribute('href');
+          if (href) return new URL(href, document.baseURI).href;
+        } catch {}
+      }
+      return '';
+    }
+
+    function addSchemaOrgVariables(data, variables, prefix = '') {
+      if (!data) return;
+      if (Array.isArray(data)) {
+        data.forEach((item, index) => {
+          if (!item || typeof item !== 'object') return;
+          if (item['@type']) {
+            const types = Array.isArray(item['@type']) ? item['@type'] : [item['@type']];
+            types.forEach(type => addSchemaOrgVariables(item, variables, `@${type}:`));
+          } else {
+            addSchemaOrgVariables(item, variables, `[${index}]:`);
+          }
+        });
+        return;
+      }
+      if (typeof data === 'object') {
+        const keyRoot = prefix ? prefix.replace(/:$/, '') : '';
+        if (keyRoot) {
+          variables[`schema:${keyRoot}`] = JSON.stringify(data);
+        }
+        Object.entries(data).forEach(([key, value]) => {
+          if (value && typeof value === 'object') {
+            addSchemaOrgVariables(value, variables, keyRoot ? `${keyRoot}.${key}:` : `${key}:`);
+          } else {
+            const normalized = keyRoot ? `${keyRoot}.${key}` : key;
+            variables[`schema:${normalized}`] = String(value ?? '').trim();
+          }
+        });
+      }
+    }
+
+    function buildTemplateVariables() {
+      const map = {};
+      const selection = getSelectionContent();
+      const bodyText = document.body ? (document.body.innerText || document.body.textContent || '') : '';
+      const base = {
+        title: document.title || '',
+        url: location.href || '',
+        site: location.hostname || '',
+        domain: (location.hostname || '').replace(/^www\./, ''),
+        description: document.querySelector('meta[name="description"]')?.content || '',
+        author: document.querySelector('meta[name="author"]')?.content || '',
+        published: document.querySelector('meta[property="article:published_time"]')?.content || '',
+        language: document.documentElement?.getAttribute('lang') || '',
+        selection: selection.text || '',
+        selectionHtml: selection.html || '',
+        content: bodyText.trim(),
+        contentHtml: document.documentElement?.outerHTML || '',
+        date: new Date().toISOString(),
+        time: new Date().toISOString(),
+        words: bodyText ? bodyText.trim().split(/\s+/).length.toString() : '0',
+        image: getMainImage(),
+        favicon: getFavicon()
+      };
+      Object.entries(base).forEach(([key, value]) => {
+        map[key] = String(value ?? '').trim();
+      });
+
+      const meta = collectMetaTags();
+      meta.forEach(entry => {
+        if (entry.name) map[`meta:name:${entry.name}`] = entry.content;
+        if (entry.property) map[`meta:property:${entry.property}`] = entry.content;
+        if (entry.itemprop) map[`meta:itemprop:${entry.itemprop}`] = entry.content;
+      });
+
+      const schema = collectSchemaOrgData();
+      addSchemaOrgVariables(schema, map);
+
+      return map;
+    }
 
     const IGNORE_SELECTORS = ['#jda-app-overlay', '#jda-highlighter-menu', '#__jda_debug_badge'];
     function isIgnoredNode(node) {
@@ -183,25 +328,17 @@ export async function evaluateRuleInPage(rule) {
       return { ok: !!combined, text: combined, count: captured.length };
     }
 
-    if (strategy === 'script') {
-      const body = String(rule?.script || '');
-      if (!body.trim()) return { ok: false, error: 'empty_script' };
-      try {
-        const fn = new Function('document', 'window', 'root', '"use strict";' + body);
-        const value = fn(document, window, document);
-        const resolved = value && typeof value.then === 'function' ? await value : value;
-        const text = typeof resolved === 'string'
-          ? resolved
-          : (resolved == null ? '' : String(resolved));
-        const clean = text
-          .replace(/\u00A0/g, ' ')
-          .replace(/[ \t]+\n/g, '\n')
-          .replace(/\n{3,}/g, '\n\n')
-          .trim();
-        return { ok: !!clean, text: clean, count: clean ? 1 : 0 };
-      } catch (err) {
-        return { ok: false, error: String(err && (err.message || err)) };
-      }
+    if (strategy === 'template') {
+      const tmpl = String(rule?.template || '').trim();
+      if (!tmpl) return { ok: false, error: 'empty_template' };
+
+      const variables = buildTemplateVariables();
+      const text = tmpl.replace(/{{\s*([^}]+)\s*}}/g, (match, rawKey) => {
+        const key = String(rawKey || '').trim();
+        if (!key) return '';
+        return variables[key] ?? '';
+      }).replace(/\u00A0/g, ' ').replace(/[ \t]+\n/g, '\n').replace(/\n{3,}/g, '\n\n').trim();
+      return { ok: !!text, text, count: text ? 1 : 0 };
     }
 
     return { ok: false, error: 'unknown_strategy' };

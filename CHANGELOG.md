@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 The format is inspired by Keep a Changelog and this project adheres to SemVer via the extension `manifest.json` version field.
 
+## [2.4.0] - 2025-11-21
+
+### Changed
+- Removed the non-functional “Custom script” rule type; auto-extraction now uses a **Template** strategy that substitutes collected page variables (title, description, meta tags, schema.org data, selection, etc.).
+- Added a page-variable collector shared by fast start and options, so templates work without any unsafe `eval`.
+
 ## [2.3.1] - 2025-10-27
 
 ### Added

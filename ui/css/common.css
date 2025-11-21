@@ -157,6 +157,12 @@ body.theme-landing {
 .btn:hover {
   background: var(--bg-dark);
 }
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  pointer-events: none;
+  filter: grayscale(0.2);
+}
 
 .btn.add-model {
   color: var(--text);

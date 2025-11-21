@@ -67,8 +67,8 @@ function ruleSignature(rule) {
     });
     return `chain::${parts.join('>')}`;
   }
-  if (strategy === 'script') {
-    return `script::${String(rule?.script || '').trim()}`;
+  if (strategy === 'template') {
+    return `template::${String(rule?.template || '').trim()}`;
   }
   return `${strategy}::${String(rule?.selector || '').trim()}`;
 }
@@ -107,8 +107,8 @@ function summarizeRule(rule) {
     return `${label} • ${detail}`;
   }
 
-  if (strategy === 'script') {
-    const firstLine = String(rule?.script || '').trim().split('\n').find(Boolean) || '';
+  if (strategy === 'template') {
+    const firstLine = String(rule?.template || '').trim().split('\n').find(Boolean) || '';
     const detail = firstLine.length > 72 ? `${firstLine.slice(0, 69)}…` : firstLine;
     return detail ? `${label} • ${detail}` : label;
   }
@@ -225,8 +225,8 @@ function openSiteModal(settings, rule){
   const chainRow = getModalEl("siteChainRow");
   const chainGroupsContainer = getModalEl("siteChainGroups");
   const addChainGroupBtn = getModalEl("addChainGroupBtn");
-  const scriptRow = getModalEl("siteScriptRow");
-  const scriptInput = getModalEl("siteScript");
+  const templateRow = getModalEl("siteTemplateRow");
+  const templateInput = getModalEl("siteTemplate");
   const com  = getModalEl("siteComment");
   const act  = getModalEl("siteActive");
   const save = getModalEl("saveSiteBtn");
@@ -509,14 +509,14 @@ function openSiteModal(settings, rule){
     host.value = rule.host || "";
     sel.value  = rule.selector || "";
     if (strategySel) strategySel.value = rule.strategy || "css";
-    if (scriptInput) scriptInput.value = rule.script || "";
+    if (templateInput) templateInput.value = rule.template || "";
     com.value  = rule.comment || "";
     act.checked = !!rule.active;
   } else {
     host.value = "";
     sel.value = "";
     if (strategySel) strategySel.value = "css";
-    if (scriptInput) scriptInput.value = "";
+    if (templateInput) templateInput.value = "";
     com.value = "";
     act.checked = true;
   }
@@ -531,7 +531,7 @@ function openSiteModal(settings, rule){
   }
 
   function activateStrategy(value) {
-    const val = ['css', 'chain', 'script'].includes(value) ? value : 'css';
+    const val = ['css', 'chain', 'template'].includes(value) ? value : 'css';
     if (strategySel) strategySel.value = val;
     strategyTabs.forEach(btn => {
       const isActive = btn.dataset.tab === val;
@@ -543,6 +543,7 @@ function openSiteModal(settings, rule){
       panel.hidden = !match;
     });
     if (sel) sel.required = val === 'css';
+    if (templateInput) templateInput.required = val === 'template';
   }
 
   function onStrategyTabClick(e) {
@@ -563,7 +564,7 @@ function openSiteModal(settings, rule){
   attachKeyHandler(host);
   attachKeyHandler(sel);
   attachKeyHandler(com);
-  attachKeyHandler(scriptInput);
+  attachKeyHandler(templateInput);
   if (chainGroupsContainer) chainGroupsContainer.addEventListener('keydown', onKey);
   if (strategySel) strategySel.addEventListener('change', onStrategyChange);
   strategyTabs.forEach(btn => btn.addEventListener('click', onStrategyTabClick));
@@ -586,7 +587,7 @@ function openSiteModal(settings, rule){
       active: !!act.checked,
       chain: [],
       chainGroups: [],
-      script: scriptInput?.value?.trim() || '',
+      template: templateInput?.value?.trim() || '',
       chainSequential: strategy === 'chain'
     };
     if (!data.host) {
@@ -602,7 +603,7 @@ function openSiteModal(settings, rule){
       }
       data.chain = [];
       data.chainGroups = [];
-      data.script = '';
+      data.template = '';
     } else if (strategy === 'chain') {
       const chainSanitized = sanitizeChainGroups();
       if (!chainSanitized.ok) {
@@ -612,24 +613,16 @@ function openSiteModal(settings, rule){
       data.chain = chainSanitized.chain;
       data.chainGroups = chainSanitized.groups;
       data.selector = '';
-      data.script = '';
-    } else if (strategy === 'script') {
-      data.script = (scriptInput?.value || '').trim();
-      if (!data.script) {
-        alert(t('options.modal.site.scriptRequired', 'Provide a script body that returns text.'));
+      data.template = '';
+    } else if (strategy === 'template') {
+      data.template = (templateInput?.value || '').trim();
+      if (!data.template) {
+        alert(t('options.modal.site.templateRequired', 'Provide a template that references page variables.'));
         return;
       }
       data.chain = [];
       data.chainGroups = [];
       data.selector = '';
-      const previousScript = String(rule?.script || '').trim();
-      const scriptChanged = !rule || rule.strategy !== 'script' || previousScript !== data.script;
-      if (scriptChanged) {
-        const confirmed = confirm(t('options.modal.site.scriptConfirm', 'Custom scripts run inside the visited page and can access its data. Save this script?'));
-        if (!confirmed) {
-          return;
-        }
-      }
     }
 
     if (hasDuplicateRule(settings, rule?.id, data)) {

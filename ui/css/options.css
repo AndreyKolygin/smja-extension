@@ -596,22 +596,43 @@ body.single-column {
 }
 
 dialog {
-  border: none;
-  border-radius: 12px;
-  width: 520px;
+  border: 1px solid rgba(15, 23, 42, 0.15);
+  border-radius: 28px;
+  width: min(560px, calc(100vw - 32px));
+  padding: 28px;
+  background: rgba(255, 255, 255, 0.98);
+  box-shadow: 0 30px 80px rgba(6, 9, 15, 0.25);
+}
+dialog::backdrop {
+  background: rgba(6, 9, 15, 0.55);
+  backdrop-filter: blur(12px);
 }
 dialog menu {
   display: flex;
-  justify-content: flex-end; /* выравнивание кнопок вправо */
-  gap: 8px; /* расстояние между кнопками */
-  margin-top: 16px;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 24px;
   padding: 0;
 }
 
-dialog menu button {
-  min-width: 80px;
-  padding: 6px 12px;
-  border-radius: 6px;
+dialog menu .btn {
+  border-radius: 999px;
+  padding: 10px 22px;
+  border: 1px solid transparent;
+  min-width: 120px;
+  font-weight: 600;
+  box-shadow: 0 12px 24px rgba(15, 23, 42, 0.08);
+}
+dialog menu .btn.primary {
+  background: linear-gradient(120deg, var(--accent), var(--accent-light));
+  color: #041b1b;
+}
+dialog menu .btn.danger {
+  background: linear-gradient(120deg, var(--danger), var(--red-rose));
+  color: #fff;
+}
+dialog menu .btn.icon-left {
+  align-items: center;
 }
 input[type="text"],
 input[type="password"],
@@ -761,12 +782,14 @@ body.theme-landing .options.container {
   top: 16px;
   right: 16px;
   display: flex;
+  flex-direction: column;
+  align-items: flex-end;
   gap: 12px;
-  align-items: center;
   color: rgba(255, 255, 255, 0.75);
   font-size: 13px;
   letter-spacing: 0.08em;
   text-transform: uppercase;
+  text-align: right;
 }
 .options-version {
   display: inline-flex;
@@ -787,6 +810,25 @@ body.theme-landing .options.container {
   font-weight: 600;
   color: #49e5ae;
 }
+.options-qr {
+  display: inline-flex;
+  padding: 10px;
+  border-radius: 16px;
+  background: #fff;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+  text-decoration: none;
+  line-height: 0;
+}
+.options-qr img {
+  width: 90px;
+  height: auto;
+  display: block;
+}
+@media (max-width: 480px) {
+  .options-qr {
+    display: none;
+  }
+}
 
 body.theme-landing .grid {
   gap: 24px;
@@ -799,8 +841,9 @@ body.theme-landing .grid.mt-16 {
 body.theme-landing .options-hero {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 6px;
   padding: 40px;
+  padding-right: clamp(40px, 18vw, 320px);
   border-radius: 40px;
   border: 1px solid rgba(255, 255, 255, 0.12);
   background: linear-gradient(
@@ -829,7 +872,7 @@ body.theme-landing .options-hero::after {
   z-index: -1;
 }
 body.theme-landing .options-hero h1 {
-  font-size: clamp(32px, 4vw, 48px);
+  /* font-size: clamp(32px, 4vw, 48px); */
   margin: 0;
   color: #fff;
 }
@@ -982,11 +1025,32 @@ body.theme-landing .saveBtn {
 }
 
 body.theme-landing dialog {
-  background: rgba(6, 9, 15, 0.95);
+  background: radial-gradient(
+      circle at top,
+      rgba(26, 193, 180, 0.18),
+      transparent 45%
+    ),
+    rgba(6, 9, 15, 0.88);
   border-radius: 32px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.15);
   color: var(--text);
-  box-shadow: var(--shadow);
+  box-shadow: 0 40px 90px rgba(0, 0, 0, 0.55);
+}
+body.theme-landing dialog::backdrop {
+  background: rgba(3, 5, 9, 0.75);
+  backdrop-filter: blur(20px);
+}
+body.theme-landing dialog menu .btn {
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 16px 30px rgba(0, 0, 0, 0.25);
+}
+body.theme-landing dialog menu .btn.primary {
+  background: linear-gradient(120deg, #1ac1b4, #49e5ae);
+  color: #041b1b;
+}
+body.theme-landing dialog menu .btn.danger {
+  background: linear-gradient(120deg, #e23a5e, #f392a7);
+  color: #fff;
 }
 
 .chain-step-fields .field.selector-field {

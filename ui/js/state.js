@@ -96,6 +96,11 @@ function mdToHtml(md) {
 export function setResult(text) {
   const el = document.getElementById("resultView");
   if (el) el.innerHTML = mdToHtml(text || "");
+  const hasText = !!(text && String(text).trim());
+  ["copyBtn", "saveBtn", "notionBtn"].forEach(id => {
+    const btn = document.getElementById(id);
+    if (btn) btn.disabled = !hasText;
+  });
 }
 
 export async function getActiveTab({ refresh = false } = {}) {
