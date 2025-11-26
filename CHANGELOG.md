@@ -4,6 +4,22 @@ All notable changes to this project will be documented in this file.
 
 The format is inspired by Keep a Changelog and this project adheres to SemVer via the extension `manifest.json` version field.
 
+## [2.5.0] - 2025-11-26
+
+### Added
+- Meta overlay button in the popup header: opens a draggable, searchable list of all meta tags on the page, lets you copy placeholder names, and can be refreshed without closing the main overlay.
+- “Meta Tags Template” now works as an add-on for CSS/DOM-chain rules, with toggles to append the rendered output to the Job description (LLM input) and/or show it under the Position matching result. Template values are also forwarded to Notion, clipboard copy, and Markdown export.
+- “Page meta data” source in the Notion integration plus support for the native `select` property type, so any placeholder (e.g. `meta:property:og:title`) can populate structured fields.
+- Copy and Save-to-Markdown actions now append the Page meta data block so exported notes contain both the analysis and the captured tags.
+
+### Changed
+- Fast start and manual analyze reuse the same template payloads, guaranteeing consistent data between the job description, result view, Notion export, clipboard, and Markdown files.
+- Meta overlay header doubles as a drag handle but ignores clicks on buttons/input fields, keeping search and controls responsive.
+
+### Fixed
+- Notion export strips inline Markdown formatting before writing to fields, preventing outputs like `*Не указана**`.
+- Settings page no longer triggers CSP violations when showing the “cache cleared” hint (styles moved into CSS classes).
+
 ## [2.4.0] - 2025-11-21
 
 ### Changed
@@ -106,14 +122,3 @@ The format is inspired by Keep a Changelog and this project adheres to SemVer vi
 ---
 
 For older changes, see Git history and GitHub Releases.
-## [2.5.0] - 2025-12-02
-
-### Added
-- Meta overlay button in the popup header: opens a searchable list of all meta tags on the page, lets you copy placeholder names, and can be refreshed without closing the main overlay.
-- Page meta template output can now be appended to the job description (LLM input) and/or rendered under the Position matching result via dedicated toggles in each auto-extract rule.
-- “Page meta data” source for the Notion integration: map any placeholder (e.g. `meta:property:og:title`) directly to Notion fields, including the new `select` property type.
-- Copy and Save-to-Markdown actions now append the Page meta data block so exported notes contain both the analysis and the captured tags.
-
-### Changed
-- Template mode no longer requires a dedicated strategy: CSS or DOM-chain rules can include an optional “Meta Tags Template” block that produces the same placeholders.
-- Fast start and manual analyze reuse the same template payloads, guaranteeing consistent data between Job description, result view, Notion export, clipboard, and Markdown files.
