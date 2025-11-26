@@ -1,5 +1,5 @@
 // actions.js — Select/Clear/Analyze/Copy/Save
-import { state, setJobInput, setProgress, startTimer, stopTimer, setResult, setLastMeta, getActiveTab, getSelectedCvInfo } from "./state.js";
+import { state, setJobInput, setProgress, startTimer, stopTimer, setResult, setLastMeta, getActiveTab, getSelectedCvInfo, setTemplateMeta } from "./state.js";
 import { t } from "./i18n.js";
 import { normalizeRuleForExec, evaluateRuleInPage, siteMatches, findMatchingRule } from "../../shared/rules.js";
 
@@ -81,6 +81,7 @@ export async function clearSelection() {
   state.selectedText = "";
   const ji = document.getElementById("jobInput"); if (ji) ji.value = "";
   setResult("");
+  setTemplateMeta([]);
   setLastMeta(null);
   setProgress(t('ui.popup.progress', 'Progress: {{ms}} ms').replace('{{ms}}', '0'), 0, { i18nKey: 'ui.popup.progress' });
   try { chrome.storage.local.remove(["lastResult","lastError","lastSelection"], ()=>{}); } catch {}
@@ -89,8 +90,16 @@ export async function clearSelection() {
 
 export function wireCopy() {
   document.getElementById("copyBtn")?.addEventListener("click", async () => {
-    const txt = state.lastResponse || "";
-    try { await navigator.clipboard.writeText(txt); setProgress(t('ui.popup.progressCopied', 'Copied to clipboard'), null, { i18nKey: 'ui.popup.progressCopied' }); setTimeout(()=>setProgress('', null),1200);} catch {}
+    const metaEntries = Array.isArray(state.templateMetaEntriesRaw) ? state.templateMetaEntriesRaw : [];
+    const metaText = metaEntries.length
+      ? ['\n\nPage meta data:', ...metaEntries.map(({ key, value }) => `${key}: ${value}`)].join('\n')
+      : '';
+    const txt = (state.lastResponse || '') + metaText;
+    try {
+      await navigator.clipboard.writeText(txt);
+      setProgress(t('ui.popup.progressCopied', 'Copied to clipboard'), null, { i18nKey: 'ui.popup.progressCopied' });
+      setTimeout(() => setProgress('', null), 1200);
+    } catch {}
   });
 }
 
@@ -116,7 +125,7 @@ function validateNotionMappingConfig(notion) {
     if (!propName) {
       return { ok: false, error: t('ui.popup.notionErrorPropertyName', 'Each Notion field mapping must have a property name.') };
     }
-    if ((f.source === 'analysis' || f.source === 'custom') && !String(f.staticValue || '').trim()) {
+    if ((f.source === 'analysis' || f.source === 'custom' || f.source === 'templateMeta') && !String(f.staticValue || '').trim()) {
       return { ok: false, error: t('ui.popup.notionErrorSourceValue', 'Fill Source data value for “{property}”.').replace('{property}', propName) };
     }
   }
@@ -167,7 +176,8 @@ export function wireSaveToNotion() {
       providerName: provider?.name || "",
       tabUrl: activeTab?.url || "",
       tabTitle: activeTab?.title || "",
-      timestampIso: new Date().toISOString()
+      timestampIso: new Date().toISOString(),
+      templateMetaEntries: Array.isArray(state.templateMetaEntriesRaw) ? state.templateMetaEntriesRaw : []
     };
 
     const cvInfo = getSelectedCvInfo();
@@ -228,15 +238,37 @@ async function extractFromRule(tabId, ruleInput, { waitMs = DEFAULT_EXTRACT_WAIT
         });
         const texts = [];
         let last = null;
+        let templateText = '';
+        let templateEntries = null;
+        let templateTargets = null;
         for (const inj of injResults || []) {
           const r = inj?.result;
           if (r) last = r;
           if (r?.ok && r.text) texts.push(r.text);
+          if (!templateText && r?.templateText) templateText = r.templateText;
+          if (!templateEntries && Array.isArray(r?.templateEntries) && r.templateEntries.length) {
+            templateEntries = r.templateEntries;
+          }
+          if (!templateTargets && r?.templateTargets) templateTargets = r.templateTargets;
         }
+        const targets = {
+          toJob: rule.templateToJob === true,
+          toResult: rule.templateToResult === true
+        };
         if (texts.length) {
-          return { ok: true, text: texts.join('\n\n') };
+          return {
+            ok: true,
+            text: texts.join('\n\n'),
+            templateText,
+            templateEntries: templateEntries || [],
+            templateTargets: templateTargets || targets
+          };
         }
-        return last || { ok: false, error: 'notfound' };
+        const fallback = last || { ok: false, error: 'notfound' };
+        if (templateText && !fallback.templateText) fallback.templateText = templateText;
+        if (templateEntries && !fallback.templateEntries) fallback.templateEntries = templateEntries;
+        if (!fallback.templateTargets) fallback.templateTargets = templateTargets || targets;
+        return fallback;
       } catch (e) {
         return { ok: false, error: String(e && (e.message || e)) };
       }
@@ -342,21 +374,47 @@ export async function detectAndToggleFastStart() {
         } else {
           msg = err || t('options.faststart.notFound', "Nothing matched on this page.");
         }
+        setTemplateMeta([]);
         setProgress('', null);
         alert(t('options.faststart.failedPrefix', "Extraction failed: ") + msg);
         return;
       }
 
-      const text = String(resp.text || "").trim();
-      if (!text) {
+      const ruleTargets = {
+        toJob: !!selectedRule?.templateToJob,
+        toResult: !!selectedRule?.templateToResult
+      };
+      const templateTargets = resp?.templateTargets || ruleTargets;
+      const includeTemplateInJob = templateTargets.toJob === true;
+      const includeTemplateInResult = templateTargets.toResult === true;
+      const baseText = String(resp.text || "").trim();
+      const rawTemplateText = String(resp.templateText || "").trim();
+      const rawTemplateEntries = Array.isArray(resp.templateEntries) ? resp.templateEntries : [];
+
+      let templateJobText = '';
+      if (includeTemplateInJob) {
+        if (rawTemplateEntries.length) {
+          templateJobText = rawTemplateEntries
+            .map(({ key, value }) => `${key}: ${value}`)
+            .join('\n')
+            .trim();
+        } else {
+          templateJobText = rawTemplateText;
+        }
+      }
+
+      const combinedText = [baseText, templateJobText].filter(Boolean).join('\n\n').trim();
+      const templateEntries = includeTemplateInResult ? rawTemplateEntries : [];
+      if (!combinedText) {
         setProgress('', null);
         alert(t('options.faststart.notFound', "Nothing matched on this page."));
         return;
       }
 
-      state.selectedText = text;
-      setJobInput(text);
-      try { chrome.storage.local.set({ lastSelection: text, lastSelectionWhen: Date.now() }); } catch {}
+      state.selectedText = combinedText;
+      setJobInput(combinedText);
+      setTemplateMeta(templateEntries, rawTemplateEntries);
+      try { chrome.storage.local.set({ lastSelection: combinedText, lastSelectionWhen: Date.now() }); } catch {}
       setProgress(t('options.faststart.grabbed', 'Description grabbed ✔'), null, { i18nKey: 'options.faststart.grabbed' });
       setTimeout(() => setProgress('', null), 1500);
     } catch (e) {
@@ -443,6 +501,13 @@ export function wireSave() {
     md += analysisMd ? analysisMd + "\n\n" : "_(no analysis result)_\n\n";
     if (jobDesc) {
       md += `---\n\n# Original job description\n\n${jobDesc}\n`;
+    }
+    const metaEntries = Array.isArray(state.templateMetaEntriesRaw) ? state.templateMetaEntriesRaw : [];
+    if (metaEntries.length) {
+      md += `\n\n---\n\n# Page meta data\n\n`;
+      metaEntries.forEach(({ key, value }) => {
+        md += `- ${key}: ${value}\n`;
+      });
     }
 
     try {

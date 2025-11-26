@@ -22,7 +22,7 @@ function sanitizeTab(tab) {
 async function ensureOverlayHelpers(tabId) {
   await chrome.scripting.executeScript({
     target: { tabId },
-    files: ['shared/i18n-content.js', 'content/app-overlay.js']
+    files: ['shared/i18n-content.js', 'content/meta-overlay.js', 'content/app-overlay.js']
   });
 }
 
@@ -44,6 +44,10 @@ async function runOverlayAction(tabId, action = 'toggle') {
 async function extractFromPageBG(tabId, ruleInput, { waitMs = 4000, pollMs = 150 } = {}) {
   const rule = normalizeRuleForExec(ruleInput);
   if (!rule) return { ok: false, error: 'invalid_rule' };
+  const templateTargets = {
+    toJob: rule.templateToJob === true,
+    toResult: rule.templateToResult === true
+  };
 
   const deadline = Date.now() + Math.max(800, Number(waitMs) || 3000);
 
@@ -58,9 +62,29 @@ async function extractFromPageBG(tabId, ruleInput, { waitMs = 4000, pollMs = 150
 
       const texts = [];
       let last = null;
-      for (const inj of injResults || []) { const r = inj?.result; if (r) last = r; if (r?.ok && r.text) texts.push(r.text); }
-      if (texts.length) return { ok: true, text: texts.join('\n\n') };
-      return last || { ok: false, error: 'notfound' };
+      let templateText = '';
+      let templateEntries = null;
+      for (const inj of injResults || []) {
+        const r = inj?.result;
+        if (r) last = r;
+        if (r?.ok && r.text) texts.push(r.text);
+        if (!templateText && r?.templateText) templateText = r.templateText;
+        if (!templateEntries && Array.isArray(r?.templateEntries) && r.templateEntries.length) {
+          templateEntries = r.templateEntries;
+        }
+      }
+      if (texts.length) {
+        const merged = { ok: true, text: texts.join('\n\n') };
+        if (templateText) merged.templateText = templateText;
+        if (templateEntries?.length) merged.templateEntries = templateEntries;
+        merged.templateTargets = templateTargets;
+        return merged;
+      }
+      const fallback = last || { ok: false, error: 'notfound' };
+      if (templateText && !fallback.templateText) fallback.templateText = templateText;
+      if (templateEntries?.length && !fallback.templateEntries) fallback.templateEntries = templateEntries;
+      fallback.templateTargets = fallback.templateTargets || templateTargets;
+      return fallback;
     } catch (e) {
       return { ok: false, error: String(e && (e.message || e)) };
     }

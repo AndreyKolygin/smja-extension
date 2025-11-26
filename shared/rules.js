@@ -16,6 +16,8 @@ export function normalizeRuleForExec(ruleOrSelector) {
   const strategy = typeof raw.strategy === 'string' ? raw.strategy.toLowerCase() : 'css';
   const selector = typeof raw.selector === 'string' ? raw.selector.trim() : '';
   const template = typeof raw.template === 'string' ? raw.template.trim() : '';
+  const templateToJob = raw.templateToJob === true;
+  const templateToResult = raw.templateToResult === true;
   const chain = Array.isArray(raw.chain)
     ? raw.chain.map((step) => {
         const sel = typeof step?.selector === 'string' ? step.selector.trim() : '';
@@ -39,13 +41,17 @@ export function normalizeRuleForExec(ruleOrSelector) {
     selector,
     chain,
     template,
-    chainSequential: raw.chainSequential === undefined ? false : !!raw.chainSequential
+    chainSequential: raw.chainSequential === undefined ? false : !!raw.chainSequential,
+    templateToJob,
+    templateToResult
   };
 }
 
 export async function evaluateRuleInPage(rule) {
   try {
     const strategy = (rule?.strategy || 'css').toLowerCase();
+    const templateSource = typeof rule?.template === 'string' ? rule.template.trim() : '';
+    let templatePayloadCache = null;
 
     function getSelectionContent() {
       try {
@@ -191,6 +197,43 @@ export async function evaluateRuleInPage(rule) {
       return map;
     }
 
+    function normalizeTemplateValue(value) {
+      if (value == null) return '';
+      try {
+        return String(value).trim();
+      } catch {
+        return '';
+      }
+    }
+
+    function applyTemplate(tmpl, variables) {
+      if (!tmpl) return { text: '', entries: [] };
+      const seen = [];
+      const replaced = tmpl.replace(/{{\s*([^}]+)\s*}}/g, (match, rawKey) => {
+        const key = String(rawKey || '').trim();
+        if (!key) return '';
+        if (!seen.includes(key)) seen.push(key);
+        return variables[key] ?? '';
+      });
+      const cleaned = replaced
+        .replace(/\u00A0/g, ' ')
+        .replace(/[ \t]+\n/g, '\n')
+        .replace(/\n{3,}/g, '\n\n')
+        .trim();
+      const entries = seen
+        .map((key) => ({ key, value: normalizeTemplateValue(variables[key]) }))
+        .filter(entry => entry.value);
+      return { text: cleaned, entries };
+    }
+
+    function getTemplatePayload() {
+      if (!templateSource) return null;
+      if (templatePayloadCache) return templatePayloadCache;
+      const variables = buildTemplateVariables();
+      templatePayloadCache = applyTemplate(templateSource, variables);
+      return templatePayloadCache;
+    }
+
     const IGNORE_SELECTORS = ['#jda-app-overlay', '#jda-highlighter-menu', '#__jda_debug_badge'];
     function isIgnoredNode(node) {
       const el = node?.nodeType === Node.ELEMENT_NODE ? node : node?.parentElement;
@@ -264,7 +307,11 @@ export async function evaluateRuleInPage(rule) {
       if (!selector) return { ok: false, error: 'no_selector' };
       const nodes = collectNodes(document, selector);
       const { text, count } = nodesToText(nodes);
-      return { ok: !!text, text, count };
+      const result = { ok: !!text, text, count };
+      const templatePayload = getTemplatePayload();
+      if (templatePayload?.text) result.templateText = templatePayload.text;
+      if (templatePayload?.entries?.length) result.templateEntries = templatePayload.entries;
+      return result;
     }
 
     if (strategy === 'chain') {
@@ -325,20 +372,23 @@ export async function evaluateRuleInPage(rule) {
         if (text) captured.push(text);
       }
       const combined = captured.join('\n\n').trim();
-      return { ok: !!combined, text: combined, count: captured.length };
+      const result = { ok: !!combined, text: combined, count: captured.length };
+      const templatePayload = getTemplatePayload();
+      if (templatePayload?.text) result.templateText = templatePayload.text;
+      if (templatePayload?.entries?.length) result.templateEntries = templatePayload.entries;
+      return result;
     }
 
     if (strategy === 'template') {
-      const tmpl = String(rule?.template || '').trim();
-      if (!tmpl) return { ok: false, error: 'empty_template' };
-
-      const variables = buildTemplateVariables();
-      const text = tmpl.replace(/{{\s*([^}]+)\s*}}/g, (match, rawKey) => {
-        const key = String(rawKey || '').trim();
-        if (!key) return '';
-        return variables[key] ?? '';
-      }).replace(/\u00A0/g, ' ').replace(/[ \t]+\n/g, '\n').replace(/\n{3,}/g, '\n\n').trim();
-      return { ok: !!text, text, count: text ? 1 : 0 };
+      if (!templateSource) return { ok: false, error: 'empty_template' };
+      const templatePayload = getTemplatePayload() || { text: '', entries: [] };
+      return {
+        ok: !!templatePayload.text,
+        text: templatePayload.text,
+        count: templatePayload.text ? 1 : 0,
+        templateText: templatePayload.text,
+        templateEntries: templatePayload.entries
+      };
     }
 
     return { ok: false, error: 'unknown_strategy' };

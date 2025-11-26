@@ -168,10 +168,10 @@ export async function loadSettings() {
     if (btn) btn.disabled = true;
     if (hint) {
       hint.textContent = t('options.alert.cacheCleared', 'Cache cleared: prompts and temporary results were removed.');
-      hint.style.color = "green";
+      hint.classList.add('hint-success');
       setTimeout(() => {
         hint.textContent = "";
-        hint.style.color = "";
+        hint.classList.remove('hint-success');
       }, 4000);
     }
   });

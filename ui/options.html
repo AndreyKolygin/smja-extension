@@ -350,7 +350,6 @@
         <div class="site-strategy-tabs" role="tablist">
           <button type="button" class="site-tab active" data-tab="css" role="tab" aria-selected="true" data-i18n="options.modal.site.strategy.css">CSS selector</button>
           <button type="button" class="site-tab" data-tab="chain" role="tab" aria-selected="false" data-i18n="options.modal.site.strategy.chain">DOM chain</button>
-          <button type="button" class="site-tab" data-tab="template" role="tab" aria-selected="false" data-i18n="options.modal.site.strategy.template">Template</button>
         </div>
         <input type="hidden" id="siteStrategy" value="css">
       </div>
@@ -371,12 +370,32 @@
         <p data-i18n="options.modal.site.chainHint">Steps execute in order inside each group. Each selector runs relative to the page, optional “Contains text” narrows matches.</p>
       </div>
 
-      <div class="form-row site-strategy-panel" data-panel="template" id="siteTemplateRow" hidden>
-        <label for="siteTemplate" data-i18n="options.modal.site.templateLabel">Template</label>
+      <div class="form-row" id="siteTemplateRow">
+        <label for="siteTemplate" data-i18n="options.modal.site.templateLabel">Meta Tags Template</label>
         <textarea rows="6" id="siteTemplate"
                   placeholder="{{title}}\n\n{{meta:name:description}}"></textarea>
         <p data-i18n="options.modal.site.templateHint">Use {{title}}, {{description}}, {{meta:name:description}}, {{schema:@JobPosting:description}}, etc.</p>
         <p data-i18n="options.modal.site.templateWarn">Placeholders are replaced with collected page variables; unknown fields become empty.</p>
+        <div class="template-targets">
+          <label class="toggle template-toggle">
+            <span class="toggle__text" data-i18n="options.modal.site.templateTargetJob">Add to Job description (LLM input)</span>
+            <span class="toggle__control">
+              <input type="checkbox" id="siteTemplateToJob" class="toggle__input" checked>
+              <span class="toggle__track" aria-hidden="true">
+                <span class="toggle__thumb"></span>
+              </span>
+            </span>
+          </label>
+          <label class="toggle template-toggle">
+            <span class="toggle__text" data-i18n="options.modal.site.templateTargetResult">Show in Position matching result</span>
+            <span class="toggle__control">
+              <input type="checkbox" id="siteTemplateToResult" class="toggle__input" checked>
+              <span class="toggle__track" aria-hidden="true">
+                <span class="toggle__thumb"></span>
+              </span>
+            </span>
+          </label>
+        </div>
       </div>
 
       <div class="form-row">

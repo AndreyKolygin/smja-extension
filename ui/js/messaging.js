@@ -1,5 +1,5 @@
 // messaging.js — сообщения из content/select.js
-import { state, setResult, stopTimer, setJobInput, setLastMeta } from "./state.js";
+import { state, setResult, stopTimer, setJobInput, setLastMeta, setTemplateMeta } from "./state.js";
 
 export function wireRuntimeMessages() {
   chrome.runtime.onMessage.addListener((msg) => {
@@ -16,6 +16,7 @@ export function wireRuntimeMessages() {
       const txt = msg.text || "";
       state.selectedText = txt;
       setJobInput(txt);
+      setTemplateMeta([]);
       try { chrome.storage.local.set({ lastSelection: txt }); } catch {}
     }
   });
@@ -30,6 +31,7 @@ export function warmLoadCaches() {
       setResult(lr.text);                 // отрисовать из кэша
       try { setLastMeta(lr.when); } catch {}
     }
+    setTemplateMeta([]);
     const sel = res?.lastSelection;
     if (sel) {
       state.selectedText = sel;

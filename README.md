@@ -9,6 +9,7 @@ JDA (Job Description Analyzer) is a Chromium-compatible browser extension that h
 - **Floating workspace** — clicking the toolbar icon opens a draggable, resizable overlay with job description input, analysis result, and quick actions.
 - **Smart block highlighter** — select arbitrary fragments on the page, use undo/redo, and track analysis time.
 - **Auto-extraction rules** — per-site strategies with CSS selectors, DOM chain groups, or template mode that stitches schema.org/meta/page data into text.
+- **Meta data overlay & templating** — inspect every `<meta>` tag on the page, copy placeholders, and feed those values into job descriptions, results, Notion, clipboard copies, and Markdown exports.
 - **Flexible prompts** — global templates plus per-model overrides with `{{GLOBAL_SYSTEM_PROMPT}}` and `{{RESULT_OUTPUT_TEMPLATE}}` tokens.
 - **Save to Notion** — configurable field mapping, optional secrets export, status defaults, and Markdown-friendly output.
 - **Import / export** — granular groups (providers, models, rules, prompts, CVs, integrations) with merge or replace modes.
@@ -83,7 +84,8 @@ The extension never enables a host permission until you configure the correspond
 ### Notion
 
 - Enable **Save to Notion** in Options → Integrations, provide integration token and database ID.
-- Map properties via the field editor (Notion property + type + source). For `Analysis` / `Custom text` sources, fill in *Source data value*.
+- Map properties via the field editor (Notion property + type + source). For `Analysis`, `Custom text`, and `Page meta data` sources, fill in *Source data value* (prefix or placeholder such as `meta:property:og:title`).
+- `Select` properties are now supported alongside `title`, `rich_text`, `multi_select`, etc.
 - The popup gets a dedicated **N** button once the integration is enabled.
 - Export/import settings includes an “Integrations” group and an optional checkbox for secrets.
 
@@ -92,10 +94,12 @@ The extension never enables a host permission until you configure the correspond
 Each rule contains:
 
 - Site pattern (hostname, wildcard, regex or full URL mask)
-- Strategy: **CSS**, **DOM chain**, or **Template**
+- Strategy: **CSS** or **DOM chain** (templates can be added below either strategy)
 - Optional comment and active toggle
 
-DOM chains can be split into multiple named groups, and only active groups run. Each group is a sequence of steps (selector + text filter + index) whose extracted fragments are appended to the popup input in order. Template mode combines collected page variables (title, description, selection, meta tags, schema.org, etc.) using placeholders like `{{title}}`, `{{meta:name:description}}`, or `{{schema:@JobPosting:qualifications}}`.
+DOM chains can be split into multiple named groups, and only active groups run. Each group is a sequence of steps (selector + text filter + index) whose extracted fragments are appended to the popup input in order.
+
+Under the strategy you can add a **Meta Tags Template** block that combines collected page variables (title, description, selection, meta tags, schema.org, etc.) using placeholders like `{{title}}`, `{{meta:name:description}}`, or `{{schema:@JobPosting:qualifications}}`. Two toggles control whether the template is appended to the Job description/LLM input and/or rendered in the Position matching result. The rendered pairs are also passed to Notion, clipboard copies, and Markdown exports.
 
 ---
 

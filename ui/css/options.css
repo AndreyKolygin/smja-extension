@@ -113,6 +113,19 @@ body.single-column {
   color: var(--muted);
   font-size: 12px;
 }
+.hint-success {
+  color: #22c55e;
+}
+
+.template-targets {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 12px;
+}
+.template-toggle .toggle__text {
+  font-weight: 600;
+}
 
 /* .table {
   width: 100%;

@@ -73,13 +73,21 @@ function ruleSignature(rule) {
   return `${strategy}::${String(rule?.selector || '').trim()}`;
 }
 
+function appendTemplateSummary(base, rule) {
+  const template = String(rule?.template || '').trim();
+  if (!template) return base;
+  const suffix = t('options.modal.site.templateLabel', 'Meta Tags Template');
+  return `${base} • ${suffix}`;
+}
+
 function summarizeRule(rule) {
   const strategy = (rule?.strategy || 'css').toLowerCase();
   const label = t(`options.modal.site.strategy.${strategy}`, strategy.toUpperCase());
 
   if (strategy === 'css') {
     const detail = String(rule?.selector || '').trim();
-    return detail ? `${label} • ${detail}` : label;
+    const summary = detail ? `${label} • ${detail}` : label;
+    return appendTemplateSummary(summary, rule);
   }
 
   if (strategy === 'chain') {
@@ -104,7 +112,7 @@ function summarizeRule(rule) {
       });
     });
     const detail = parts.join(' → ');
-    return `${label} • ${detail}`;
+    return appendTemplateSummary(`${label} • ${detail}`, rule);
   }
 
   if (strategy === 'template') {
@@ -114,7 +122,8 @@ function summarizeRule(rule) {
   }
 
   const detail = String(rule?.selector || '').trim();
-  return detail ? `${label} • ${detail}` : label;
+  const summary = detail ? `${label} • ${detail}` : label;
+  return appendTemplateSummary(summary, rule);
 }
 
 export function renderSites(settings){
@@ -227,6 +236,8 @@ function openSiteModal(settings, rule){
   const addChainGroupBtn = getModalEl("addChainGroupBtn");
   const templateRow = getModalEl("siteTemplateRow");
   const templateInput = getModalEl("siteTemplate");
+  const templateToJobInput = getModalEl("siteTemplateToJob");
+  const templateToResultInput = getModalEl("siteTemplateToResult");
   const com  = getModalEl("siteComment");
   const act  = getModalEl("siteActive");
   const save = getModalEl("saveSiteBtn");
@@ -510,6 +521,8 @@ function openSiteModal(settings, rule){
     sel.value  = rule.selector || "";
     if (strategySel) strategySel.value = rule.strategy || "css";
     if (templateInput) templateInput.value = rule.template || "";
+    if (templateToJobInput) templateToJobInput.checked = !!rule.templateToJob;
+    if (templateToResultInput) templateToResultInput.checked = !!rule.templateToResult;
     com.value  = rule.comment || "";
     act.checked = !!rule.active;
   } else {
@@ -517,6 +530,8 @@ function openSiteModal(settings, rule){
     sel.value = "";
     if (strategySel) strategySel.value = "css";
     if (templateInput) templateInput.value = "";
+    if (templateToJobInput) templateToJobInput.checked = false;
+    if (templateToResultInput) templateToResultInput.checked = false;
     com.value = "";
     act.checked = true;
   }
@@ -531,7 +546,10 @@ function openSiteModal(settings, rule){
   }
 
   function activateStrategy(value) {
-    const val = ['css', 'chain', 'template'].includes(value) ? value : 'css';
+    let val = value;
+    if (val === 'template') val = 'css'; // legacy fallback
+    const allowed = ['css', 'chain'];
+    if (!allowed.includes(val)) val = 'css';
     if (strategySel) strategySel.value = val;
     strategyTabs.forEach(btn => {
       const isActive = btn.dataset.tab === val;
@@ -543,7 +561,6 @@ function openSiteModal(settings, rule){
       panel.hidden = !match;
     });
     if (sel) sel.required = val === 'css';
-    if (templateInput) templateInput.required = val === 'template';
   }
 
   function onStrategyTabClick(e) {
@@ -588,6 +605,8 @@ function openSiteModal(settings, rule){
       chain: [],
       chainGroups: [],
       template: templateInput?.value?.trim() || '',
+      templateToJob: templateToJobInput ? !!templateToJobInput.checked : false,
+      templateToResult: templateToResultInput ? !!templateToResultInput.checked : false,
       chainSequential: strategy === 'chain'
     };
     if (!data.host) {
@@ -603,7 +622,6 @@ function openSiteModal(settings, rule){
       }
       data.chain = [];
       data.chainGroups = [];
-      data.template = '';
     } else if (strategy === 'chain') {
       const chainSanitized = sanitizeChainGroups();
       if (!chainSanitized.ok) {
@@ -612,16 +630,6 @@ function openSiteModal(settings, rule){
       }
       data.chain = chainSanitized.chain;
       data.chainGroups = chainSanitized.groups;
-      data.selector = '';
-      data.template = '';
-    } else if (strategy === 'template') {
-      data.template = (templateInput?.value || '').trim();
-      if (!data.template) {
-        alert(t('options.modal.site.templateRequired', 'Provide a template that references page variables.'));
-        return;
-      }
-      data.chain = [];
-      data.chainGroups = [];
       data.selector = '';
     }
 

@@ -10,7 +10,9 @@ export const state = {
   settings: null,
   chosenModel: null,
   chosenCvId: null,
-  activeTab: null
+  activeTab: null,
+  templateMetaEntries: [],
+  templateMetaEntriesRaw: []
 };
 
 
@@ -101,6 +103,7 @@ export function setResult(text) {
     const btn = document.getElementById(id);
     if (btn) btn.disabled = !hasText;
   });
+  renderTemplateMeta();
 }
 
 export async function getActiveTab({ refresh = false } = {}) {
@@ -142,6 +145,56 @@ export function setLastMeta(whenMs) {
   if (!whenMs) { el.textContent = ""; return; }
   const sec = Math.max(0, (Date.now() - whenMs) / 1000).toFixed(1);
   el.textContent = `Last result • ${sec}s ago`;
+}
+
+function renderTemplateMeta() {
+  const container = document.getElementById("resultView");
+  if (!container) return;
+  const existing = container.querySelector('.template-meta-block');
+  if (existing) existing.remove();
+  const entries = Array.isArray(state.templateMetaEntries) ? state.templateMetaEntries : [];
+  if (!entries.length) return;
+
+  const block = document.createElement('div');
+  block.className = 'template-meta-block';
+
+  const title = document.createElement('div');
+  title.className = 'template-meta-title';
+  title.textContent = t('ui.templateMeta.title', 'Page meta data');
+  block.appendChild(title);
+
+  const list = document.createElement('div');
+  list.className = 'template-meta-list';
+  entries.forEach(({ key, value }) => {
+    const row = document.createElement('div');
+    row.className = 'template-meta-entry';
+    row.textContent = `${key}: ${value}`;
+    list.appendChild(row);
+  });
+
+  block.appendChild(list);
+  container.appendChild(block);
+}
+
+function sanitizeMetaEntries(entries) {
+  if (!Array.isArray(entries)) return [];
+  return entries
+    .map((entry) => {
+      const key = String(entry?.key || '').trim();
+      const value = String(entry?.value || '').trim();
+      return key && value ? { key, value } : null;
+    })
+    .filter(Boolean);
+}
+
+export function setTemplateMeta(entries = [], rawEntries = null) {
+  state.templateMetaEntries = sanitizeMetaEntries(entries);
+  if (rawEntries === null) {
+    state.templateMetaEntriesRaw = [...state.templateMetaEntries];
+  } else {
+    state.templateMetaEntriesRaw = sanitizeMetaEntries(rawEntries);
+  }
+  renderTemplateMeta();
 }
 
 export function setProgress(text, ms = null, extra = null) {

@@ -19,8 +19,8 @@ function cloneDefaultNotion() {
   };
 }
 
-const NOTION_TYPES = new Set(['title', 'rich_text', 'url', 'number', 'checkbox', 'date', 'multi_select', 'status']);
-const NOTION_SOURCES = new Set(['analysis', 'jobDescription', 'selectedText', 'url', 'provider', 'model', 'timestamp', 'cv', 'pageTitle', 'custom']);
+const NOTION_TYPES = new Set(['title', 'rich_text', 'url', 'number', 'checkbox', 'date', 'multi_select', 'select', 'status']);
+const NOTION_SOURCES = new Set(['analysis', 'jobDescription', 'selectedText', 'url', 'provider', 'model', 'timestamp', 'cv', 'pageTitle', 'templateMeta', 'custom']);
 const SITE_STRATEGIES = new Set(['css', 'chain', 'template']);
 
 function normalizeNotionField(field, idx = 0) {
@@ -84,6 +84,8 @@ function normalizeSiteRule(rule, idx = 0) {
   const selector = typeof raw.selector === 'string' ? raw.selector.trim() : '';
   const comment = typeof raw.comment === 'string' ? raw.comment.trim() : '';
   const template = typeof raw.template === 'string' ? raw.template.trim() : '';
+  const templateToJob = raw.templateToJob === true;
+  const templateToResult = raw.templateToResult === true;
   const active = raw.active === undefined ? true : !!raw.active;
   const chain = Array.isArray(raw.chain) ? raw.chain.map((step, i) => normalizeChainStep(step, i)).filter(st => st.selector) : [];
 
@@ -111,7 +113,9 @@ function normalizeSiteRule(rule, idx = 0) {
     active,
     chain: flattenedChain,
     chainGroups,
-    template: strategy === 'template' ? template : '',
+    template,
+    templateToJob,
+    templateToResult,
     chainSequential
   };
 }
