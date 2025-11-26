@@ -166,6 +166,31 @@ body {
   white-space: pre-line; /* скролл, если много текста */
   overflow: auto;
 }
+.template-meta-block {
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(15, 23, 42, 0.15);
+  font-size: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.template-meta-title {
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+}
+.template-meta-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.template-meta-entry {
+  display: block;
+  color: var(--text);
+  word-break: break-word;
+}
 
 /* простая «prose»-типографика */
 .prose {

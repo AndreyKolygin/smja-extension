@@ -1,5 +1,5 @@
 // actions.js — Select/Clear/Analyze/Copy/Save
-import { state, setJobInput, setProgress, startTimer, stopTimer, setResult, setLastMeta, getActiveTab, getSelectedCvInfo } from "./state.js";
+import { state, setJobInput, setProgress, startTimer, stopTimer, setResult, setLastMeta, getActiveTab, getSelectedCvInfo, setTemplateMeta } from "./state.js";
 import { t } from "./i18n.js";
 import { normalizeRuleForExec, evaluateRuleInPage, siteMatches, findMatchingRule } from "../../shared/rules.js";
 
@@ -44,9 +44,26 @@ function stopAnalyzeButtonTimer(finalMs, isError = false) {
   }, 5000);
 }
 
+async function sendMessageWithRetry(message, { retries = 1, delayMs = 200 } = {}) {
+  let attempt = 0;
+  for (;;) {
+    try {
+      return await chrome.runtime.sendMessage(message);
+    } catch (err) {
+      const msg = String(err?.message || err || '');
+      if (msg.includes('Extension context invalidated') && attempt < retries) {
+        attempt += 1;
+        await new Promise(resolve => setTimeout(resolve, delayMs));
+        continue;
+      }
+      throw err;
+    }
+  }
+}
+
 export async function startSelection() {
   try {
-    const resp = await chrome.runtime.sendMessage({ type: 'BEGIN_SELECTION' });
+    const resp = await sendMessageWithRetry({ type: 'BEGIN_SELECTION' }, { retries: 2, delayMs: 250 });
     if (!resp?.ok) {
       const msg = resp?.error || 'unknown error';
       alert(t('ui.popup.selectionFailed', 'Cannot start selection: {{error}}').replace('{{error}}', msg));
@@ -59,11 +76,12 @@ export async function startSelection() {
 
 export async function clearSelection() {
   try {
-    await chrome.runtime.sendMessage({ type: 'CLEAR_SELECTION' });
+    await sendMessageWithRetry({ type: 'CLEAR_SELECTION' }, { retries: 2, delayMs: 250 });
   } catch {}
   state.selectedText = "";
   const ji = document.getElementById("jobInput"); if (ji) ji.value = "";
   setResult("");
+  setTemplateMeta([]);
   setLastMeta(null);
   setProgress(t('ui.popup.progress', 'Progress: {{ms}} ms').replace('{{ms}}', '0'), 0, { i18nKey: 'ui.popup.progress' });
   try { chrome.storage.local.remove(["lastResult","lastError","lastSelection"], ()=>{}); } catch {}
@@ -72,8 +90,16 @@ export async function clearSelection() {
 
 export function wireCopy() {
   document.getElementById("copyBtn")?.addEventListener("click", async () => {
-    const txt = state.lastResponse || "";
-    try { await navigator.clipboard.writeText(txt); setProgress(t('ui.popup.progressCopied', 'Copied to clipboard'), null, { i18nKey: 'ui.popup.progressCopied' }); setTimeout(()=>setProgress('', null),1200);} catch {}
+    const metaEntries = Array.isArray(state.templateMetaEntriesRaw) ? state.templateMetaEntriesRaw : [];
+    const metaText = metaEntries.length
+      ? ['\n\nPage meta data:', ...metaEntries.map(({ key, value }) => `${key}: ${value}`)].join('\n')
+      : '';
+    const txt = (state.lastResponse || '') + metaText;
+    try {
+      await navigator.clipboard.writeText(txt);
+      setProgress(t('ui.popup.progressCopied', 'Copied to clipboard'), null, { i18nKey: 'ui.popup.progressCopied' });
+      setTimeout(() => setProgress('', null), 1200);
+    } catch {}
   });
 }
 
@@ -99,7 +125,7 @@ function validateNotionMappingConfig(notion) {
     if (!propName) {
       return { ok: false, error: t('ui.popup.notionErrorPropertyName', 'Each Notion field mapping must have a property name.') };
     }
-    if ((f.source === 'analysis' || f.source === 'custom') && !String(f.staticValue || '').trim()) {
+    if ((f.source === 'analysis' || f.source === 'custom' || f.source === 'templateMeta') && !String(f.staticValue || '').trim()) {
       return { ok: false, error: t('ui.popup.notionErrorSourceValue', 'Fill Source data value for “{property}”.').replace('{property}', propName) };
     }
   }
@@ -150,7 +176,8 @@ export function wireSaveToNotion() {
       providerName: provider?.name || "",
       tabUrl: activeTab?.url || "",
       tabTitle: activeTab?.title || "",
-      timestampIso: new Date().toISOString()
+      timestampIso: new Date().toISOString(),
+      templateMetaEntries: Array.isArray(state.templateMetaEntriesRaw) ? state.templateMetaEntriesRaw : []
     };
 
     const cvInfo = getSelectedCvInfo();
@@ -187,7 +214,7 @@ const dbg = (...a) => console.debug("[FastStart]", ...a);
 
 export async function ensureContentScript(tabId) {
   try {
-    const resp = await chrome.runtime.sendMessage({ type: 'ENSURE_CONTENT_SCRIPT', tabId });
+    const resp = await sendMessageWithRetry({ type: 'ENSURE_CONTENT_SCRIPT', tabId }, { retries: 2, delayMs: 250 });
     return !!resp?.ok;
   } catch (e) {
     console.warn('[JDA] ensureContentScript failed:', e);
@@ -211,15 +238,37 @@ async function extractFromRule(tabId, ruleInput, { waitMs = DEFAULT_EXTRACT_WAIT
         });
         const texts = [];
         let last = null;
+        let templateText = '';
+        let templateEntries = null;
+        let templateTargets = null;
         for (const inj of injResults || []) {
           const r = inj?.result;
           if (r) last = r;
           if (r?.ok && r.text) texts.push(r.text);
+          if (!templateText && r?.templateText) templateText = r.templateText;
+          if (!templateEntries && Array.isArray(r?.templateEntries) && r.templateEntries.length) {
+            templateEntries = r.templateEntries;
+          }
+          if (!templateTargets && r?.templateTargets) templateTargets = r.templateTargets;
         }
+        const targets = {
+          toJob: rule.templateToJob === true,
+          toResult: rule.templateToResult === true
+        };
         if (texts.length) {
-          return { ok: true, text: texts.join('\n\n') };
+          return {
+            ok: true,
+            text: texts.join('\n\n'),
+            templateText,
+            templateEntries: templateEntries || [],
+            templateTargets: templateTargets || targets
+          };
         }
-        return last || { ok: false, error: 'notfound' };
+        const fallback = last || { ok: false, error: 'notfound' };
+        if (templateText && !fallback.templateText) fallback.templateText = templateText;
+        if (templateEntries && !fallback.templateEntries) fallback.templateEntries = templateEntries;
+        if (!fallback.templateTargets) fallback.templateTargets = templateTargets || targets;
+        return fallback;
       } catch (e) {
         return { ok: false, error: String(e && (e.message || e)) };
       }
@@ -296,8 +345,8 @@ export async function detectAndToggleFastStart() {
         alert(t('options.faststart.missingChain', "Auto-extraction chain has no steps."));
         return;
       }
-      if (selectedRule.strategy === 'script' && !selectedRule.script) {
-        alert(t('options.faststart.missingScript', "Auto-extraction script body is empty."));
+      if (selectedRule.strategy === 'template' && !selectedRule.template) {
+        alert(t('options.faststart.missingTemplate', "Auto-extraction template is empty."));
         return;
       }
 
@@ -314,8 +363,8 @@ export async function detectAndToggleFastStart() {
           msg = t('options.faststart.missingSelector', "Auto-extraction rule is missing a selector.");
         } else if (err === 'empty_chain') {
           msg = t('options.faststart.missingChain', "Auto-extraction chain has no steps.");
-        } else if (err === 'empty_script') {
-          msg = t('options.faststart.missingScript', "Auto-extraction script body is empty.");
+        } else if (err === 'empty_template') {
+          msg = t('options.faststart.missingTemplate', "Auto-extraction template is empty.");
         } else if (err === 'unknown_strategy') {
           msg = t('options.faststart.unknownStrategy', "Unknown extraction strategy.");
         } else if (err === 'invalid_rule' || err === 'no_rule') {
@@ -325,21 +374,47 @@ export async function detectAndToggleFastStart() {
         } else {
           msg = err || t('options.faststart.notFound', "Nothing matched on this page.");
         }
+        setTemplateMeta([]);
         setProgress('', null);
         alert(t('options.faststart.failedPrefix', "Extraction failed: ") + msg);
         return;
       }
 
-      const text = String(resp.text || "").trim();
-      if (!text) {
+      const ruleTargets = {
+        toJob: !!selectedRule?.templateToJob,
+        toResult: !!selectedRule?.templateToResult
+      };
+      const templateTargets = resp?.templateTargets || ruleTargets;
+      const includeTemplateInJob = templateTargets.toJob === true;
+      const includeTemplateInResult = templateTargets.toResult === true;
+      const baseText = String(resp.text || "").trim();
+      const rawTemplateText = String(resp.templateText || "").trim();
+      const rawTemplateEntries = Array.isArray(resp.templateEntries) ? resp.templateEntries : [];
+
+      let templateJobText = '';
+      if (includeTemplateInJob) {
+        if (rawTemplateEntries.length) {
+          templateJobText = rawTemplateEntries
+            .map(({ key, value }) => `${key}: ${value}`)
+            .join('\n')
+            .trim();
+        } else {
+          templateJobText = rawTemplateText;
+        }
+      }
+
+      const combinedText = [baseText, templateJobText].filter(Boolean).join('\n\n').trim();
+      const templateEntries = includeTemplateInResult ? rawTemplateEntries : [];
+      if (!combinedText) {
         setProgress('', null);
         alert(t('options.faststart.notFound', "Nothing matched on this page."));
         return;
       }
 
-      state.selectedText = text;
-      setJobInput(text);
-      try { chrome.storage.local.set({ lastSelection: text, lastSelectionWhen: Date.now() }); } catch {}
+      state.selectedText = combinedText;
+      setJobInput(combinedText);
+      setTemplateMeta(templateEntries, rawTemplateEntries);
+      try { chrome.storage.local.set({ lastSelection: combinedText, lastSelectionWhen: Date.now() }); } catch {}
       setProgress(t('options.faststart.grabbed', 'Description grabbed ✔'), null, { i18nKey: 'options.faststart.grabbed' });
       setTimeout(() => setProgress('', null), 1500);
     } catch (e) {
@@ -426,6 +501,13 @@ export function wireSave() {
     md += analysisMd ? analysisMd + "\n\n" : "_(no analysis result)_\n\n";
     if (jobDesc) {
       md += `---\n\n# Original job description\n\n${jobDesc}\n`;
+    }
+    const metaEntries = Array.isArray(state.templateMetaEntriesRaw) ? state.templateMetaEntriesRaw : [];
+    if (metaEntries.length) {
+      md += `\n\n---\n\n# Page meta data\n\n`;
+      metaEntries.forEach(({ key, value }) => {
+        md += `- ${key}: ${value}\n`;
+      });
     }
 
     try {

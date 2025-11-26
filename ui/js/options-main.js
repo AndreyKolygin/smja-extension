@@ -126,7 +126,7 @@ export async function loadSettings() {
     }
   }
   const helpLink = document.getElementById("helpLink");
-  if (helpLink) helpLink.href = settings.general?.helpUrl || "https://github.com/andreykolygin/smja-extension";
+  if (helpLink) helpLink.href = "https://jda.kolygin.com/";
 
   // Промпты
   initPrompts(settings);
@@ -168,10 +168,10 @@ export async function loadSettings() {
     if (btn) btn.disabled = true;
     if (hint) {
       hint.textContent = t('options.alert.cacheCleared', 'Cache cleared: prompts and temporary results were removed.');
-      hint.style.color = "green";
+      hint.classList.add('hint-success');
       setTimeout(() => {
         hint.textContent = "";
-        hint.style.color = "";
+        hint.classList.remove('hint-success');
       }, 4000);
     }
   });
@@ -183,6 +183,7 @@ document.addEventListener('DOMContentLoaded', () => {
       initTabs();
       await initI18n();     // 1) init language & apply translations
       await loadSettings(); // 2) then build the rest of the page
+      wireExternalLinks();
     } catch (e) {
       console.error('[JDA options] init failed:', e);
       alert(t('options.alert.initFailed', 'Settings UI failed to initialize. See DevTools console for details.'));
@@ -229,3 +230,27 @@ function wireResetDefaults(){
 }
 
 // UI Mode controls removed (overlay is not supported in this build)
+
+function wireExternalLinks() {
+  const nodes = document.querySelectorAll('[data-open-url]');
+  nodes.forEach(node => {
+    if (node.dataset.openUrlWired === '1') return;
+    node.dataset.openUrlWired = '1';
+    node.addEventListener('click', (event) => {
+      event?.preventDefault?.();
+      const url = node.dataset.openUrl;
+      if (!url) return;
+      try {
+        if (chrome?.tabs?.create) {
+          chrome.tabs.create({ url });
+        } else {
+          window.open(url, '_blank', 'noopener,noreferrer');
+        }
+      } catch {
+        try {
+          window.open(url, '_blank', 'noopener,noreferrer');
+        } catch {}
+      }
+    });
+  });
+}

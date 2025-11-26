@@ -386,6 +386,7 @@
     const closeTitle = t('ui.highlighter.close', 'Close');
     const menuTitle = t('ui.menu.optionsMenu', 'Settings menu');
     const frameUrl = chrome.runtime.getURL('ui/popup.html');
+    const metaTitle = t('ui.metaOverlay.buttonTitle', 'Page meta data');
 
     const container = document.createElement('div');
     container.id = OVERLAY_ID;
@@ -397,6 +398,7 @@
         <div class="jda-app-overlay-header" data-drag-handle>
           <span class="jda-app-overlay-title" data-i18n-key="ui.app.title">${title}</span>
           <div class="jda-app-overlay-actions">
+            <button type="button" id="metaOverlay" class="jda-app-overlay-meta" title="${metaTitle}" aria-label="${metaTitle}" data-i18n-title-key="ui.metaOverlay.buttonTitle" data-i18n-attr-aria-label="ui.metaOverlay.buttonTitle">M</button>
             <button type="button" id="menu" class="jda-app-overlay-menu" title="${menuTitle}" data-i18n-title-key="ui.menu.optionsMenu">☰</button>
             <button type="button" data-action="close" data-i18n-title-key="ui.highlighter.close" title="${closeTitle}">✕</button>
           </div>
@@ -424,6 +426,15 @@
       event?.preventDefault?.();
       event?.stopPropagation?.();
       openOptionsPage();
+    }, true);
+
+    const metaBtn = container.querySelector('#metaOverlay');
+    metaBtn?.addEventListener('click', (event) => {
+      event?.preventDefault?.();
+      event?.stopPropagation?.();
+      const metaOverlay = window.__JDA_META_OVERLAY__;
+      if (metaOverlay) metaOverlay.toggle();
+      else console.debug('[JDA overlay] Meta overlay helper is missing.');
     }, true);
 
     const handle = container.querySelector(HEADER_HANDLE);
@@ -483,6 +494,8 @@
       window.removeEventListener('keydown', state.keyHandler, true);
       state.keyHandler = null;
     }
+
+    try { window.__JDA_META_OVERLAY__?.close(); } catch {}
 
     try { state.root.remove(); } catch {}
     state.root = null;

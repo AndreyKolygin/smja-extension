@@ -4,6 +4,28 @@ All notable changes to this project will be documented in this file.
 
 The format is inspired by Keep a Changelog and this project adheres to SemVer via the extension `manifest.json` version field.
 
+## [2.5.0] - 2025-11-26
+
+### Added
+- Meta overlay button in the popup header: opens a draggable, searchable list of all meta tags on the page, lets you copy placeholder names, and can be refreshed without closing the main overlay.
+- “Meta Tags Template” now works as an add-on for CSS/DOM-chain rules, with toggles to append the rendered output to the Job description (LLM input) and/or show it under the Position matching result. Template values are also forwarded to Notion, clipboard copy, and Markdown export.
+- “Page meta data” source in the Notion integration plus support for the native `select` property type, so any placeholder (e.g. `meta:property:og:title`) can populate structured fields.
+- Copy and Save-to-Markdown actions now append the Page meta data block so exported notes contain both the analysis and the captured tags.
+
+### Changed
+- Fast start and manual analyze reuse the same template payloads, guaranteeing consistent data between the job description, result view, Notion export, clipboard, and Markdown files.
+- Meta overlay header doubles as a drag handle but ignores clicks on buttons/input fields, keeping search and controls responsive.
+
+### Fixed
+- Notion export strips inline Markdown formatting before writing to fields, preventing outputs like `*Не указана**`.
+- Settings page no longer triggers CSP violations when showing the “cache cleared” hint (styles moved into CSS classes).
+
+## [2.4.0] - 2025-11-21
+
+### Changed
+- Removed the non-functional “Custom script” rule type; auto-extraction now uses a **Template** strategy that substitutes collected page variables (title, description, meta tags, schema.org data, selection, etc.).
+- Added a page-variable collector shared by fast start and options, so templates work without any unsafe `eval`.
+
 ## [2.3.1] - 2025-10-27
 
 ### Added

@@ -67,10 +67,17 @@ function ruleSignature(rule) {
     });
     return `chain::${parts.join('>')}`;
   }
-  if (strategy === 'script') {
-    return `script::${String(rule?.script || '').trim()}`;
+  if (strategy === 'template') {
+    return `template::${String(rule?.template || '').trim()}`;
   }
   return `${strategy}::${String(rule?.selector || '').trim()}`;
+}
+
+function appendTemplateSummary(base, rule) {
+  const template = String(rule?.template || '').trim();
+  if (!template) return base;
+  const suffix = t('options.modal.site.templateLabel', 'Meta Tags Template');
+  return `${base} • ${suffix}`;
 }
 
 function summarizeRule(rule) {
@@ -79,7 +86,8 @@ function summarizeRule(rule) {
 
   if (strategy === 'css') {
     const detail = String(rule?.selector || '').trim();
-    return detail ? `${label} • ${detail}` : label;
+    const summary = detail ? `${label} • ${detail}` : label;
+    return appendTemplateSummary(summary, rule);
   }
 
   if (strategy === 'chain') {
@@ -104,17 +112,18 @@ function summarizeRule(rule) {
       });
     });
     const detail = parts.join(' → ');
-    return `${label} • ${detail}`;
+    return appendTemplateSummary(`${label} • ${detail}`, rule);
   }
 
-  if (strategy === 'script') {
-    const firstLine = String(rule?.script || '').trim().split('\n').find(Boolean) || '';
+  if (strategy === 'template') {
+    const firstLine = String(rule?.template || '').trim().split('\n').find(Boolean) || '';
     const detail = firstLine.length > 72 ? `${firstLine.slice(0, 69)}…` : firstLine;
     return detail ? `${label} • ${detail}` : label;
   }
 
   const detail = String(rule?.selector || '').trim();
-  return detail ? `${label} • ${detail}` : label;
+  const summary = detail ? `${label} • ${detail}` : label;
+  return appendTemplateSummary(summary, rule);
 }
 
 export function renderSites(settings){
@@ -138,8 +147,25 @@ export function renderSites(settings){
   for (const rule of items) {
     const tr = document.createElement("tr");
     const summary = summarizeRule(rule);
+    const activeLabel = t('options.tbl.active', 'Active');
     tr.innerHTML = `
-      <td><input type="checkbox" ${rule.active ? "checked" : ""} data-act="toggle" data-id="${rule.id}" aria-label="Toggle rule"></td>
+      <td class="table-toggle">
+        <label class="toggle toggle--compact toggle--icon-only">
+          <span class="sr-only" data-i18n="options.tbl.active">${activeLabel}</span>
+          <span class="toggle__control">
+            <input type="checkbox"
+                   class="toggle__input"
+                   ${rule.active ? "checked" : ""}
+                   data-act="toggle"
+                   data-id="${rule.id}"
+                   data-i18n-attr-aria-label="options.tbl.active"
+                   aria-label="${activeLabel}">
+            <span class="toggle__track" aria-hidden="true">
+              <span class="toggle__thumb"></span>
+            </span>
+          </span>
+        </label>
+      </td>
       <td class="word-break">${rule.host || ""}</td>
       <td class="word-break" title="${escapeHtml(summary)}">${escapeHtml(summary)}</td>
       <td class="word-break">${rule.comment || ""}</td>
@@ -208,8 +234,10 @@ function openSiteModal(settings, rule){
   const chainRow = getModalEl("siteChainRow");
   const chainGroupsContainer = getModalEl("siteChainGroups");
   const addChainGroupBtn = getModalEl("addChainGroupBtn");
-  const scriptRow = getModalEl("siteScriptRow");
-  const scriptInput = getModalEl("siteScript");
+  const templateRow = getModalEl("siteTemplateRow");
+  const templateInput = getModalEl("siteTemplate");
+  const templateToJobInput = getModalEl("siteTemplateToJob");
+  const templateToResultInput = getModalEl("siteTemplateToResult");
   const com  = getModalEl("siteComment");
   const act  = getModalEl("siteActive");
   const save = getModalEl("saveSiteBtn");
@@ -291,17 +319,31 @@ function openSiteModal(settings, rule){
       });
 
       const activeLabel = document.createElement('label');
-      activeLabel.className = 'checkbox';
+      activeLabel.className = 'toggle toggle--compact chain-group-toggle';
+      const activeText = document.createElement('span');
+      activeText.className = 'toggle__text';
+      activeText.setAttribute('data-i18n', 'options.modal.site.chainGroupActive');
+      const activeLabelText = t('options.modal.site.chainGroupActive', 'Active');
+      activeText.textContent = activeLabelText;
+      const activeControl = document.createElement('span');
+      activeControl.className = 'toggle__control';
       const activeInput = document.createElement('input');
       activeInput.type = 'checkbox';
+      activeInput.className = 'toggle__input';
       activeInput.checked = group.active !== false;
+      activeInput.setAttribute('data-i18n-attr-aria-label', 'options.modal.site.chainGroupActive');
+      activeInput.setAttribute('aria-label', activeLabelText);
       activeInput.addEventListener('change', (e) => {
         chainGroupsState[groupIdx].active = !!e.target.checked;
       });
-      const activeSpan = document.createElement('span');
-      activeSpan.setAttribute('data-i18n', 'options.modal.site.chainGroupActive');
-      activeSpan.textContent = t('options.modal.site.chainGroupActive', 'Active');
-      activeLabel.append(activeInput, activeSpan);
+      const activeTrack = document.createElement('span');
+      activeTrack.className = 'toggle__track';
+      activeTrack.setAttribute('aria-hidden', 'true');
+      const activeThumb = document.createElement('span');
+      activeThumb.className = 'toggle__thumb';
+      activeTrack.appendChild(activeThumb);
+      activeControl.append(activeInput, activeTrack);
+      activeLabel.append(activeText, activeControl);
 
       left.append(groupTitle, nameInput, activeLabel);
 
@@ -478,14 +520,18 @@ function openSiteModal(settings, rule){
     host.value = rule.host || "";
     sel.value  = rule.selector || "";
     if (strategySel) strategySel.value = rule.strategy || "css";
-    if (scriptInput) scriptInput.value = rule.script || "";
+    if (templateInput) templateInput.value = rule.template || "";
+    if (templateToJobInput) templateToJobInput.checked = !!rule.templateToJob;
+    if (templateToResultInput) templateToResultInput.checked = !!rule.templateToResult;
     com.value  = rule.comment || "";
     act.checked = !!rule.active;
   } else {
     host.value = "";
     sel.value = "";
     if (strategySel) strategySel.value = "css";
-    if (scriptInput) scriptInput.value = "";
+    if (templateInput) templateInput.value = "";
+    if (templateToJobInput) templateToJobInput.checked = false;
+    if (templateToResultInput) templateToResultInput.checked = false;
     com.value = "";
     act.checked = true;
   }
@@ -500,7 +546,10 @@ function openSiteModal(settings, rule){
   }
 
   function activateStrategy(value) {
-    const val = ['css', 'chain', 'script'].includes(value) ? value : 'css';
+    let val = value;
+    if (val === 'template') val = 'css'; // legacy fallback
+    const allowed = ['css', 'chain'];
+    if (!allowed.includes(val)) val = 'css';
     if (strategySel) strategySel.value = val;
     strategyTabs.forEach(btn => {
       const isActive = btn.dataset.tab === val;
@@ -532,7 +581,7 @@ function openSiteModal(settings, rule){
   attachKeyHandler(host);
   attachKeyHandler(sel);
   attachKeyHandler(com);
-  attachKeyHandler(scriptInput);
+  attachKeyHandler(templateInput);
   if (chainGroupsContainer) chainGroupsContainer.addEventListener('keydown', onKey);
   if (strategySel) strategySel.addEventListener('change', onStrategyChange);
   strategyTabs.forEach(btn => btn.addEventListener('click', onStrategyTabClick));
@@ -555,7 +604,9 @@ function openSiteModal(settings, rule){
       active: !!act.checked,
       chain: [],
       chainGroups: [],
-      script: scriptInput?.value?.trim() || '',
+      template: templateInput?.value?.trim() || '',
+      templateToJob: templateToJobInput ? !!templateToJobInput.checked : false,
+      templateToResult: templateToResultInput ? !!templateToResultInput.checked : false,
       chainSequential: strategy === 'chain'
     };
     if (!data.host) {
@@ -571,7 +622,6 @@ function openSiteModal(settings, rule){
       }
       data.chain = [];
       data.chainGroups = [];
-      data.script = '';
     } else if (strategy === 'chain') {
       const chainSanitized = sanitizeChainGroups();
       if (!chainSanitized.ok) {
@@ -581,24 +631,6 @@ function openSiteModal(settings, rule){
       data.chain = chainSanitized.chain;
       data.chainGroups = chainSanitized.groups;
       data.selector = '';
-      data.script = '';
-    } else if (strategy === 'script') {
-      data.script = (scriptInput?.value || '').trim();
-      if (!data.script) {
-        alert(t('options.modal.site.scriptRequired', 'Provide a script body that returns text.'));
-        return;
-      }
-      data.chain = [];
-      data.chainGroups = [];
-      data.selector = '';
-      const previousScript = String(rule?.script || '').trim();
-      const scriptChanged = !rule || rule.strategy !== 'script' || previousScript !== data.script;
-      if (scriptChanged) {
-        const confirmed = confirm(t('options.modal.site.scriptConfirm', 'Custom scripts run inside the visited page and can access its data. Save this script?'));
-        if (!confirmed) {
-          return;
-        }
-      }
     }
 
     if (hasDuplicateRule(settings, rule?.id, data)) {

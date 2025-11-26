@@ -11,6 +11,7 @@ const SOURCE_OPTIONS = [
   { value: 'model', labelKey: 'options.integrations.notion.source.model' },
   { value: 'timestamp', labelKey: 'options.integrations.notion.source.timestamp' },
   { value: 'cv', labelKey: 'options.integrations.notion.source.cv' },
+  { value: 'templateMeta', labelKey: 'options.integrations.notion.source.meta' },
   { value: 'custom', labelKey: 'options.integrations.notion.source.custom' }
 ];
 
@@ -22,6 +23,7 @@ const TYPE_OPTIONS = [
   { value: 'checkbox', labelKey: 'options.integrations.notion.type.checkbox' },
   { value: 'date', labelKey: 'options.integrations.notion.type.date' },
   { value: 'multi_select', labelKey: 'options.integrations.notion.type.multi_select' },
+  { value: 'select', labelKey: 'options.integrations.notion.type.select' },
   { value: 'status', labelKey: 'options.integrations.notion.type.status' }
 ];
 
@@ -68,7 +70,13 @@ function makeField(field) {
 }
 
 function needsValueInput(source) {
-  return source === 'analysis' || source === 'custom';
+  return source === 'analysis' || source === 'custom' || source === 'templateMeta';
+}
+
+function placeholderKeyForSource(source) {
+  if (source === 'analysis') return 'options.integrations.notion.placeholder.analysis';
+  if (source === 'templateMeta') return 'options.integrations.notion.placeholder.meta';
+  return 'options.integrations.notion.placeholder.custom';
 }
 
 function renderField(field) {
@@ -144,9 +152,7 @@ function renderField(field) {
     staticInput.disabled = !needs;
     staticInput.required = needs;
     if (needs) {
-      const placeholderKey = sourceValue === 'analysis'
-        ? 'options.integrations.notion.placeholder.analysis'
-        : 'options.integrations.notion.placeholder.custom';
+      const placeholderKey = placeholderKeyForSource(sourceValue);
       staticInput.setAttribute('data-i18n-attr-placeholder', placeholderKey);
       staticInput.placeholder = translate(placeholderKey);
     } else {

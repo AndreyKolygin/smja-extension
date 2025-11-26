@@ -5,7 +5,7 @@ const NOTION_API_URL = 'https://api.notion.com/v1/pages';
 const NOTION_VERSION = '2025-09-03';
 const TEXT_CHUNK = 1800;
 
-const ALLOWED_TYPES = new Set(['title', 'rich_text', 'url', 'number', 'checkbox', 'date', 'multi_select', 'status']);
+const ALLOWED_TYPES = new Set(['title', 'rich_text', 'url', 'number', 'checkbox', 'date', 'multi_select', 'select', 'status']);
 
 function chunkText(value) {
   const text = String(value ?? '');
@@ -29,6 +29,21 @@ function toRichText(value) {
     type: 'text',
     text: { content: part }
   }));
+}
+
+function stripInlineFormatting(text) {
+  if (!text) return '';
+  return String(text)
+    .replace(/!\[([^\]]*)\]\([^)]+\)/g, '$1')
+    .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
+    .replace(/`([^`]+)`/g, '$1')
+    .replace(/~~([^~]+)~~/g, '$1')
+    .replace(/\*\*([^*]+)\*\*/g, '$1')
+    .replace(/__([^_]+)__/g, '$1')
+    .replace(/\*([^*]+)\*/g, '$1')
+    .replace(/_([^_]+)_/g, '$1')
+    .replace(/\\([*_`~])/g, '$1')
+    .trim();
 }
 
 function asBoolean(value) {
@@ -88,6 +103,13 @@ function resolveSourceValue(field, context) {
       return context.timestampIso || '';
     case 'cv':
       return context.cv || '';
+    case 'templateMeta': {
+      const key = String(field.staticValue || '').trim();
+      if (!key) return '';
+      const entries = Array.isArray(context.metaEntries) ? context.metaEntries : [];
+      const found = entries.find(entry => entry.key === key);
+      return found?.value || '';
+    }
     case 'pageTitle':
       return context.pageTitle || '';
     case 'custom':
@@ -108,7 +130,7 @@ function extractFromAnalysis(pattern, analysisText) {
     if (line.startsWith(prefix)) {
       let value = line.slice(prefix.length).trim();
       value = value.replace(/^[\-–—•*]\s*/, '');
-      return value;
+      return stripInlineFormatting(value);
     }
   }
   return '';
@@ -142,6 +164,10 @@ function buildProperty(field, value) {
       const arr = asMultiSelect(value);
       return arr.length ? { multi_select: arr } : null;
     }
+    case 'select': {
+      const name = String(value || '').trim();
+      return name ? { select: { name } } : null;
+    }
     case 'status': {
       const name = String(value || '').trim();
       return name ? { status: { name } } : null;
@@ -164,7 +190,7 @@ export async function saveToNotion({ settings, payload }) {
   if (!fields.length) return { ok: false, error: 'Configure at least one Notion field mapping' };
 
   for (const field of fields) {
-    if ((field.source === 'analysis' || field.source === 'custom') && !String(field.staticValue || '').trim()) {
+    if ((field.source === 'analysis' || field.source === 'custom' || field.source === 'templateMeta') && !String(field.staticValue || '').trim()) {
       return { ok: false, error: `Field "${field.propertyName}" requires Source data value.` };
     }
   }
@@ -186,7 +212,8 @@ export async function saveToNotion({ settings, payload }) {
     providerName: payload?.providerName || payload?.providerLabel || provider?.name || '',
     modelName: payload?.modelLabel || stateModel?.displayName || stateModel?.modelId || payload?.modelId || '',
     timestampIso,
-    cv: cvText
+    cv: cvText,
+    metaEntries: Array.isArray(payload?.templateMetaEntries) ? payload.templateMetaEntries : []
   };
 
   const properties = {};

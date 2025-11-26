@@ -129,6 +129,8 @@ async function init() {
   }
 
   wireUI();
+  // ensure footer buttons match current result state
+  setResult(state.lastResponse || "");
   if (!state.settings) {
     state.settings = await fetchSettings();
   }

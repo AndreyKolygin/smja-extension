@@ -13,9 +13,25 @@ export function renderModels(settings){
     const provider = settings.providers.find(p => p.id === m.providerId);
     const tr = document.createElement("tr");
     tr.dataset.id = m.id;
+    const activeLabel = t('options.tbl.active', 'Active');
     tr.innerHTML = `
       <td class="drag" data-i18n-attr-title="options.models.dragTitle" title="Drag to reorder"><button class="icon-only icon-left i-grab drag-handle" draggable="true" aria-label="Drag" data-i18n-attr-aria-label="options.models.dragAria"></button></td>
-      <td><input type="checkbox" data-role="active" ${m.active ? "checked" : ""}></td>
+      <td class="table-toggle">
+        <label class="toggle toggle--compact toggle--icon-only">
+          <span class="sr-only" data-i18n="options.tbl.active">${activeLabel}</span>
+          <span class="toggle__control">
+            <input type="checkbox"
+                   class="toggle__input"
+                   data-role="active"
+                   ${m.active ? "checked" : ""}
+                   data-i18n-attr-aria-label="options.tbl.active"
+                   aria-label="${activeLabel}">
+            <span class="toggle__track" aria-hidden="true">
+              <span class="toggle__thumb"></span>
+            </span>
+          </span>
+        </label>
+      </td>
       <td contenteditable="true" data-role="display">${m.displayName ?? ""}</td>
       <td>${provider?.name || "?"}</td>
       <td contenteditable="true" data-role="modelId">${m.modelId ?? ""}</td>
