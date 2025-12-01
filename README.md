@@ -50,6 +50,36 @@ All changes are saved automatically; the Save button is available for manual com
 
 ---
 
+## 🐙 Local Ollama quickstart
+
+The bundled **Ollama Local** provider and **Llama 3** model are active right after installation; just make sure your local Ollama daemon allows the extension origin.
+
+1. [Install Ollama](https://ollama.com/download) and pull at least one model, e.g. `ollama pull llama3`.
+2. Open `chrome://extensions/`, enable **Developer mode**, and copy the extension ID (looks like `chrome-extension://abc123…`).
+3. Start Ollama with the extension origin in `OLLAMA_ORIGINS` (replace `<YOUR_ID>`):
+
+   **macOS/Linux (bash/zsh):**
+   ```bash
+   export OLLAMA_HOST=127.0.0.1:11434
+   export OLLAMA_ORIGINS=chrome-extension://<YOUR_ID>
+   ollama serve
+   ```
+
+   **Windows PowerShell:**
+   ```powershell
+   setx OLLAMA_HOST "127.0.0.1:11434"
+   setx OLLAMA_ORIGINS "chrome-extension://<YOUR_ID>"
+   ollama serve
+   ```
+
+4. Trigger an analysis with the Ollama provider. Chrome will prompt for access to `http://localhost:11434/*` — click **Allow** once.
+
+If the popup shows `Ollama HTTP 403 (CORS)`, the running `ollama serve` process was started without `OLLAMA_ORIGINS`; stop it, export the variables, and launch again. You can verify connectivity anytime with `curl http://localhost:11434/api/tags`.
+
+Now every fresh install can talk to the local daemon without any manual provider/model setup.
+
+---
+
 ## 🖥 Using the overlay
 
 1. Open a job posting page.

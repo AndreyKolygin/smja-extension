@@ -1,6 +1,17 @@
 // background/llm/ollama.js
 import { fetchWithTimeout } from '../utils.js';
 
+const EXTENSION_ORIGIN = (() => {
+  try {
+    if (typeof chrome !== 'undefined' && chrome?.runtime?.id) {
+      return `chrome-extension://${chrome.runtime.id}`;
+    }
+  } catch {
+    // ignore — fall back to placeholder below
+  }
+  return 'chrome-extension://<твой_ID>';
+})();
+
 export async function callOllama({ baseUrl, model, sys, user, timeoutMs = 120_000 }) {
   const root = baseUrl.replace(/\/$/, '');
   const chatUrl = `${root}/api/chat`;
@@ -33,7 +44,7 @@ export async function callOllama({ baseUrl, model, sys, user, timeoutMs = 120_00
       if (res.status === 403) {
         throw new Error(
           `Ollama HTTP 403 (CORS). Проверь:\n` +
-          `• OLLAMA_ORIGINS включает chrome-extension://<твой_ID>\n` +
+          `• OLLAMA_ORIGINS включает ${EXTENSION_ORIGIN}\n` +
           `• что именно этот процесс ollama serve запущен с этими переменными\n` +
           `• baseUrl в настройках: ${root}`
         );

@@ -302,7 +302,6 @@
   "ui.metaOverlay.searchPlaceholder": "Search meta tags",
   "ui.metaOverlay.copiedLabel": "Copied",
   "ui.templateMeta.title": "Page meta data",
-  "ui.templateMeta.title": "Page meta data",
   "ui.popup.progress": "Progress: {{ms}} ms",
   "ui.popup.progressSaving": "Saving to Notion…",
   "ui.popup.progressSaved": "Saved to Notion",

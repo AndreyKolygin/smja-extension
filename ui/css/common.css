@@ -139,8 +139,8 @@ body {
 }
 
 body.theme-landing {
-  font-family: "Inter", "Segoe UI", system-ui, -apple-system, BlinkMacSystemFont, "Helvetica Neue",
-    sans-serif;
+  font-family: "Inter", "Segoe UI", system-ui, -apple-system, BlinkMacSystemFont,
+    "Helvetica Neue", sans-serif;
   color: var(--text);
   min-height: 100vh;
   background-color: #06090f;
