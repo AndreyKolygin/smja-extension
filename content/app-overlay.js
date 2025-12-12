@@ -63,6 +63,17 @@
     style.id = STYLE_ID;
     style.textContent = `
       #${OVERLAY_ID} {
+        --jda-neo-surface: #e9eef8;
+        --jda-neo-surface-light: #ffffff;
+        --jda-neo-surface-dark: #cdd7ea;
+        --jda-neo-surface-darker: #b5c0d5;
+        --jda-neo-shadow-dark: rgba(163, 177, 198, 0.6);
+        --jda-neo-shadow-light: rgba(255, 255, 255, 0.92);
+        --jda-neo-text: #1f2a3f;
+        --jda-neo-muted: #5b657d;
+        --jda-neo-accent: #4f7cff;
+        --jda-neo-accent-dark: #3657b1;
+        --jda-neo-border: rgba(255, 255, 255, 0.55);
         position: fixed;
         top: 15px;
         right: 15px;
@@ -73,42 +84,51 @@
         flex-direction: column;
         align-items: stretch;
         pointer-events: none;
+        color: var(--jda-neo-text);
       }
       #${OVERLAY_ID}.jda-overlay-dragging {
         cursor: grabbing;
+      }
+      #${OVERLAY_ID}.jda-overlay-dragging .${CARD_CLASS} {
+        box-shadow: 18px 18px 35px rgba(163, 177, 198, 0.55), -15px -15px 30px rgba(255, 255, 255, 0.8);
       }
       #${OVERLAY_ID} .${CARD_CLASS} {
         position: relative;
         display: flex;
         flex-direction: column;
         gap: 0;
-        width: min(400px, calc(100vw - 32px));
-        max-width: min(720px, calc(100vw - 16px));
-        height: min(70vh, calc(100vh - 24px));
-        max-height: calc(100vh - 15px);
-        min-height: 700px;
-        background: #0f172a;
-        color: #f8fafc;
-        border-radius: 24px;
-        box-shadow: 0 22px 48px rgba(15, 23, 42, 0.35);
-        border: 1px solid rgba(148, 163, 184, 0.18);
+        width: min(460px, calc(100vw - 24px));
+        max-width: min(460px, calc(100vw - 16px));
+        height: min(72vh, calc(100vh - 28px));
+        max-height: calc(100vh - 20px);
+        min-height: 600px;
+        background: var(--jda-neo-surface);
+        color: inherit;
+        border-radius: 22px;
+        box-shadow: 12px 12px 32px rgba(163, 177, 198, 0.55), -10px -10px 28px rgba(255, 255, 255, 0.75);
+        border: 1px solid rgba(255, 255, 255, 0.4);
         overflow: hidden;
         pointer-events: auto;
+        padding: 10px;
+        transition: box-shadow 180ms ease;
       }
       #${OVERLAY_ID} .jda-app-overlay-header {
         display: flex;
         align-items: center;
         justify-content: space-between;
-        gap: 12px;
-        padding: 12px 14px;
-        background: #1f2937;
-        color: var(--bg-light);
+        gap: 10px;
+        padding: 10px 12px;
+        margin-bottom: 8px;
+        border-radius: 18px;
+        background: var(--jda-neo-surface);
+        box-shadow: inset 3px 3px 6px rgba(163, 177, 198, 0.35), inset -3px -3px 6px rgba(255, 255, 255, 0.8);
+        color: inherit;
         cursor: grab;
         user-select: none;
         font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-        font-size: 13px;
+        font-size: 14px;
         font-weight: 700;
-        letter-spacing: 0.01em;
+        letter-spacing: 0.03em;
       }
       #${OVERLAY_ID}.jda-overlay-dragging .jda-app-overlay-header {
         cursor: grabbing;
@@ -118,57 +138,86 @@
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
+        color: inherit;
       }
       #${OVERLAY_ID} .jda-app-overlay-actions {
         display: flex;
         align-items: center;
-        gap: 8px;
+        gap: 10px;
       }
       #${OVERLAY_ID} .jda-app-overlay-actions button {
         border: none;
-        border-radius: 999px;
-        width: 28px;
-        height: 28px;
+        border-radius: 14px;
+        width: 30px;
+        height: 30px;
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        background: rgba(148, 163, 184, 0.16);
-        color: var(--bg-light);
+        background: var(--jda-neo-surface);
         color: inherit;
         padding: 0;
         cursor: pointer;
+        box-shadow: 4px 4px 8px rgba(163, 177, 198, 0.5), -4px -4px 8px rgba(255, 255, 255, 0.7);
+        transition: box-shadow 120ms ease;
       }
       #${OVERLAY_ID} .jda-app-overlay-actions button:hover {
-        background: rgba(148, 163, 184, 0.28);
+        box-shadow: 3px 3px 6px rgba(163, 177, 198, 0.45), -3px -3px 6px rgba(255, 255, 255, 0.75);
+      }
+      #${OVERLAY_ID} .jda-app-overlay-actions button:active {
+        box-shadow: inset 3px 3px 6px rgba(163, 177, 198, 0.6), inset -3px -3px 6px rgba(255, 255, 255, 0.8);
+      }
+      #${OVERLAY_ID} .jda-app-overlay-actions button:focus-visible {
+        outline: 2px solid var(--jda-neo-accent);
+        outline-offset: 2px;
+      }
+      #${OVERLAY_ID} .jda-app-overlay-actions button[data-action="close"] {
+        background: linear-gradient(145deg, var(--jda-neo-accent), #7ba1ff);
+        color: #ffffff;
+        border: none;
+        box-shadow: 8px 8px 14px rgba(79, 124, 255, 0.4), -6px -6px 12px rgba(255, 255, 255, 0.45);
+      }
+      #${OVERLAY_ID} .jda-app-overlay-actions button[data-action="close"]:active {
+        box-shadow: inset 4px 4px 10px rgba(54, 87, 177, 0.6), inset -4px -4px 10px rgba(255, 255, 255, 0.4);
       }
       #${OVERLAY_ID} .jda-app-overlay-body {
         flex: 1;
-        background: #FFFFFF;
-        border-top: 1px solid rgba(15, 23, 42, 0.25);
+        background: var(--jda-neo-surface);
+        border-radius: 16px;
+        border: 1px solid rgba(255, 255, 255, 0.4);
+        box-shadow: inset 6px 6px 12px rgba(163, 177, 198, 0.35), inset -6px -6px 12px rgba(255, 255, 255, 0.8);
         overflow: hidden;
         position: relative;
+        padding: 8px;
       }
       #${OVERLAY_ID} .jda-app-overlay-frame {
         width: 100%;
         height: 100%;
         border: none;
-        background: transparent;
+        background: var(--jda-neo-surface);
+        border-radius: 12px;
+        box-shadow: inset 4px 4px 8px rgba(163, 177, 198, 0.35), inset -4px -4px 8px rgba(255, 255, 255, 0.8);
       }
       #${OVERLAY_ID} .jda-app-overlay-resize {
-        height: 12px;
+        height: 18px;
         display: flex;
         align-items: center;
         justify-content: center;
         cursor: ns-resize;
-        background: rgba(15, 23, 42, 0.12);
-        border-top: 1px solid rgba(15, 23, 42, 0.25);
+        background: transparent;
+        border: none;
+        margin-top: 8px;
       }
       #${OVERLAY_ID} .jda-app-overlay-resize::before {
         content: '';
-        width: 40px;
-        height: 4px;
+        width: 52px;
+        height: 10px;
         border-radius: 999px;
-        background: rgba(148, 163, 184, 0.6);
+        background: var(--jda-neo-surface);
+        border: 1px solid rgba(255, 255, 255, 0.4);
+        box-shadow: 3px 3px 6px rgba(163, 177, 198, 0.4), -3px -3px 6px rgba(255, 255, 255, 0.7);
+      }
+      #${OVERLAY_ID} .jda-app-overlay-resize:active::before {
+        box-shadow: inset 4px 4px 8px rgba(163, 177, 198, 0.6), inset -4px -4px 8px rgba(255, 255, 255, 0.9);
       }
     `;
     document.documentElement.appendChild(style);
