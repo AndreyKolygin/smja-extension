@@ -1,5 +1,6 @@
 // background/llm/ollama.js
 import { fetchWithTimeout } from '../utils.js';
+import { getLocaleString, getPreferredUILang } from '../../shared/locale-loader.js';
 
 const EXTENSION_ORIGIN = (() => {
   try {
@@ -11,6 +12,85 @@ const EXTENSION_ORIGIN = (() => {
   }
   return 'chrome-extension://<твой_ID>';
 })();
+
+const FALLBACK_MESSAGES = {
+  cors: {
+    en: 'Ollama HTTP 403 (CORS) — the server rejected origin {{ORIGIN}}.',
+    ru: 'Ollama HTTP 403 (CORS): сервер отклонил origin {{ORIGIN}}.'
+  },
+  network: {
+    en: 'Failed to connect to Ollama at {{BASE_URL}}. The service may be stopped or {{ORIGIN}} is missing in OLLAMA_ORIGINS.',
+    ru: 'Не удалось подключиться к Ollama по адресу {{BASE_URL}}. Вероятно, сервис остановлен или переменная OLLAMA_ORIGINS не содержит {{ORIGIN}}.'
+  },
+  guideTitle: {
+    en: 'How to fix it',
+    ru: 'Как исправить'
+  },
+  guide: {
+    en: [
+      '1) Open a terminal and run the commands (the extension ID is already inserted):',
+      'macOS / Linux:',
+      '  export OLLAMA_HOST=127.0.0.1:11434',
+      `  export OLLAMA_ORIGINS={{ORIGIN}}`,
+      '  ollama serve',
+      'Windows PowerShell:',
+      '  setx OLLAMA_HOST "127.0.0.1:11434"',
+      '  setx OLLAMA_ORIGINS "{{ORIGIN}}"',
+      '  ollama serve',
+      '2) Keep this terminal running — Ollama stops when the window closes.',
+      '3) If the terminal was closed/restarted, open a new one, repeat the commands, and leave it running.',
+      '4) Allow Chrome to access http://localhost:11434/* (chrome://extensions → Job Description Analyzer → Details → Permissions).',
+      'baseUrl in settings: {{BASE_URL}}'
+    ].join('\n'),
+    ru: [
+      '1) Открой терминал и выполни команды (ID уже подставлен):',
+      'macOS / Linux:',
+      '  export OLLAMA_HOST=127.0.0.1:11434',
+      `  export OLLAMA_ORIGINS={{ORIGIN}}`,
+      '  ollama serve',
+      'Windows PowerShell:',
+      '  setx OLLAMA_HOST "127.0.0.1:11434"',
+      '  setx OLLAMA_ORIGINS "{{ORIGIN}}"',
+      '  ollama serve',
+      '2) Не закрывай терминал — Ollama останавливается, как только окно закрывается.',
+      '3) Если терминал закрыт/перезапущен, открой новый, повтори команды и оставь процесс запущенным.',
+      '4) Разреши Chrome доступ к http://localhost:11434/* (chrome://extensions → Job Description Analyzer → «Подробнее» → «Разрешения»).',
+      'baseUrl в настройках: {{BASE_URL}}'
+    ].join('\n')
+  }
+};
+
+function applyPlaceholders(template, replacements) {
+  if (!template) return '';
+  let result = template;
+  for (const [key, value] of Object.entries(replacements)) {
+    const pattern = new RegExp(`{{\\s*${key}\\s*}}`, 'g');
+    result = result.replace(pattern, value);
+  }
+  return result;
+}
+
+async function buildOllamaErrorMessage(type, root) {
+  const replacements = { ORIGIN: EXTENSION_ORIGIN, BASE_URL: root };
+  const baseError = applyPlaceholders(FALLBACK_MESSAGES[type === 'cors' ? 'cors' : 'network'].en, replacements);
+  const lang = await getPreferredUILang();
+
+  const guideTitleTemplate = await getLocaleString(
+    lang,
+    'errors.ollama.fixTitle',
+    FALLBACK_MESSAGES.guideTitle[lang] || FALLBACK_MESSAGES.guideTitle.en
+  );
+  const guideTemplate = await getLocaleString(
+    lang,
+    'errors.ollama.guide',
+    FALLBACK_MESSAGES.guide[lang] || FALLBACK_MESSAGES.guide.en
+  );
+
+  const guideTitle = applyPlaceholders(guideTitleTemplate, replacements);
+  const guide = applyPlaceholders(guideTemplate, replacements).replace(/\\n/g, '\n');
+
+  return `${baseError}\n\n${guideTitle}\n${guide}`;
+}
 
 export async function callOllama({ baseUrl, model, sys, user, timeoutMs = 120_000 }) {
   const root = baseUrl.replace(/\/$/, '');
@@ -42,12 +122,8 @@ export async function callOllama({ baseUrl, model, sys, user, timeoutMs = 120_00
 
     if (!res.ok) {
       if (res.status === 403) {
-        throw new Error(
-          `Ollama HTTP 403 (CORS). Проверь:\n` +
-          `• OLLAMA_ORIGINS включает ${EXTENSION_ORIGIN}\n` +
-          `• что именно этот процесс ollama serve запущен с этими переменными\n` +
-          `• baseUrl в настройках: ${root}`
-        );
+        const message = await buildOllamaErrorMessage('cors', root);
+        throw new Error(message);
       }
       const body = await res.text().catch(() => '');
       throw new Error(`Ollama HTTP ${res.status}: ${body.slice(0, 200)}`);
@@ -59,6 +135,10 @@ export async function callOllama({ baseUrl, model, sys, user, timeoutMs = 120_00
     const msg = String(e && (e.message || e));
     if (/AbortError/i.test(msg) || /timed out/i.test(msg)) {
       throw new Error(`Request timed out after ${Math.round(timeout / 1000)}s. Увеличьте timeoutMs в провайдере Ollama или сократите запрос.`);
+    }
+    if (/Failed to fetch/i.test(msg) || /NetworkError/i.test(msg)) {
+      const message = await buildOllamaErrorMessage('network', root);
+      throw new Error(message);
     }
     throw e;
   }

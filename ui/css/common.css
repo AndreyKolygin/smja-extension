@@ -231,7 +231,12 @@ body.theme-landing {
   color: #fff;
 }
 .btn.secondary:hover {
-  background: var(--extra-light);
+  /* background: #637fa405; */
+  background: linear-gradient(
+    180deg,
+    rgba(195, 235, 229, 0.3) 0%,
+    rgba(255, 255, 255, 0.1) 100%
+  );
 }
 .btn.third,
 .edit-prompt {
@@ -242,7 +247,12 @@ body.theme-landing {
 
 .btn.third:hover,
 .edit-prompt:hover {
-  background: #3a67a399;
+  /* background: #637fa405; */
+  background: linear-gradient(
+    180deg,
+    rgb(88 132 255 / 20%) 0%,
+    rgba(255, 255, 255, 0.1) 100%
+  );
 }
 
 .btn.ghost {
@@ -251,8 +261,7 @@ body.theme-landing {
   color: var(--text);
 }
 .btn.ghost:hover {
-  background: var(--accent-dark);
-  color: var(--text-dark);
+  background: #637fa405;
 }
 
 .input,
@@ -280,11 +289,12 @@ textarea {
 }
 
 .row {
-  margin: 0;
+  margin: 0 10px;
   display: flex;
   gap: 6px;
   flex-direction: row;
   align-items: center;
+  justify-content: space-between;
 }
 
 .sr-only {

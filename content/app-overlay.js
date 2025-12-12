@@ -90,7 +90,7 @@
         cursor: grabbing;
       }
       #${OVERLAY_ID}.jda-overlay-dragging .${CARD_CLASS} {
-        box-shadow: 18px 18px 35px rgba(163, 177, 198, 0.55), -15px -15px 30px rgba(255, 255, 255, 0.8);
+        box-shadow: none;
       }
       #${OVERLAY_ID} .${CARD_CLASS} {
         position: relative;
@@ -99,17 +99,17 @@
         gap: 0;
         width: min(460px, calc(100vw - 24px));
         max-width: min(460px, calc(100vw - 16px));
-        height: min(72vh, calc(100vh - 28px));
+        height: min(90vh, calc(100vh - 28px));
         max-height: calc(100vh - 20px);
         min-height: 600px;
-        background: var(--jda-neo-surface);
+        background: #f8f9fb;
         color: inherit;
-        border-radius: 22px;
-        box-shadow: 12px 12px 32px rgba(163, 177, 198, 0.55), -10px -10px 28px rgba(255, 255, 255, 0.75);
-        border: 1px solid rgba(255, 255, 255, 0.4);
+        border-radius: 20px;
+        box-shadow: none;
+        border: 1px solid rgb(226 226 226 / 40%);
         overflow: hidden;
         pointer-events: auto;
-        padding: 10px;
+        padding: 2px;
         transition: box-shadow 180ms ease;
       }
       #${OVERLAY_ID} .jda-app-overlay-header {
@@ -117,7 +117,7 @@
         align-items: center;
         justify-content: space-between;
         gap: 10px;
-        padding: 10px 12px;
+        padding: 5px 10px;
         margin-bottom: 8px;
         border-radius: 18px;
         background: var(--jda-neo-surface);
@@ -127,8 +127,8 @@
         user-select: none;
         font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
         font-size: 14px;
-        font-weight: 700;
-        letter-spacing: 0.03em;
+        font-weight: 500;
+        /* letter-spacing: 0.03em; */
       }
       #${OVERLAY_ID}.jda-overlay-dragging .jda-app-overlay-header {
         cursor: grabbing;
@@ -148,8 +148,8 @@
       #${OVERLAY_ID} .jda-app-overlay-actions button {
         border: none;
         border-radius: 14px;
-        width: 30px;
-        height: 30px;
+        width: 24px;
+        height: 24px;
         display: inline-flex;
         align-items: center;
         justify-content: center;
@@ -174,20 +174,20 @@
         background: linear-gradient(145deg, var(--jda-neo-accent), #7ba1ff);
         color: #ffffff;
         border: none;
-        box-shadow: 8px 8px 14px rgba(79, 124, 255, 0.4), -6px -6px 12px rgba(255, 255, 255, 0.45);
+        box-shadow: 1px 3px 4px rgba(79, 124, 255, 0.4), -5px -5px 5px rgba(255, 255, 255, 0.45);
       }
       #${OVERLAY_ID} .jda-app-overlay-actions button[data-action="close"]:active {
         box-shadow: inset 4px 4px 10px rgba(54, 87, 177, 0.6), inset -4px -4px 10px rgba(255, 255, 255, 0.4);
       }
       #${OVERLAY_ID} .jda-app-overlay-body {
         flex: 1;
-        background: var(--jda-neo-surface);
+        /* background: var(--jda-neo-surface); */
         border-radius: 16px;
-        border: 1px solid rgba(255, 255, 255, 0.4);
-        box-shadow: inset 6px 6px 12px rgba(163, 177, 198, 0.35), inset -6px -6px 12px rgba(255, 255, 255, 0.8);
+        /* border: 1px solid rgba(255, 255, 255, 0.4); */
+        /* box-shadow: inset 6px 6px 12px rgba(163, 177, 198, 0.35), inset -6px -6px 12px rgba(255, 255, 255, 0.8); */
         overflow: hidden;
         position: relative;
-        padding: 8px;
+        /* padding: 8px; */
       }
       #${OVERLAY_ID} .jda-app-overlay-frame {
         width: 100%;
@@ -198,23 +198,23 @@
         box-shadow: inset 4px 4px 8px rgba(163, 177, 198, 0.35), inset -4px -4px 8px rgba(255, 255, 255, 0.8);
       }
       #${OVERLAY_ID} .jda-app-overlay-resize {
-        height: 18px;
+        height: 5px;
         display: flex;
         align-items: center;
         justify-content: center;
         cursor: ns-resize;
         background: transparent;
         border: none;
-        margin-top: 8px;
+        margin-top: 5px;
       }
       #${OVERLAY_ID} .jda-app-overlay-resize::before {
         content: '';
-        width: 52px;
-        height: 10px;
+        width: 50px;
+        height: 3px;
         border-radius: 999px;
-        background: var(--jda-neo-surface);
-        border: 1px solid rgba(255, 255, 255, 0.4);
-        box-shadow: 3px 3px 6px rgba(163, 177, 198, 0.4), -3px -3px 6px rgba(255, 255, 255, 0.7);
+        background: #6d738a;
+        /* border: 1px solid rgba(255, 255, 255, 0.4); */
+        box-shadow: 3px 3px 6px rgba(163, 177, 198, 0.4), -1px -1px 6px rgba(255, 255, 255, 0.7);
       }
       #${OVERLAY_ID} .jda-app-overlay-resize:active::before {
         box-shadow: inset 4px 4px 8px rgba(163, 177, 198, 0.6), inset -4px -4px 8px rgba(255, 255, 255, 0.9);

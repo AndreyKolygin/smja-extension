@@ -446,7 +446,7 @@ export function wireAnalyzeButtons() {
 
     const cvInfo = getSelectedCvInfo();
 
-    chrome.runtime.sendMessage({
+    sendMessageWithRetry({
       type: "CALL_LLM",
       payload: {
         modelId: selected.modelId,
@@ -459,7 +459,7 @@ export function wireAnalyzeButtons() {
         modelSystemPrompt: selected.systemPrompt || "",
         text: state.selectedText
       }
-    }).then((resp) => {
+    }, { retries: 2, delayMs: 250 }).then((resp) => {
       const elapsed = Math.max(0, performance.now() - state.timerStart);
       const ms = (resp && typeof resp.ms === "number") ? resp.ms : elapsed;
       stopTimer(true, ms);
@@ -475,7 +475,8 @@ export function wireAnalyzeButtons() {
         setResult(t('ui.popup.messageError', 'Error: {{message}}').replace('{{message}}', msg));
         stopAnalyzeButtonTimer(elapsed || 0, true);
       }
-    }).catch(() => {
+    }).catch((err) => {
+      console.warn('[JDA] CALL_LLM failed:', err);
       const elapsed = Math.max(0, performance.now() - state.timerStart);
       stopTimer(true, elapsed);
       setResult(t('ui.popup.messageError', 'Error: {{message}}').replace('{{message}}', t('ui.popup.messageRequestFailed', 'request failed')));
