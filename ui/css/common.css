@@ -237,6 +237,7 @@ body.theme-landing {
     rgba(195, 235, 229, 0.3) 0%,
     rgba(255, 255, 255, 0.1) 100%
   );
+  color: #46dea9;
 }
 .btn.third,
 .edit-prompt {
@@ -253,6 +254,7 @@ body.theme-landing {
     rgb(88 132 255 / 20%) 0%,
     rgba(255, 255, 255, 0.1) 100%
   );
+  color: #46dea9;
 }
 
 .btn.ghost {
@@ -261,7 +263,12 @@ body.theme-landing {
   color: var(--text);
 }
 .btn.ghost:hover {
-  background: #637fa405;
+  background: linear-gradient(
+    180deg,
+    rgb(91 160 237 / 7%) 0%,
+    rgb(255 255 255 / 5%) 100%
+  );
+  color: #46dea9;
 }
 
 .input,

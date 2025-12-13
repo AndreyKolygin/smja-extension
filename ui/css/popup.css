@@ -94,7 +94,7 @@ body[data-theme="dark"] {
 .select-row {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 2px;
 }
 
 .select-label {
@@ -103,6 +103,7 @@ body[data-theme="dark"] {
   text-transform: uppercase;
   color: var(--neo-muted);
   min-width: 36px;
+  padding-left: 5px;
 }
 
 .label {
@@ -265,10 +266,12 @@ textarea::placeholder {
 }
 .popup .btn.highlight:hover {
   background: var(--highlight-hover);
+  color: #46dea9;
 }
 
 .btn.primary.analyze:hover {
   background: var(--analyze-hover);
+  color: #46dea9;
 }
 .btn.primary.analyze {
   width: 50%;
