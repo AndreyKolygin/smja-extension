@@ -7,6 +7,18 @@ import { wireRuntimeMessages, warmLoadCaches } from "./js/messaging.js";
 import { loadLocale, applyTranslations, getSavedLang, t } from "./js/i18n.js";
 
 let __jdaInitStarted = false;
+const THEME_KEY = "popupTheme";
+const THEME_SEQUENCE = ["dark", "system", "light"];
+const themeState = {
+  preference: "system",
+  effective: "light",
+  media: null,
+  mediaListener: null,
+  storageListener: null,
+  messageListener: null,
+  initPromise: null,
+  root: null
+};
 
 function isExtensionContextValid() {
   try {
@@ -32,6 +44,129 @@ function safeRuntimeGetURL(path) {
   } catch {
     return path;
   }
+}
+
+function getPopupRoot() {
+  if (themeState.root && document.body.contains(themeState.root)) {
+    return themeState.root;
+  }
+  themeState.root = document.querySelector(".popup") || null;
+  return themeState.root;
+}
+
+function readStoredThemePreference() {
+  return new Promise((resolve) => {
+    if (!isExtensionContextValid() || !chrome?.storage?.local) {
+      resolve("system");
+      return;
+    }
+    try {
+      chrome.storage.local.get({ [THEME_KEY]: "system" }, (res) => {
+        resolve(res?.[THEME_KEY] || "system");
+      });
+    } catch {
+      resolve("system");
+    }
+  });
+}
+
+function computeEffectiveTheme(pref) {
+  if (pref === "system") {
+    return themeState.media?.matches ? "dark" : "light";
+  }
+  return pref === "dark" ? "dark" : "light";
+}
+
+function setPopupThemeClass(effective) {
+  document.body.dataset.theme = effective;
+  const root = getPopupRoot();
+  if (!root) return;
+  if (effective === "dark") {
+    root.classList.add("theme-dark");
+  } else {
+    root.classList.remove("theme-dark");
+  }
+}
+
+function applyThemePreference(preference, { persist = false } = {}) {
+  const normalized = THEME_SEQUENCE.includes(preference) ? preference : "system";
+  const effective = computeEffectiveTheme(normalized);
+  themeState.preference = normalized;
+  themeState.effective = effective;
+  setPopupThemeClass(effective);
+  if (persist && isExtensionContextValid() && chrome?.storage?.local) {
+    try {
+      chrome.storage.local.set({ [THEME_KEY]: normalized });
+    } catch {}
+  }
+}
+
+function initThemeControl() {
+  if (themeState.initPromise) return themeState.initPromise;
+  const run = async () => {
+    themeState.media = window.matchMedia?.("(prefers-color-scheme: dark)") || null;
+    if (themeState.media) {
+      themeState.mediaListener = () => {
+        if (themeState.preference === "system") {
+          applyThemePreference("system", { persist: false });
+        }
+      };
+      themeState.media.addEventListener?.("change", themeState.mediaListener);
+      themeState.media.addListener?.(themeState.mediaListener);
+    }
+
+    if (isExtensionContextValid() && chrome?.storage?.onChanged) {
+      themeState.storageListener = (changes, area) => {
+        if (area === "local" && changes[THEME_KEY]) {
+          const nextPref = changes[THEME_KEY].newValue || "system";
+          if (nextPref !== themeState.preference) {
+            applyThemePreference(nextPref, { persist: false });
+          }
+        }
+      };
+      chrome.storage.onChanged.addListener(themeState.storageListener);
+    }
+
+    themeState.messageListener = (event) => {
+      const data = event?.data;
+      if (!data || data.source !== "JDA_OVERLAY" || data.type !== "JDA_THEME_SYNC") return;
+      if (data.preference) {
+        applyThemePreference(data.preference, { persist: false });
+      } else if (data.theme) {
+        applyThemePreference(data.theme === "dark" ? "dark" : "light", { persist: false });
+      }
+    };
+    window.addEventListener("message", themeState.messageListener);
+
+    const stored = await readStoredThemePreference();
+    applyThemePreference(stored, { persist: false });
+  };
+  themeState.initPromise = run().catch((err) => {
+    console.debug("[POPUP] theme init failed:", err);
+  }).finally(() => {
+    themeState.initPromise = null;
+  });
+  return themeState.initPromise;
+}
+
+function cleanupThemeControl() {
+  if (themeState.media && themeState.mediaListener) {
+    themeState.media.removeEventListener?.("change", themeState.mediaListener);
+    themeState.media.removeListener?.(themeState.mediaListener);
+  }
+  themeState.media = null;
+  themeState.mediaListener = null;
+  if (themeState.storageListener && isExtensionContextValid() && chrome?.storage?.onChanged) {
+    try {
+      chrome.storage.onChanged.removeListener(themeState.storageListener);
+    } catch {}
+  }
+  themeState.storageListener = null;
+  if (themeState.messageListener) {
+    window.removeEventListener("message", themeState.messageListener);
+  }
+  themeState.messageListener = null;
+  themeState.root = null;
 }
 
 function wireUI() {
@@ -107,6 +242,7 @@ async function init() {
   __jdaInitStarted = true;
   console.debug("[POPUP] init()");
   await initI18nPopup();
+  await initThemeControl();
   const tab = await getActiveTab();
   setActiveTab(tab);
   console.debug("[POPUP] active tab =", tab?.url);
@@ -114,9 +250,8 @@ async function init() {
   if (!tab?.url || (!tab.url.startsWith("http://") && !tab.url.startsWith("https://"))) {
     document.body.innerHTML = `
       <div class="container">
-        <div class="header">
-          <div class="select hidden" aria-hidden="true"></div>
-          <button id="menu" data-i18n="ui.menu.options" class="menu" title="Settings" data-i18n-attr-title="ui.menu.optionsMenu" >☰</button>
+        <div class="row_popup">
+          <button id="menu" data-i18n="ui.menu.options" class="menu" title="Settings" data-i18n-attr-title="ui.menu.optionsMenu">☰</button>
         </div>
         <div class="row_popup">
           <p class="muted" data-i18n="ui.popup.warning">Content cannot be analyzed.</p>
@@ -151,3 +286,4 @@ document.addEventListener("DOMContentLoaded", init);
 if (document.readyState !== 'loading') {
   setTimeout(() => init(), 0);
 }
+window.addEventListener("beforeunload", cleanupThemeControl);

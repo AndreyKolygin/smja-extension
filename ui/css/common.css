@@ -139,8 +139,8 @@ body {
 }
 
 body.theme-landing {
-  font-family: "Inter", "Segoe UI", system-ui, -apple-system, BlinkMacSystemFont, "Helvetica Neue",
-    sans-serif;
+  font-family: "Inter", "Segoe UI", system-ui, -apple-system, BlinkMacSystemFont,
+    "Helvetica Neue", sans-serif;
   color: var(--text);
   min-height: 100vh;
   background-color: #06090f;
@@ -151,108 +151,13 @@ body.theme-landing {
   border-radius: var(--radius);
   padding: 8px 10px;
   cursor: pointer;
-  /* border: 1px solid var(--accent); */
   border: none;
-}
-.btn:hover {
-  background: var(--bg-dark);
 }
 .btn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
   pointer-events: none;
   filter: grayscale(0.2);
-}
-
-.btn.add-model {
-  color: var(--text);
-  background: var(--accent-3-light);
-  border: 1px solid var(--accent);
-}
-.btn.add-model:hover {
-  background: var(--accent-3-dark);
-}
-
-.btn.highlight {
-  border: 1px solid var(--accent);
-  background: var(--accent-3);
-}
-.btn.highlight:hover {
-  background: var(--accent-3-light);
-}
-
-.btn.edit {
-  background: var(--accent-3-light);
-}
-.btn.edit:hover {
-  background: var(--accent-3-dark);
-}
-
-.btn.edit-prompr {
-  background: var(--extra-light);
-}
-.btn.edit-prompr:hover {
-  background: var(--extra);
-  color: var(--bg-dark);
-}
-
-.btn.delete {
-  background: var(--red-light);
-}
-.btn.delete:hover {
-  background: var(--red-2-dark);
-}
-.btn.danger {
-  background: var(--red);
-  color: var(--bg-light);
-}
-.btn.danger:hover {
-  background: var(--red-deep-dark);
-}
-
-.btn.primary {
-  border: 1px solid var(--accent);
-  background: var(--accent);
-  color: #fff;
-}
-.btn.primary:hover {
-  background: var(--accent-dark);
-}
-.btn.primary.analyze {
-  width: 100%;
-}
-.btn.primary.analyze:hover {
-  background: var(--accent-dark);
-}
-.btn.secondary {
-  /* border: 1px solid #303a48; */
-  border: none;
-  background: var(--extra-dark-border);
-  color: #fff;
-}
-.btn.secondary:hover {
-  background: var(--extra-light);
-}
-.btn.third,
-.edit-prompt {
-  border: none;
-  background: #3a67a3;
-  color: #ffffff;
-}
-
-.btn.third:hover,
-.edit-prompt:hover {
-  background: #3a67a399;
-}
-
-.btn.ghost {
-  background: transparent;
-  border: 1px solid var(--accent);
-  color: var(--text);
-}
-.btn.ghost:hover {
-  background: var(--accent-dark);
-  color: var(--text-dark);
 }
 
 .input,
@@ -280,11 +185,12 @@ textarea {
 }
 
 .row {
-  margin: 0;
+  margin: 0 4px 0 0;
   display: flex;
   gap: 6px;
   flex-direction: row;
   align-items: center;
+  justify-content: space-between;
 }
 
 .sr-only {
@@ -302,7 +208,7 @@ textarea {
 
 .card {
   background: var(--panel);
-  border: 1px solid var(--border);
+  /* border: 1px solid var(--border); */
   /* border-radius: 12px; */
   border-radius: var(--radius);
   padding: 16px;
@@ -316,7 +222,7 @@ textarea {
     rgba(255, 255, 255, 0.12),
     rgba(255, 255, 255, 0.04)
   );
-  border: 1px solid rgba(255, 255, 255, 0.18);
+  /* border: 1px solid rgba(255, 255, 255, 0.18); */
   backdrop-filter: blur(10px) saturate(140%);
   -webkit-backdrop-filter: blur(10px) saturate(140%);
 }

@@ -85,8 +85,10 @@
               <tbody></tbody>
             </table>
             </div>
-            <label data-i18n="options.hint.model1">Model-level system prompt (edit per model)</label>
-            <div data-i18n="options.hint.model2">Open any model row to edit its system prompt.</div>
+            <div class="template-targets">
+              <span class="label" data-i18n="options.hint.model1">Model-level system prompt (edit per model)</span>
+              <span class="muted small" data-i18n="options.hint.model2">Open any model row to edit its system prompt.</span>
+            </div>
           </div>
         </section>
 
@@ -123,7 +125,7 @@
                   <div>
                     <p class="label" data-i18n="options.cv.listTitle">Saved resumes</p>
                   </div>
-                  <button type="button" class="btn third icon-left i-add" id="cvAddBtn" data-i18n="options.cv.add">Add CV</button>
+                  <button type="button" class="btn add-model icon-left i-add" id="cvAddBtn" data-i18n="options.cv.add">Add CV</button>
                 </div>
                 <div>
                   <p class="muted small" data-i18n="options.cv.listDescription">Select a resume to edit or duplicate it.</p>
@@ -143,7 +145,7 @@
                   <div class="cv-editor-actions">
                     <button type="button" class="btn third icon-left i-verified" id="cvSetDefaultBtn" data-i18n="options.cv.setDefault">Use by default</button>
                     <button type="button" class="btn secondary icon-left i-notes" id="cvDuplicateBtn" data-i18n="options.cv.duplicate">Duplicate</button>
-                    <button type="button" class="btn danger icon-left i-trash" id="cvDeleteBtn" data-i18n="options.cv.delete">Delete</button>
+                    <button type="button" class="btn delete icon-left i-trash" id="cvDeleteBtn" data-i18n="options.cv.delete">Delete</button>
                   </div>
                   <div class="cv-editor-meta">
                     <span id="cvCharCounter" class="muted small">0</span>
@@ -161,7 +163,7 @@
             
             <div class="saveBtn">
               <p>
-                <button class="btn danger icon-left i-eraser" id="resetCacheBtn" data-i18n="options.btn.resetPromptCache" disabled>Reset prompt cache</button>
+                <button class="btn delete icon-left i-eraser" id="resetCacheBtn" data-i18n="options.btn.resetPromptCache" disabled>Reset prompt cache</button>
                 <span class="ml-8" id="resetHint"></span>
               </p>
               <p>
@@ -196,8 +198,8 @@
                 <input type="text" id="notionDatabaseId" placeholder="xxxxxxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" />
               </div>
               <h3 data-i18n="options.integrations.notion.fields">Field mapping</h3>
-              <p><button class="btn add-model icon-left i-add" type="button" id="addNotionFieldBtn" data-i18n="options.integrations.notion.addField">+ Add field</button></p>
               <div id="notionFields" class="notion-field-list"></div>
+              <p><button class="btn add-model icon-left i-add" type="button" id="addNotionFieldBtn" data-i18n="options.integrations.notion.addField">+ Add field</button></p>
             </div>
           </div>
         </section>
@@ -232,7 +234,7 @@
                     <input id="importSettingsFile" type="file" accept="application/json" class="hidden" />
                   </div>
                   <p class="mt-8">
-                    <button class="btn danger icon-left i-default" id="resetDefaultsBtn" data-i18n="options.btn.resetDefaults">Reset to defaults</button>
+                    <button class="btn delete icon-left i-default" id="resetDefaultsBtn" data-i18n="options.btn.resetDefaults">Reset to defaults</button>
                   </p>
                 </div>
               </div>
@@ -248,388 +250,282 @@
   <!-- Add / Edit Provider Modal -->
   <dialog id="providerModal">
     <form method="dialog">
-      <h3 data-i18n="options.modal.provider.title">Provider</h3>
+      <div class="modal-content">
+        <h3 data-i18n="options.modal.provider.title">Provider</h3>
 
-      <div class="form-row">
-        <label for="providerName" data-i18n="options.modal.provider.name">Name</label>
-        <input id="providerName" type="text"
-               placeholder="Display name (required)"
-               data-i18n-attr-placeholder="options.modal.provider.namePh"
-               required />
+        <div class="form-row">
+          <label for="providerName" data-i18n="options.modal.provider.name">Name</label>
+          <input id="providerName" type="text"
+                 placeholder="Display name (required)"
+                 data-i18n-attr-placeholder="options.modal.provider.namePh"
+                 required />
+        </div>
+
+        <div class="form-row">
+          <label for="providerPreset" data-i18n="options.modal.provider.preset">Preset</label>
+          <select id="providerPreset">
+            <option value="custom" data-i18n="options.modal.provider.help.custom">Custom</option>
+            <option value="anthropic">Anthropic</option>
+            <option value="azure">Azure OpenAI</option>
+            <option value="deepseek">DeepSeek</option>
+            <option value="gemini">Google Gemini</option>
+            <option value="huggingface">Hugging Face</option>
+            <option value="meta">Meta</option>
+            <option value="ollama">Ollama</option>
+            <option value="openai">OpenAI</option>
+            <option value="openrouter">OpenRouter</option>
+            <option value="perplexity">Perplexity</option>
+            <option value="xai">XAI</option>
+          </select>
+        </div>
+
+        <div class="form-row">
+          <label for="providerBaseUrl" data-i18n="options.modal.provider.baseUrl">Base URL</label>
+          <input id="providerBaseUrl" type="text"
+                 placeholder="https://…"
+                 data-i18n-attr-placeholder="options.modal.provider.baseUrlPh" />
+        </div>
+
+        <div class="form-row">
+          <label for="providerApiKey" data-i18n="options.modal.provider.apiKey">API key</label>
+          <input id="providerApiKey" type="text"
+                 placeholder="Paste key (optional)"
+                 data-i18n-attr-placeholder="options.modal.provider.apiKeyPh" />
+        </div>
+
+        <div>
+          <a id="apiKeyLink" href="#" target="_blank" rel="noopener noreferrer" data-i18n="options.modal.provider.getKey">Get your API key here</a>
+          <br/>
+          <small id="apiKeyHelp" data-i18n="options.modal.provider.help">Choose preset to see how to get an API key.</small>
+        </div>
       </div>
 
-      <div class="form-row">
-        <label for="providerPreset" data-i18n="options.modal.provider.preset">Preset</label>
-        <select id="providerPreset">
-          <option value="custom" data-i18n="options.modal.provider.help.custom">Custom</option>
-          <option value="anthropic">Anthropic</option>
-          <option value="azure">Azure OpenAI</option>
-          <option value="deepseek">DeepSeek</option>
-          <option value="gemini">Google Gemini</option>
-          <option value="huggingface">Hugging Face</option>
-          <option value="meta">Meta</option>
-          <option value="ollama">Ollama</option>
-          <option value="openai">OpenAI</option>
-          <option value="openrouter">OpenRouter</option>
-          <option value="perplexity">Perplexity</option>
-          <option value="xai">XAI</option>
-        </select>
-      </div>
-
-      <div class="form-row">
-        <label for="providerBaseUrl" data-i18n="options.modal.provider.baseUrl">Base URL</label>
-        <input id="providerBaseUrl" type="text"
-               placeholder="https://…"
-               data-i18n-attr-placeholder="options.modal.provider.baseUrlPh" />
-      </div>
-
-      <div class="form-row">
-        <label for="providerApiKey" data-i18n="options.modal.provider.apiKey">API key</label>
-        <input id="providerApiKey" type="text"
-               placeholder="Paste key (optional)"
-               data-i18n-attr-placeholder="options.modal.provider.apiKeyPh" />
-      </div>
-
-      <div>
-        <a id="apiKeyLink" href="#" target="_blank" rel="noopener noreferrer" data-i18n="options.modal.provider.getKey">Get your API key here</a>
-        <br/>
-        <small id="apiKeyHelp" data-i18n="options.modal.provider.help">Choose preset to see how to get an API key.</small>
-      </div>
-
-      <menu>
-        <button class="btn icon-left i-undo" value="cancel" data-i18n="options.btn.cancel">Cancel</button>
+      <div class="modal-footer">
+        <button class="btn third icon-left i-undo" value="cancel" data-i18n="options.btn.cancel">Cancel</button>
         <button class="btn primary icon-left i-check" id="saveProviderBtn" value="default" data-i18n="options.btn.save">Save</button>
-      </menu>
+      </div>
     </form>
   </dialog>
   <!-- Add / Edit Model Modal -->
   <dialog id="modelModal">
     <form method="dialog">
-      <h3 data-i18n="options.modal.model.title">Model</h3>
+      <div class="modal-content">
+        <h3 data-i18n="options.modal.model.title">Model</h3>
 
-      <div class="form-row">
-        <label for="modelProvider" data-i18n="options.modal.model.provider">Provider</label>
-        <select id="modelProvider"></select>
+        <div class="form-row">
+          <label for="modelProvider" data-i18n="options.modal.model.provider">Provider</label>
+          <select id="modelProvider"></select>
+        </div>
+
+        <div class="form-row">
+          <label for="modelDisplay" data-i18n="options.modal.model.display">Display name</label>
+          <input type="text" id="modelDisplay"
+                 placeholder="How the model is shown in the UI"
+                 data-i18n-attr-placeholder="options.modal.model.displayPh" />
+        </div>
+
+        <div class="form-row">
+          <label for="modelId" data-i18n="options.modal.model.id">Model ID</label>
+          <input type="text" id="modelId"
+                 placeholder="e.g. gpt-4o-mini"
+                 data-i18n-attr-placeholder="options.modal.model.idPh" />
+        </div>
       </div>
 
-      <div class="form-row">
-        <label for="modelDisplay" data-i18n="options.modal.model.display">Display name</label>
-        <input type="text" id="modelDisplay"
-               placeholder="How the model is shown in the UI"
-               data-i18n-attr-placeholder="options.modal.model.displayPh" />
-      </div>
-
-      <div class="form-row">
-        <label for="modelId" data-i18n="options.modal.model.id">Model ID</label>
-        <input type="text" id="modelId"
-               placeholder="e.g. gpt-4o-mini"
-               data-i18n-attr-placeholder="options.modal.model.idPh" />
-      </div>
-
-      <menu>
-        <button class="btn icon-left i-undo" value="cancel" data-i18n="options.btn.cancel">Cancel</button>
+      <div class="modal-footer">
+        <button class="btn third icon-left i-undo" value="cancel" data-i18n="options.btn.cancel">Cancel</button>
         <button class="btn primary icon-left i-check" id="saveModelBtn" value="default" data-i18n="options.btn.save">Save</button>
-      </menu>
+      </div>
     </form>
   </dialog>
 
   <!-- Modal: add/edit site rule -->
   <dialog id="siteModal" class="wide-modal">
     <form method="dialog">
-      <h3 data-i18n="options.modal.site.title">Auto-extract rule</h3>
+      <div class="modal-content">
+        <h3 data-i18n="options.modal.site.title">Auto-extract rule</h3>
 
-      <div class="form-row">
-        <label for="siteHost" data-i18n="options.modal.site.host">*Site (hostname, wildcard, or /regex/)</label>
-        <input type="text" id="siteHost"
-               placeholder="e.g. example.com/jobs* or /https:\/\/foo\.bar\/pfx.*/i"
-               data-i18n-attr-placeholder="options.modal.site.hostPh" required>
-      </div>
-
-      <div class="form-row">
-        <label data-i18n="options.modal.site.strategy">Extraction strategy</label>
-        <div class="site-strategy-tabs" role="tablist">
-          <button type="button" class="site-tab active" data-tab="css" role="tab" aria-selected="true" data-i18n="options.modal.site.strategy.css">CSS selector</button>
-          <button type="button" class="site-tab" data-tab="chain" role="tab" aria-selected="false" data-i18n="options.modal.site.strategy.chain">DOM chain</button>
+        <div class="form-row">
+          <label for="siteHost" data-i18n="options.modal.site.host">*Site (hostname, wildcard, or /regex/)</label>
+          <input type="text" id="siteHost"
+                 placeholder="e.g. example.com/jobs* or /https:\/\/foo\.bar\/pfx.*/i"
+                 data-i18n-attr-placeholder="options.modal.site.hostPh" required>
         </div>
-        <input type="hidden" id="siteStrategy" value="css">
-      </div>
 
-      <div class="form-row site-strategy-panel" data-panel="css" id="siteSelectorRow">
-        <label for="siteSelector" data-i18n="options.modal.site.selector">*CSS selector</label>
-        <textarea rows="3" id="siteSelector"
-                  placeholder=".job-description, [data-role=&quot;jd&quot;]"
-                  data-i18n-attr-placeholder="options.modal.site.selectorPh"></textarea>
-      </div>
-
-      <div class="form-row site-strategy-panel" data-panel="chain" id="siteChainRow" hidden>
-        <div class="chain-row-header">
-          <label data-i18n="options.modal.site.chainTitle">Chain groups</label>
-          <button type="button" class="btn add-model icon-left i-add" id="addChainGroupBtn" data-i18n="options.modal.site.chainAddGroup">Add Group</button>
+        <div class="form-row">
+          <label data-i18n="options.modal.site.strategy">Extraction strategy</label>
+          <div class="site-strategy-tabs" role="tablist">
+            <button type="button" class="site-tab active" data-tab="css" role="tab" aria-selected="true" data-i18n="options.modal.site.strategy.css">CSS selector</button>
+            <button type="button" class="site-tab" data-tab="chain" role="tab" aria-selected="false" data-i18n="options.modal.site.strategy.chain">DOM chain</button>
+          </div>
+          <input type="hidden" id="siteStrategy" value="css">
         </div>
-        <div id="siteChainGroups" class="chain-group-list"></div>
-        <p data-i18n="options.modal.site.chainHint">Steps execute in order inside each group. Each selector runs relative to the page, optional “Contains text” narrows matches.</p>
-      </div>
 
-      <div class="form-row" id="siteTemplateRow">
-        <label for="siteTemplate" data-i18n="options.modal.site.templateLabel">Meta Tags Template</label>
-        <textarea rows="6" id="siteTemplate"
-                  placeholder="{{title}}\n\n{{meta:name:description}}"></textarea>
-        <p data-i18n="options.modal.site.templateHint">Use {{title}}, {{description}}, {{meta:name:description}}, {{schema:@JobPosting:description}}, etc.</p>
-        <p data-i18n="options.modal.site.templateWarn">Placeholders are replaced with collected page variables; unknown fields become empty.</p>
-        <div class="template-targets">
-          <label class="toggle template-toggle">
-            <span class="toggle__text" data-i18n="options.modal.site.templateTargetJob">Add to Job description (LLM input)</span>
+        <div class="form-row site-strategy-panel" data-panel="css" id="siteSelectorRow">
+          <label for="siteSelector" data-i18n="options.modal.site.selector">*CSS selector</label>
+          <textarea rows="3" id="siteSelector"
+                    placeholder=".job-description, [data-role=&quot;jd&quot;]"
+                    data-i18n-attr-placeholder="options.modal.site.selectorPh"></textarea>
+        </div>
+
+        <div class="form-row site-strategy-panel" data-panel="chain" id="siteChainRow" hidden>
+          <div class="chain-row-header">
+            <label data-i18n="options.modal.site.chainTitle">Chain groups</label>
+            <button type="button" class="btn add-model icon-left i-add" id="addChainGroupBtn" data-i18n="options.modal.site.chainAddGroup">Add Group</button>
+          </div>
+          <div id="siteChainGroups" class="chain-group-list"></div>
+          <p data-i18n="options.modal.site.chainHint">Steps execute in order inside each group. Each selector runs relative to the page, optional “Contains text” narrows matches.</p>
+        </div>
+
+        <div class="form-row" id="siteTemplateRow">
+          <label for="siteTemplate" data-i18n="options.modal.site.templateLabel">Meta Tags Template</label>
+          <textarea rows="6" id="siteTemplate"
+                    placeholder="{{title}}\n\n{{meta:name:description}}"></textarea>
+          <p data-i18n="options.modal.site.templateHint">Use {{title}}, {{description}}, {{meta:name:description}}, {{schema:@JobPosting:description}}, etc.</p>
+          <p data-i18n="options.modal.site.templateWarn">Placeholders are replaced with collected page variables; unknown fields become empty.</p>
+          <div class="template-targets">
+            <label class="toggle template-toggle">
+              <span class="toggle__text" data-i18n="options.modal.site.templateTargetJob">Add to Job description (LLM input)</span>
+              <span class="toggle__control">
+                <input type="checkbox" id="siteTemplateToJob" class="toggle__input" checked>
+                <span class="toggle__track" aria-hidden="true">
+                  <span class="toggle__thumb"></span>
+                </span>
+              </span>
+            </label>
+            <label class="toggle template-toggle">
+              <span class="toggle__text" data-i18n="options.modal.site.templateTargetResult">Show in Position matching result</span>
+              <span class="toggle__control">
+                <input type="checkbox" id="siteTemplateToResult" class="toggle__input" checked>
+                <span class="toggle__track" aria-hidden="true">
+                  <span class="toggle__thumb"></span>
+                </span>
+              </span>
+            </label>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <label for="siteComment" data-i18n="options.modal.site.comment">Comment</label>
+          <input type="text" id="siteComment"
+                 placeholder="Optional note"
+                 data-i18n-attr-placeholder="options.modal.site.commentPh">
+        </div>
+
+        <div class="form-row">
+          <label class="toggle toggle--inline">
+            <span class="toggle__text" data-i18n="options.tbl.active">Active</span>
             <span class="toggle__control">
-              <input type="checkbox" id="siteTemplateToJob" class="toggle__input" checked>
+              <input type="checkbox" id="siteActive" class="toggle__input" checked>
               <span class="toggle__track" aria-hidden="true">
                 <span class="toggle__thumb"></span>
               </span>
             </span>
           </label>
-          <label class="toggle template-toggle">
-            <span class="toggle__text" data-i18n="options.modal.site.templateTargetResult">Show in Position matching result</span>
-            <span class="toggle__control">
-              <input type="checkbox" id="siteTemplateToResult" class="toggle__input" checked>
-              <span class="toggle__track" aria-hidden="true">
-                <span class="toggle__thumb"></span>
-              </span>
-            </span>
-          </label>
         </div>
       </div>
 
-      <div class="form-row">
-        <label for="siteComment" data-i18n="options.modal.site.comment">Comment</label>
-        <input type="text" id="siteComment"
-               placeholder="Optional note"
-               data-i18n-attr-placeholder="options.modal.site.commentPh">
-      </div>
-
-      <div class="form-row">
-        <label class="toggle toggle--inline">
-          <span class="toggle__text" data-i18n="options.tbl.active">Active</span>
-          <span class="toggle__control">
-            <input type="checkbox" id="siteActive" class="toggle__input" checked>
-            <span class="toggle__track" aria-hidden="true">
-              <span class="toggle__thumb"></span>
-            </span>
-          </span>
-        </label>
-      </div>
-
-      <menu>
-        <button class="btn icon-left i-undo" value="cancel" id="cancelSiteBtn" data-i18n="options.btn.cancel">Cancel</button>
+      <div class="modal-footer">
+        <button class="btn third icon-left i-undo" value="cancel" id="cancelSiteBtn" data-i18n="options.btn.cancel">Cancel</button>
         <button type="button" class="btn primary icon-left i-check" id="saveSiteBtn" value="default" data-i18n="options.btn.save">Save</button>
-      </menu>
+      </div>
     </form>
   </dialog>
 
   <dialog id="modelPromptModal" class="modal">
-  <form method="dialog" class="modal-body">
-    <h3 data-i18n="options.modal.modelPrompt.title">System prompt (per model)</h3>
-    <p class="hint" data-i18n="options.modal.modelPrompt.textPh">
-      Leave blank to inherit global system template. <code>{{GLOBAL_SYSTEM_PROMPT}}</code> to insert the global prompt, and <code>{{RESULT_OUTPUT_TEMPLATE}}</code> to embed (or remove) the output template.
-    </p>
-    <textarea id="modelPromptText" rows="12" class="stretch mono"></textarea>
-    <div class="modal-actions">
-      <button id="cancelModelPromptBtn" type="reset" class="btn icon-left i-undo" data-i18n="options.btn.cancel">Cancel</button>
-      <button id="saveModelPromptBtn" type="button" class="btn primary icon-left i-check" data-i18n="options.btn.save">Save</button>
-    </div>
-  </form>
-</dialog>
+    <form method="dialog">
+      <div class="modal-content">
+        <h3 data-i18n="options.modal.modelPrompt.title">System prompt (per model)</h3>
+        <p class="hint" data-i18n="options.modal.modelPrompt.textPh">
+          Leave blank to inherit global system template. <code>{{GLOBAL_SYSTEM_PROMPT}}</code> to insert the global prompt, and <code>{{RESULT_OUTPUT_TEMPLATE}}</code> to embed (or remove) the output template.
+        </p>
+        <textarea id="modelPromptText" rows="12" class="stretch mono"></textarea>
+      </div>
+      <div class="modal-footer">
+        <button id="cancelModelPromptBtn" type="reset" class="btn third icon-left i-undo" data-i18n="options.btn.cancel">Cancel</button>
+        <button id="saveModelPromptBtn" type="button" class="btn primary icon-left i-check" data-i18n="options.btn.save">Save</button>
+      </div>
+    </form>
+  </dialog>
 
 <!-- Import Settings Modal -->
 <dialog id="importModal">
   <form method="dialog">
-    <h3 data-i18n="options.import.title">Import settings</h3>
+    <div class="modal-content">
+      <h3 data-i18n="options.import.title">Import settings</h3>
 
-    <fieldset class="mt-8">
-      <legend data-i18n="options.import.mode">Import mode</legend>
-      <label class="row">
-        <input type="radio" name="importMode" value="merge" checked>
-        <span data-i18n="options.import.mode.merge">Merge / add (preserve existing)</span>
-      </label>
-      <label class="row">
-        <input type="radio" name="importMode" value="replace">
-        <span data-i18n="options.import.mode.replace">Replace data</span>
-      </label>
-    </fieldset>
-
-    <fieldset class="mt-12 fieldset-column">
-      <legend data-i18n="options.import.groups">Groups to import</legend>
-      <label class="toggle toggle--inline">
-        <span class="toggle__text" data-i18n="options.section.llm">Providers and models</span>
-        <span class="toggle__control">
-          <input type="checkbox" name="grp" value="providers" class="toggle__input" checked>
-          <span class="toggle__track" aria-hidden="true">
-            <span class="toggle__thumb"></span>
-          </span>
-        </span>
-      </label>
-      <label class="toggle toggle--inline">
-        <span class="toggle__text" data-i18n="options.title.models">Models</span>
-        <span class="toggle__control">
-          <input type="checkbox" name="grp" value="models" class="toggle__input" checked>
-          <span class="toggle__track" aria-hidden="true">
-            <span class="toggle__thumb"></span>
-          </span>
-        </span>
-      </label>
-      <label class="toggle toggle--inline">
-        <span class="toggle__text" data-i18n="options.section.rules">Auto-extraction Rules</span>
-        <span class="toggle__control">
-          <input type="checkbox" name="grp" value="sites" class="toggle__input" checked>
-          <span class="toggle__track" aria-hidden="true">
-            <span class="toggle__thumb"></span>
-          </span>
-        </span>
-      </label>
-      <label class="toggle toggle--inline">
-        <span class="toggle__text" data-i18n="options.import.cvs">CVs</span>
-        <span class="toggle__control">
-          <input type="checkbox" name="grp" value="cvs" class="toggle__input" checked>
-          <span class="toggle__track" aria-hidden="true">
-            <span class="toggle__thumb"></span>
-          </span>
-        </span>
-      </label>
-      <label class="toggle toggle--inline">
-        <span class="toggle__text" data-i18n="options.title.systemPromptTempl">System Prompt Template</span>
-        <span class="toggle__control">
-          <input type="checkbox" name="grp" value="systemTemplate" class="toggle__input" checked>
-          <span class="toggle__track" aria-hidden="true">
-            <span class="toggle__thumb"></span>
-          </span>
-        </span>
-      </label>
-      <label class="toggle toggle--inline">
-        <span class="toggle__text" data-i18n="options.title.resultOutpTempl">Result Output Template</span>
-        <span class="toggle__control">
-          <input type="checkbox" name="grp" value="outputTemplate" class="toggle__input" checked>
-          <span class="toggle__track" aria-hidden="true">
-            <span class="toggle__thumb"></span>
-          </span>
-        </span>
-      </label>
-      <label class="toggle toggle--inline">
-        <span class="toggle__text" data-i18n="options.import.integrations">Integrations (Notion)</span>
-        <span class="toggle__control">
-          <input type="checkbox" name="grp" value="integrations" class="toggle__input" checked>
-          <span class="toggle__track" aria-hidden="true">
-            <span class="toggle__thumb"></span>
-          </span>
-        </span>
-      </label>
-    </fieldset>
-
-    <!-- Drop zone (clickable) -->
-    <div id="dropZone" class="drop-zone" tabindex="0" role="button" aria-label="Choose JSON file by click or drop">
-      <p data-i18n="options.modal.import.drop">Drag & drop a JSON file here or click to choose…</p>
-    </div>
-    <!-- hidden file input used by drop zone click -->
-    <input id="importFileInput" type="file" accept="application/json" hidden />
-
-    <p data-i18n="options.modal.import.paste">Paste JSON code below</p>
-    <textarea id="importText" rows="10" class="stretch mono"></textarea>
-
-    <!-- Preview
-    <h4 data-i18n="options.modal.import.preview">Preview</h4>
-    <pre id="importPreview" class="preview-box"></pre> -->
-
-    <p class="mt-12" data-i18n="options.import.note">
-      Only selected groups will be applied. Merge preserves existing items and updates by ID.
-    </p>
-
-    <menu>
-      <button class="btn icon-left i-undo" id="cancelImportBtn" data-i18n="options.btn.cancel">Cancel</button>
-      <button class="btn primary icon-left i-file" id="doImportBtn" data-i18n="options.btn.importSettings">Import settings</button>
-    </menu>
-  </form>
-</dialog>
-
-  <!-- Export Settings Modal -->
-  <dialog id="exportModal">
-    <form method="dialog">
-      <h3 data-i18n="options.export.title">Export settings</h3>
+      <fieldset class="mt-8">
+        <legend data-i18n="options.import.mode">Import mode</legend>
+        <label class="row">
+          <input type="radio" name="importMode" value="merge" checked>
+          <span data-i18n="options.import.mode.merge">Merge / add (preserve existing)</span>
+        </label>
+        <label class="row">
+          <input type="radio" name="importMode" value="replace">
+          <span data-i18n="options.import.mode.replace">Replace data</span>
+        </label>
+      </fieldset>
 
       <fieldset class="mt-12 fieldset-column">
-        <legend data-i18n="options.export.groups">Groups to export</legend>
-        <label class="toggle toggle--inline">
-          <span class="toggle__text" data-i18n="options.export.providers">Provider Settings</span>
+        <legend data-i18n="options.import.groups">Groups to import</legend>
+        <label class="toggle toggle--inline toggle--compact">
+          <span class="toggle__text" data-i18n="options.section.llm">Providers and models</span>
           <span class="toggle__control">
-            <input type="checkbox" name="exgrp" value="providers" class="toggle__input" checked>
+            <input type="checkbox" name="grp" value="providers" class="toggle__input" checked>
             <span class="toggle__track" aria-hidden="true">
               <span class="toggle__thumb"></span>
             </span>
           </span>
         </label>
-        <label class="toggle toggle--inline">
-          <span class="toggle__text" data-i18n="options.export.providersKeys">Include API keys</span>
+        <label class="toggle toggle--inline toggle--compact">
+          <span class="toggle__text" data-i18n="options.title.models">Models</span>
           <span class="toggle__control">
-            <input type="checkbox" name="exprovkeys" id="exprovkeys" class="toggle__input">
+            <input type="checkbox" name="grp" value="models" class="toggle__input" checked>
             <span class="toggle__track" aria-hidden="true">
               <span class="toggle__thumb"></span>
             </span>
           </span>
         </label>
-        <label class="toggle toggle--inline">
-          <span class="toggle__text" data-i18n="options.export.models">Models</span>
+        <label class="toggle toggle--inline toggle--compact">
+          <span class="toggle__text" data-i18n="options.section.rules">Auto-extraction Rules</span>
           <span class="toggle__control">
-            <input type="checkbox" name="exgrp" value="models" class="toggle__input" checked>
+            <input type="checkbox" name="grp" value="sites" class="toggle__input" checked>
             <span class="toggle__track" aria-hidden="true">
               <span class="toggle__thumb"></span>
             </span>
           </span>
         </label>
-        <label class="toggle toggle--inline">
-          <span class="toggle__text" data-i18n="options.export.sites">Auto-extraction Rules</span>
+        <label class="toggle toggle--inline toggle--compact">
+          <span class="toggle__text" data-i18n="options.import.cvs">CVs</span>
           <span class="toggle__control">
-            <input type="checkbox" name="exgrp" value="sites" class="toggle__input" checked>
+            <input type="checkbox" name="grp" value="cvs" class="toggle__input" checked>
             <span class="toggle__track" aria-hidden="true">
               <span class="toggle__thumb"></span>
             </span>
           </span>
         </label>
-        <label class="toggle toggle--inline">
-          <span class="toggle__text" data-i18n="options.export.cv">CV</span>
+        <label class="toggle toggle--inline toggle--compact">
+          <span class="toggle__text" data-i18n="options.title.systemPromptTempl">System Prompt Template</span>
           <span class="toggle__control">
-            <input type="checkbox" name="exgrp" value="cv" class="toggle__input" checked>
+            <input type="checkbox" name="grp" value="systemTemplate" class="toggle__input" checked>
             <span class="toggle__track" aria-hidden="true">
               <span class="toggle__thumb"></span>
             </span>
           </span>
         </label>
-        <label class="toggle toggle--inline">
-          <span class="toggle__text" data-i18n="options.export.system">System Prompt Template</span>
+        <label class="toggle toggle--inline toggle--compact">
+          <span class="toggle__text" data-i18n="options.title.resultOutpTempl">Result Output Template</span>
           <span class="toggle__control">
-            <input type="checkbox" name="exgrp" value="systemTemplate" class="toggle__input" checked>
+            <input type="checkbox" name="grp" value="outputTemplate" class="toggle__input" checked>
             <span class="toggle__track" aria-hidden="true">
               <span class="toggle__thumb"></span>
             </span>
           </span>
         </label>
-        <label class="toggle toggle--inline">
-          <span class="toggle__text" data-i18n="options.export.output">Result Output Template</span>
+        <label class="toggle toggle--inline toggle--compact">
+          <span class="toggle__text" data-i18n="options.import.integrations">Integrations (Notion)</span>
           <span class="toggle__control">
-            <input type="checkbox" name="exgrp" value="outputTemplate" class="toggle__input" checked>
-            <span class="toggle__track" aria-hidden="true">
-              <span class="toggle__thumb"></span>
-            </span>
-          </span>
-        </label>
-        <label class="toggle toggle--inline">
-          <span class="toggle__text" data-i18n="options.export.integrations">Integrations (Notion)</span>
-          <span class="toggle__control">
-            <input type="checkbox" name="exgrp" value="integrations" class="toggle__input" checked>
-            <span class="toggle__track" aria-hidden="true">
-              <span class="toggle__thumb"></span>
-            </span>
-          </span>
-        </label>
-        <label class="toggle toggle--inline">
-          <span class="toggle__text" data-i18n="options.export.integrationsSecret">Include Notion integration token</span>
-          <span class="toggle__control">
-            <input type="checkbox" name="exintsecret" id="exintsecret" class="toggle__input">
+            <input type="checkbox" name="grp" value="integrations" class="toggle__input" checked>
             <span class="toggle__track" aria-hidden="true">
               <span class="toggle__thumb"></span>
             </span>
@@ -637,33 +533,153 @@
         </label>
       </fieldset>
 
-      <menu>
-        <button class="btn icon-left i-undo" id="cancelExportBtn" data-i18n="options.btn.cancel">Cancel</button>
+      <!-- Drop zone (clickable) -->
+      <div id="dropZone" class="drop-zone" tabindex="0" role="button" aria-label="Choose JSON file by click or drop">
+        <p data-i18n="options.modal.import.drop">Drag & drop a JSON file here or click to choose…</p>
+      </div>
+      <!-- hidden file input used by drop zone click -->
+      <input id="importFileInput" type="file" accept="application/json" hidden />
+
+      <p data-i18n="options.modal.import.paste">Paste JSON code below</p>
+      <textarea id="importText" rows="10" class="stretch mono"></textarea>
+
+      <!-- Preview
+      <h4 data-i18n="options.modal.import.preview">Preview</h4>
+      <pre id="importPreview" class="preview-box"></pre> -->
+
+      <p class="mt-12" data-i18n="options.import.note">
+        Only selected groups will be applied. Merge preserves existing items and updates by ID.
+      </p>
+    </div>
+
+    <div class="modal-footer">
+      <button class="btn third icon-left i-undo" id="cancelImportBtn" data-i18n="options.btn.cancel">Cancel</button>
+      <button class="btn primary icon-left i-file" id="doImportBtn" data-i18n="options.btn.importSettings">Import settings</button>
+    </div>
+  </form>
+</dialog>
+
+  <!-- Export Settings Modal -->
+  <dialog id="exportModal">
+    <form method="dialog">
+      <div class="modal-content">
+        <h3 data-i18n="options.export.title">Export settings</h3>
+
+        <fieldset class="mt-12 fieldset-column">
+          <legend data-i18n="options.export.groups">Groups to export</legend>
+          <label class="toggle toggle--inline toggle--compact">
+            <span class="toggle__text" data-i18n="options.export.providers">Provider Settings</span>
+            <span class="toggle__control">
+              <input type="checkbox" name="exgrp" value="providers" class="toggle__input" checked>
+              <span class="toggle__track" aria-hidden="true">
+                <span class="toggle__thumb"></span>
+              </span>
+            </span>
+          </label>
+          <label class="toggle toggle--inline toggle--compact">
+            <span class="toggle__text" data-i18n="options.export.providersKeys">Include API keys</span>
+            <span class="toggle__control">
+              <input type="checkbox" name="exprovkeys" id="exprovkeys" class="toggle__input">
+              <span class="toggle__track" aria-hidden="true">
+                <span class="toggle__thumb"></span>
+              </span>
+            </span>
+          </label>
+          <label class="toggle toggle--inline toggle--compact">
+            <span class="toggle__text" data-i18n="options.export.models">Models</span>
+            <span class="toggle__control">
+              <input type="checkbox" name="exgrp" value="models" class="toggle__input" checked>
+              <span class="toggle__track" aria-hidden="true">
+                <span class="toggle__thumb"></span>
+              </span>
+            </span>
+          </label>
+          <label class="toggle toggle--inline toggle--compact">
+            <span class="toggle__text" data-i18n="options.export.sites">Auto-extraction Rules</span>
+            <span class="toggle__control">
+              <input type="checkbox" name="exgrp" value="sites" class="toggle__input" checked>
+              <span class="toggle__track" aria-hidden="true">
+                <span class="toggle__thumb"></span>
+              </span>
+            </span>
+          </label>
+          <label class="toggle toggle--inline toggle--compact">
+            <span class="toggle__text" data-i18n="options.export.cv">CV</span>
+            <span class="toggle__control">
+              <input type="checkbox" name="exgrp" value="cv" class="toggle__input" checked>
+              <span class="toggle__track" aria-hidden="true">
+                <span class="toggle__thumb"></span>
+              </span>
+            </span>
+          </label>
+          <label class="toggle toggle--inline toggle--compact">
+            <span class="toggle__text" data-i18n="options.export.system">System Prompt Template</span>
+            <span class="toggle__control">
+              <input type="checkbox" name="exgrp" value="systemTemplate" class="toggle__input" checked>
+              <span class="toggle__track" aria-hidden="true">
+                <span class="toggle__thumb"></span>
+              </span>
+            </span>
+          </label>
+          <label class="toggle toggle--inline toggle--compact">
+            <span class="toggle__text" data-i18n="options.export.output">Result Output Template</span>
+            <span class="toggle__control">
+              <input type="checkbox" name="exgrp" value="outputTemplate" class="toggle__input" checked>
+              <span class="toggle__track" aria-hidden="true">
+                <span class="toggle__thumb"></span>
+              </span>
+            </span>
+          </label>
+          <label class="toggle toggle--inline">
+            <span class="toggle__text" data-i18n="options.export.integrations">Integrations (Notion)</span>
+            <span class="toggle__control">
+              <input type="checkbox" name="exgrp" value="integrations" class="toggle__input" checked>
+              <span class="toggle__track" aria-hidden="true">
+                <span class="toggle__thumb"></span>
+              </span>
+            </span>
+          </label>
+          <label class="toggle toggle--inline">
+            <span class="toggle__text" data-i18n="options.export.integrationsSecret">Include Notion integration token</span>
+            <span class="toggle__control">
+              <input type="checkbox" name="exintsecret" id="exintsecret" class="toggle__input">
+              <span class="toggle__track" aria-hidden="true">
+                <span class="toggle__thumb"></span>
+              </span>
+            </span>
+          </label>
+        </fieldset>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn third icon-left i-undo" id="cancelExportBtn" data-i18n="options.btn.cancel">Cancel</button>
         <button class="btn primary icon-left i-download" id="doExportBtn" data-i18n="options.export.start">Export Selected</button>
-      </menu>
+      </div>
     </form>
   </dialog>
 
   <!-- Reset to Defaults Modal -->
   <dialog id="resetDefaultsModal">
     <form method="dialog">
-      <h3 data-i18n="options.modal.reset.title">Reset settings</h3>
-      <p data-i18n="options.modal.reset.desc">This will replace providers, models, site rules, and templates with default values.</p>
+      <div class="modal-content">
+        <h3 data-i18n="options.modal.reset.title">Reset settings</h3>
+        <p data-i18n="options.modal.reset.desc">This will replace providers, models, site rules, and templates with default values.</p>
 
-      <label class="toggle toggle--inline">
-        <span class="toggle__text" data-i18n="options.modal.reset.keepKeys">Keep API keys</span>
-        <span class="toggle__control">
-          <input type="checkbox" id="keepApiKeys" class="toggle__input" checked>
-          <span class="toggle__track" aria-hidden="true">
-            <span class="toggle__thumb"></span>
+        <label class="toggle toggle--inline">
+          <span class="toggle__text" data-i18n="options.modal.reset.keepKeys">Keep API keys</span>
+          <span class="toggle__control">
+            <input type="checkbox" id="keepApiKeys" class="toggle__input" checked>
+            <span class="toggle__track" aria-hidden="true">
+              <span class="toggle__thumb"></span>
+            </span>
           </span>
-        </span>
-      </label>
+        </label>
+      </div>
 
-      <menu>
-        <button class="btn icon-left i-undo" id="cancelResetDefaultsBtn" value="cancel" data-i18n="options.btn.cancel">Cancel</button>
-        <button class="btn danger icon-left i-eraser" id="doResetDefaultsBtn" value="default" data-i18n="options.modal.reset.apply">Reset</button>
-      </menu>
+      <div class="modal-footer">
+        <button class="btn third icon-left i-undo" id="cancelResetDefaultsBtn" value="cancel" data-i18n="options.btn.cancel">Cancel</button>
+        <button class="btn delete icon-left i-eraser" id="doResetDefaultsBtn" value="default" data-i18n="options.modal.reset.apply">Reset</button>
+      </div>
     </form>
   </dialog>
 

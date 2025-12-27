@@ -8,6 +8,7 @@
   const HOVER_ID = 'jda-hover-overlay';
   const OVERLAY_CLASS = 'jda-highlight-overlay';
   const STYLE_ID = 'jda-highlighter-style';
+  const THEME_KEY = 'popupTheme';
 
   const state = {
     active: false,
@@ -36,6 +37,14 @@
     },
     localeCode: 'en'
   };
+  const themeState = {
+    preference: 'system',
+    effective: 'light',
+    media: null,
+    mediaListener: null,
+    storageListener: null,
+    init: false
+  };
 
   const SEND_SILENT = true;
 
@@ -55,6 +64,67 @@
 
   ensureLocaleLoaded(false, refreshLocale);
   watchLocaleChanges(() => ensureLocaleLoaded(true, refreshLocale));
+
+  function isExtensionContextValid() {
+    try {
+      return !!(chrome?.runtime?.id);
+    } catch {
+      return false;
+    }
+  }
+
+  function computeEffectiveTheme(pref) {
+    if (pref === 'system') {
+      return themeState.media?.matches ? 'dark' : 'light';
+    }
+    return pref === 'dark' ? 'dark' : 'light';
+  }
+
+  function applyMenuTheme(preference) {
+    const normalized = ['dark', 'system', 'light'].includes(preference) ? preference : 'system';
+    const effective = computeEffectiveTheme(normalized);
+    themeState.preference = normalized;
+    themeState.effective = effective;
+    if (state.menu) {
+      state.menu.classList.toggle('theme-dark', effective === 'dark');
+    }
+  }
+
+  function initMenuThemeControl() {
+    if (themeState.init) return;
+    themeState.init = true;
+    themeState.media = window.matchMedia?.('(prefers-color-scheme: dark)') || null;
+    if (themeState.media) {
+      themeState.mediaListener = () => {
+        if (themeState.preference === 'system') {
+          applyMenuTheme('system');
+        }
+      };
+      themeState.media.addEventListener?.('change', themeState.mediaListener);
+      themeState.media.addListener?.(themeState.mediaListener);
+    }
+
+    if (isExtensionContextValid() && chrome?.storage?.onChanged) {
+      themeState.storageListener = (changes, area) => {
+        if (area === 'local' && changes[THEME_KEY]) {
+          applyMenuTheme(changes[THEME_KEY].newValue || 'system');
+        }
+      };
+      chrome.storage.onChanged.addListener(themeState.storageListener);
+    }
+
+    if (isExtensionContextValid() && chrome?.storage?.local) {
+      try {
+        chrome.storage.local.get({ [THEME_KEY]: 'system' }, (res) => {
+          applyMenuTheme(res?.[THEME_KEY] || 'system');
+        });
+      } catch {
+        applyMenuTheme('system');
+      }
+    } else {
+      applyMenuTheme('system');
+    }
+  }
 
   function safeSendMessage(message, cb) {
     try {
@@ -103,12 +173,32 @@
         z-index: 2147483644;
       }
       #${MENU_ID} {
-        --menu-bg: #1f2937;
-        --menu-fg: #f8fafc;
-        --menu-border: rgba(148, 163, 184, 0.2);
-        --menu-shadow: 0 10px 28px rgba(15, 23, 42, 0.32);
-        --menu-btn-bg: rgba(148, 163, 184, 0.22);
+        --menu-surface: #f8f9fb;
+        --menu-surface-light: #ffffff;
+        --menu-surface-dark: #d6deec;
+        --menu-shadow-dark: rgba(163, 177, 198, 0.45);
+        --menu-shadow-light: rgba(255, 255, 255, 0.85);
+        --menu-border: rgba(255, 255, 255, 0.5);
+        --menu-text: #1f2a3f;
+        --menu-muted: #6c738a;
+        --menu-accent: #2dc4b5;
+        --menu-accent-strong: #6d95ff;
+        --menu-bg: var(--menu-surface);
+        --menu-fg: var(--menu-text);
+        --menu-shadow: 12px 12px 28px rgba(163, 177, 198, 0.45),
+          -10px -10px 26px rgba(255, 255, 255, 0.85);
+        --menu-btn-bg: linear-gradient(145deg, #e6e6e68a, #ffffff);
+        --menu-btn-hover: linear-gradient(145deg, #e7e9ec40, #f8f9fb14);
+        --menu-btn-shadow: 4px 4px 8px #e0e0e0, -4px -4px 8px #ffffff;
+        --menu-btn-active-shadow: 1px 1px 2px rgb(213 223 235),
+          -4px -4px 8px rgba(255, 255, 255, 0.65);
         --menu-btn-disabled: rgba(148, 163, 184, 0.12);
+        --menu-primary-bg: linear-gradient(120deg, #1ac1b4, #49e5ae);
+        --menu-primary-hover: linear-gradient(240deg, #1ac1b4, #49e5ae);
+        --menu-primary-text: #041b1b;
+        --menu-danger-bg: linear-gradient(145deg, #a74b4b14, #f8f9fb14);
+        --menu-danger-text: #e58b8b;
+        --menu-neutral-bg: linear-gradient(303deg, #6d95ff0d, #3a67a31c);
         --menu-counter-opacity: 0.7;
         position: fixed;
         top: 16px;
@@ -125,28 +215,49 @@
         align-items: stretch;
         max-width: min(400px, calc(100vw - 24px));
         pointer-events: auto;
+        color-scheme: light;
       }
-      @media (prefers-color-scheme: light) {
-        #${MENU_ID} {
-          --menu-bg: #ffffff59;
-          --menu-fg: #0f172a;
-          --menu-border: rgba(15, 23, 42, 0.12);
-          --menu-shadow: 0 10px 24px rgba(15, 23, 42, 0.12);
-          --menu-btn-bg: rgba(15, 23, 42, 0.08);
-          --menu-btn-disabled: rgba(15, 23, 42, 0.04);
-          --menu-counter-opacity: 0.5;
-        }
+      #${MENU_ID},
+      #${MENU_ID} * {
+        box-sizing: border-box;
+        font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
       }
-      @media (prefers-color-scheme: dark) {
-        #${MENU_ID} {
-          --menu-bg: #1f2937b8;
-          --menu-fg: #f8fafc;
-          --menu-border: rgba(148, 163, 184, 0.2);
-          --menu-shadow: 0 10px 28px rgba(15, 23, 42, 0.32);
-          --menu-btn-bg: rgba(148, 163, 184, 0.22);
-          --menu-btn-disabled: rgba(148, 163, 184, 0.12);
-          --menu-counter-opacity: 0.75;
-        }
+      #${MENU_ID}.theme-dark {
+        --menu-surface: #1b1f23;
+        --menu-surface-light: #1b2436;
+        --menu-surface-dark: #0b111d;
+        --menu-shadow-dark: rgba(0, 0, 0, 0.7);
+        --menu-shadow-light: rgba(255, 255, 255, 0.08);
+        --menu-border: rgba(44, 56, 84, 0.8);
+        --menu-text: #e4ecfb;
+        --menu-muted: rgba(154, 167, 198, 0.92);
+        --menu-accent: #30c0f5;
+        --menu-accent-strong: #7ea9ff;
+        --menu-bg: var(--menu-surface);
+        --menu-fg: var(--menu-text);
+        --menu-shadow: 12px 12px 28px rgba(0, 0, 0, 0.75),
+          -10px -10px 26px rgba(255, 255, 255, 0.05);
+        --menu-btn-bg: linear-gradient(
+          145deg,
+          rgba(33, 41, 61, 0.92),
+          rgba(16, 23, 38, 0.9)
+        );
+        --menu-btn-hover: linear-gradient(
+          180deg,
+          rgba(34, 196, 178, 0.3),
+          rgba(112, 151, 255, 0.25)
+        );
+        --menu-btn-shadow: 4px 4px 8px rgba(0, 0, 0, 0.65),
+          -4px -4px 8px rgba(255, 255, 255, 0.05);
+        --menu-btn-active-shadow: 1px 3px 3px rgba(0, 0, 0, 0.7),
+          -3px -3px 6px rgba(255, 255, 255, 0.04);
+        --menu-btn-disabled: rgba(148, 163, 184, 0.12);
+        --menu-primary-text: #f8fafc;
+        --menu-danger-bg: rgba(226, 58, 94, 0.2);
+        --menu-danger-text: #f392a7;
+        --menu-neutral-bg: rgba(148, 163, 184, 0.2);
+        --menu-counter-opacity: 0.75;
+        color-scheme: dark;
       }
       #${MENU_ID}.jda-menu-dragging {
         cursor: grabbing;
@@ -171,18 +282,35 @@
         gap: 8px;
       }
       #${MENU_ID} .cv-select-row label {
+        all: unset;
+        display: block;
         white-space: nowrap;
         font-size: 12px;
         font-weight: 700;
         letter-spacing: 0.08em;
+        color: var(--menu-fg);
+        box-sizing: border-box;
       }
       #${MENU_ID} .cv-select-row select {
+        all: unset;
+        display: block;
         width: 100%;
         border-radius: 12px;
         border: 1px solid var(--menu-border);
-        padding: 6px 10px;
-        background: transparent;
+        padding: 5px 36px 5px 10px;
+        background: var(--menu-surface);
+        background-color: var(--menu-surface) !important;
+        appearance: none;
+        -webkit-appearance: none;
+        background-clip: padding-box;
+        box-shadow: inset 4px 4px 8px var(--menu-shadow-dark),
+          inset -4px -4px 8px var(--menu-shadow-light);
         color: var(--menu-fg);
+        box-sizing: border-box;
+        line-height: 1.4;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
       }
       #${MENU_ID} .jda-overlay-header {
         display: flex;
@@ -199,6 +327,9 @@
       #${MENU_ID} .jda-overlay-title {
         flex: 1;
         text-transform: none;
+      }
+      #${MENU_ID} .label {
+        background: transparent;
       }
       #${MENU_ID} .button-row {
         display: flex;
@@ -219,22 +350,36 @@
         align-items: center;
         gap: 6px;
         white-space: nowrap;
+        box-shadow: var(--menu-btn-shadow);
+        transition: box-shadow 140ms ease, background 140ms ease, color 140ms ease;
+      }
+      #${MENU_ID} button:hover {
+        background: var(--menu-btn-hover);
+      }
+      #${MENU_ID} button:active {
+        box-shadow: var(--menu-btn-active-shadow);
+        color: var(--menu-accent);
       }
       #${MENU_ID} button:disabled {
         opacity: 0.5;
         background: var(--menu-btn-disabled);
         cursor: default !important;
+        box-shadow: none;
       }
       #${MENU_ID} button.primary {
-        background: #0ea5e9;
-        color: #0f172a;
+        background: var(--menu-primary-bg);
+        color: var(--menu-primary-text);
+        box-shadow: var(--menu-btn-shadow);
+      }
+      #${MENU_ID} button.primary:hover {
+        background: var(--menu-primary-hover);
       }
       #${MENU_ID} button.danger {
-        background: rgba(239, 68, 68, 0.18);
-        color: #e58b8b;
+        background: var(--menu-danger-bg);
+        color: var(--menu-danger-text);
       }
       #${MENU_ID} button.neutral {
-        background: rgba(148, 163, 184, 0.15);
+        background: var(--menu-neutral-bg);
       }
       #${MENU_ID} button[data-action="analyze"] {
         flex: 1 1 150px;
@@ -242,11 +387,18 @@
         justify-content: center;
         font-weight: 600;
         gap: 8px;
-        background: linear-gradient(135deg, #0f766e, #0ea5e9);
-        color: #fff;
+        background: var(--menu-primary-bg);
+        color: var(--menu-primary-text);
       }
       #${MENU_ID} button[data-action="analyze"]:hover {
-        background: linear-gradient(135deg, #0c5e59, #0b82b8);
+        background: var(--menu-primary-hover);
+        box-shadow: 4px 4px 8px var(--menu-shadow-dark),
+          -4px -4px 8px var(--menu-shadow-light);
+      }
+      #${MENU_ID} button[data-action="analyze"]:active {
+        box-shadow: 1px 1px 2px var(--menu-shadow-dark),
+          -4px -4px 8px var(--menu-shadow-light);
+        color: var(--menu-fg);
       }
       #${MENU_ID} .analyze-btn .icon {
         width: 16px;
@@ -267,9 +419,10 @@
         color: var(--menu-fg);
         padding: 0;
         min-width: 28px;
+        box-shadow: var(--menu-btn-shadow);
       }
       #${MENU_ID} .jda-overlay-header button[data-action="cancel"]:hover {
-        background: var(--menu-btn-disabled);
+        background: var(--menu-btn-hover);
       }
       #${MENU_ID} .counter {
         opacity: var(--menu-counter-opacity);
@@ -281,6 +434,7 @@
         font-size: 12px;
         opacity: 0.7;
         text-align: center;
+        color: var(--menu-muted);
       }
     `;
     const style = document.createElement('style');
@@ -340,6 +494,9 @@
     const menu = document.createElement('div');
     menu.id = MENU_ID;
     menu.className = '';
+    state.menu = menu;
+    initMenuThemeControl();
+    applyMenuTheme(themeState.preference);
     const titleText = t('ui.highlighter.title', 'Select job description');
     const closeTitle = t('ui.highlighter.close', 'Cancel selection');
     const undoLabel = t('ui.highlighter.undo', 'Undo');

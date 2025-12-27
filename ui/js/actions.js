@@ -10,6 +10,13 @@ let __anBtnStart = 0;
 const DEFAULT_EXTRACT_WAIT = 4000; // ms
 const DEFAULT_EXTRACT_POLL = 150;  // ms
 
+function isExtensionContextValid() {
+  try {
+    return !!(chrome?.runtime?.id);
+  } catch {
+    return false;
+  }
+}
 
 function startAnalyzeButtonTimer() {
   const btn = document.getElementById("analyzeBtn");
@@ -213,11 +220,17 @@ const dbg = (...a) => console.debug("[FastStart]", ...a);
 // Универсальный матчинг правил сайта оставлен в shared/rules.js
 
 export async function ensureContentScript(tabId) {
+  if (!isExtensionContextValid()) {
+    return false;
+  }
   try {
     const resp = await sendMessageWithRetry({ type: 'ENSURE_CONTENT_SCRIPT', tabId }, { retries: 2, delayMs: 250 });
     return !!resp?.ok;
   } catch (e) {
-    console.warn('[JDA] ensureContentScript failed:', e);
+    const msg = String(e?.message || e || '');
+    if (!msg.includes('Extension context invalidated')) {
+      console.warn('[JDA] ensureContentScript failed:', e);
+    }
     return false;
   }
 }
@@ -446,7 +459,7 @@ export function wireAnalyzeButtons() {
 
     const cvInfo = getSelectedCvInfo();
 
-    chrome.runtime.sendMessage({
+    sendMessageWithRetry({
       type: "CALL_LLM",
       payload: {
         modelId: selected.modelId,
@@ -459,7 +472,7 @@ export function wireAnalyzeButtons() {
         modelSystemPrompt: selected.systemPrompt || "",
         text: state.selectedText
       }
-    }).then((resp) => {
+    }, { retries: 2, delayMs: 250 }).then((resp) => {
       const elapsed = Math.max(0, performance.now() - state.timerStart);
       const ms = (resp && typeof resp.ms === "number") ? resp.ms : elapsed;
       stopTimer(true, ms);
@@ -475,7 +488,8 @@ export function wireAnalyzeButtons() {
         setResult(t('ui.popup.messageError', 'Error: {{message}}').replace('{{message}}', msg));
         stopAnalyzeButtonTimer(elapsed || 0, true);
       }
-    }).catch(() => {
+    }).catch((err) => {
+      console.warn('[JDA] CALL_LLM failed:', err);
       const elapsed = Math.max(0, performance.now() - state.timerStart);
       stopTimer(true, elapsed);
       setResult(t('ui.popup.messageError', 'Error: {{message}}').replace('{{message}}', t('ui.popup.messageRequestFailed', 'request failed')));

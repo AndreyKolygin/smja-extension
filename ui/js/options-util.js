@@ -9,8 +9,52 @@ export function $id(id) {
   if (!el) throw new Error(`Missing DOM node: #${id}`);
   return el;
 }
+let modalScrollLocks = 0;
+let scrollLockSnapshot = null;
+function lockBodyScroll() {
+  modalScrollLocks += 1;
+  if (!document?.body) return;
+  if (modalScrollLocks === 1) {
+    const scrollY = window.scrollY ?? document.documentElement?.scrollTop ?? 0;
+    const scrollX = window.scrollX ?? document.documentElement?.scrollLeft ?? 0;
+    scrollLockSnapshot = { x: scrollX, y: scrollY };
+    document.body.classList.add('jda-modal-scroll-lock');
+    document.body.style.position = 'fixed';
+    document.body.style.top = `-${scrollY}px`;
+    document.body.style.left = `-${scrollX}px`;
+    document.body.style.right = '0';
+    document.body.style.width = '100%';
+    document.body.style.overflow = 'hidden';
+  }
+}
+function unlockBodyScroll() {
+  modalScrollLocks = Math.max(0, modalScrollLocks - 1);
+  if (modalScrollLocks === 0 && document?.body) {
+    document.body.classList.remove('jda-modal-scroll-lock');
+    document.body.style.position = '';
+    document.body.style.top = '';
+    document.body.style.left = '';
+    document.body.style.right = '';
+    document.body.style.width = '';
+    document.body.style.overflow = '';
+    if (scrollLockSnapshot) {
+      window.scrollTo(scrollLockSnapshot.x ?? 0, scrollLockSnapshot.y ?? 0);
+    }
+    scrollLockSnapshot = null;
+  }
+}
 export function safeShowModal(dlg) {
-  if (dlg && typeof dlg.showModal === "function") dlg.showModal(); else dlg?.setAttribute("open","open");
+  if (!dlg) return;
+  const attachCloseHandler = () => {
+    const onClose = () => {
+      dlg.removeEventListener('close', onClose);
+      unlockBodyScroll();
+    };
+    dlg.addEventListener('close', onClose, { once: true });
+  };
+  lockBodyScroll();
+  attachCloseHandler();
+  if (typeof dlg.showModal === "function") dlg.showModal(); else dlg.setAttribute("open","open");
 }
 export function maskKey(k){ if(!k) return ""; const last = String(k).slice(-6); return `...${last}`; }
 

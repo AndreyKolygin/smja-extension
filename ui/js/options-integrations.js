@@ -114,7 +114,7 @@ function renderField(field) {
       </div>
       <div class="form-row notion-cell notion-remove-cell">
         <button type="button"
-          class="btn danger icon-only i-trash notion-remove"
+          class="btn delete icon-only i-trash notion-remove"
           data-i18n-attr-title="options.integrations.notion.field.remove"
           data-i18n-attr-aria-label="options.integrations.notion.field.remove"
           title="Remove"></button>
@@ -181,6 +181,10 @@ function renderField(field) {
     refreshStaticRow(value);
   });
   wrapper.querySelector('.notion-remove').addEventListener('click', () => {
+    const confirmMsg = translate('options.integrations.notion.field.removeConfirm');
+    if (confirmMsg && !window.confirm(confirmMsg)) {
+      return;
+    }
     removeField(f.id);
   });
 

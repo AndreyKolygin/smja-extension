@@ -9,8 +9,6 @@
 <body>
 <div class="popup">
   <div>
-<!-- header -->
-      <div class="header"></div>
       <div class="selectors">
         <div class="select-row">
           <span class="select-label" data-i18n="ui.popup.modelLabel">LLM</span>
@@ -28,15 +26,15 @@
     <div class="row highligter">
       <button id="selectBtn" data-i18n="ui.popup.select" class="btn highlight icon-left i-select">Select job description</button>
       <button id="fastStartBtn" class="btn third icon-left i-download hidden" hidden data-i18n="ui.popup.autograb" title="Auto-grab job description by site rule" data-i18n-attr-title="ui.popup.autograb">Auto-grab</button>
-      <button id="clearBtn" data-i18n="ui.popup.startover" class="btn secondary icon-left i-startover">Start over</button>
     </div>
     <!-- text blocks-->
-    <label for="jobInput" class="label popup-label" data-i18n="ui.popup.jobDescription">Job description:</label>
+    <label for="jobInput" class="label" data-i18n="ui.popup.jobDescription">Job description:</label>
     <textarea id="jobInput" class="result" data-i18n-ph="ui.popup.placeholder.jobdesc" placeholder="Paste or select a job description here..."></textarea>
     <div class="row">
       <button id="analyzeBtn" data-i18n="ui.popup.analyze" class="btn primary analyze icon-left icon-center i-magic" data-i18n-attr-title="ui.popup.analyzeTitle" title="Start analyze">Analyze</button>
+      <button id="clearBtn" data-i18n="ui.popup.startover" class="btn secondary icon-left i-startover">Start over</button>
     </div>
-    <label for="jobOutput" class="label" data-i18n="ui.popup.positionMresult">Position matching result:</label>
+    <label for="resultView" class="label" data-i18n="ui.popup.positionMresult">Position matching result:</label>
     <div id="resultView" class="result-view prose" aria-live="polite"></div>
     <div class="progress" id="progress" data-ms="0" data-i18n="ui.popup.progress">Progress: 0 ms</div>
 
