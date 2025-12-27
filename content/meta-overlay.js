@@ -677,14 +677,15 @@
         count: section.querySelector(`[data-section-count="${id}"]`)
       };
       state.sections[id] = refs;
+      const isMeta = id === 'meta';
       if (refs.toggle) {
         refs.toggle.addEventListener('click', () => toggleSection(id));
-        refs.toggle.setAttribute('aria-expanded', 'true');
+        refs.toggle.setAttribute('aria-expanded', isMeta ? 'false' : 'true');
       }
       if (refs.section) {
-        refs.section.classList.remove('collapsed');
+        refs.section.classList.toggle('collapsed', isMeta);
       }
-      if (refs.body) refs.body.hidden = false;
+      if (refs.body) refs.body.hidden = isMeta;
     });
 
     state.searchInput = container.querySelector('.jda-meta-overlay-search');
@@ -747,8 +748,8 @@
               <div class="jda-meta-overlay-list" data-section-list="base"></div>
             </div>
           </div>
-          <div class="jda-meta-section" data-section="meta">
-            <button type="button" class="jda-meta-section-toggle" data-section-toggle="meta" aria-expanded="true">
+          <div class="jda-meta-section collapsed" data-section="meta">
+            <button type="button" class="jda-meta-section-toggle" data-section-toggle="meta" aria-expanded="false">
               <span class="jda-meta-section-title" data-i18n="ui.metaOverlay.section.meta">${t('ui.metaOverlay.section.meta', 'Meta tags')}</span>
               <span class="jda-meta-section-count" data-section-count="meta">0</span>
               <span class="jda-meta-section-chevron" aria-hidden="true"></span>

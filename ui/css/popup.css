@@ -21,10 +21,10 @@
   --btn-bg: linear-gradient(145deg, #e6e6e68a, #ffffff);
   --btn-color: #1f2a3f;
   --btn-shadow: 4px 4px 8px #e0e0e0, -4px -4px 8px #ffffff;
-  --btn-active-shadow: 2px 3px 6px rgba(146, 154, 175, 0.4),
+  --btn-active-shadow: 1px 1px 2px rgb(213 223 235),
     -4px -4px 8px rgba(255, 255, 255, 0.65);
-  --highlight-hover: linear-gradient(180deg, #22c4b24a, #7097ff14);
-  --analyze-hover: linear-gradient(180deg, #22c4b24a, #7097ff14);
+  --highlight-hover: linear-gradient(145deg, #2dc4b512, #f8f9fb);
+  --analyze-hover: linear-gradient(145deg, #2dc4b512, #f8f9fb);
   display: flex;
   flex-direction: column;
   align-items: stretch;
@@ -59,13 +59,26 @@
     -8px -8px 18px rgba(255, 255, 255, 0.04);
   --popup-shadow: 12px 12px 28px rgba(0, 0, 0, 0.75),
     -10px -10px 26px rgba(255, 255, 255, 0.05);
-  --btn-bg: linear-gradient(145deg, rgba(33, 41, 61, 0.92), rgba(16, 23, 38, 0.9));
+  --btn-bg: linear-gradient(
+    145deg,
+    rgba(33, 41, 61, 0.92),
+    rgba(16, 23, 38, 0.9)
+  );
   --btn-color: #e4ecfb;
-  --btn-shadow: 4px 4px 8px rgba(0, 0, 0, 0.65), -4px -4px 8px rgba(255, 255, 255, 0.05);
-  --btn-active-shadow: 2px 3px 6px rgba(0, 0, 0, 0.7),
+  --btn-shadow: 4px 4px 8px rgba(0, 0, 0, 0.65),
+    -4px -4px 8px rgba(255, 255, 255, 0.05);
+  --btn-active-shadow: 1px 3px 3px rgba(0, 0, 0, 0.7),
     -3px -3px 6px rgba(255, 255, 255, 0.04);
-  --highlight-hover: linear-gradient(180deg, rgba(34, 196, 178, 0.3), rgba(112, 151, 255, 0.25));
-  --analyze-hover: linear-gradient(180deg, rgba(34, 196, 178, 0.35), rgba(112, 151, 255, 0.32));
+  --highlight-hover: linear-gradient(
+    180deg,
+    rgba(34, 196, 178, 0.3),
+    rgba(112, 151, 255, 0.25)
+  );
+  --analyze-hover: linear-gradient(
+    180deg,
+    rgba(34, 196, 178, 0.35),
+    rgba(112, 151, 255, 0.32)
+  );
 }
 
 html,
@@ -117,7 +130,7 @@ body[data-theme="dark"] {
 select {
   cursor: pointer;
   width: 100%;
-  padding: 10px 12px;
+  padding: 8px 12px;
   border-radius: 14px;
   border: none;
   background: var(--field-surface);
@@ -149,7 +162,7 @@ select:focus-visible {
   flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  margin: 0 10px;
+  margin: 0 4px 0 0;
   /* padding: 12px 14px; */
   /* background: var(--neo-surface-light); */
   /* box-shadow: var(--row-shadow); */
@@ -265,8 +278,41 @@ textarea::placeholder {
   box-shadow: var(--btn-shadow);
 }
 .popup .btn.highlight:hover {
-  background: var(--highlight-hover);
-  color: #46dea9;
+  background: linear-gradient(145deg, #e7e9ec40, #f8f9fb14);
+  color: var(--neo-accent);
+}
+.popup .btn.secondary {
+  color: var(--neo-text);
+  /* box-shadow: 4px 4px 8px rgba(0, 0, 0, 0.25),
+    -3px -3px 6px rgba(255, 255, 255, 0.25); */
+}
+.popup .btn.secondary:hover {
+  background: linear-gradient(145deg, #a74b4b14, #f8f9fb14);
+  color: var(--red-soft-dark);
+}
+.popup .btn.third {
+  background: linear-gradient(145deg, #0a66c20f, #f8f9fb14);
+  color: #0a66c2;
+  /* box-shadow: 4px 4px 8px rgba(0, 0, 0, 0.25),
+    -3px -3px 6px rgba(255, 255, 255, 0.25); */
+}
+.popup .btn.third:hover {
+  background: linear-gradient(145deg, #78aff614, #f8f9fb14);
+  color: #0a66c2c9;
+}
+.popup .btn.ghost {
+  background: transparent;
+  /* border: 1px solid rgba(255, 255, 255, 0.4); */
+  color: var(--neo-text);
+  /* box-shadow: none; */
+}
+.popup .btn.ghost:hover {
+  background: linear-gradient(
+    180deg,
+    rgb(91 160 237 / 7%) 0%,
+    rgb(255 255 255 / 5%) 100%
+  );
+  color: var(--blue-text);
 }
 
 .btn.primary.analyze:hover {
@@ -278,18 +324,20 @@ textarea::placeholder {
 }
 .btn.primary.analyze:active,
 #selectBtn:active {
-  box-shadow: 2px 3px 6px var(--neo-shadow-dark),
+  box-shadow: 1px 1px 2px var(--neo-shadow-dark),
     -4px -4px 8px var(--neo-shadow-light);
-  color: #2dc4b5;
+  color: var(--accent);
 }
 
+.btn.danger,
 .btn.success {
-  background: var(--red-deep-light);
+  background: #e23a5e;
   color: #fff;
+  border: none;
 }
-
+.btn.danger:hover,
 .btn.success:hover {
-  background: var(--red-deep-dark);
+  background: #9b1d37;
 }
 
 .notion-btn {
@@ -333,11 +381,10 @@ textarea::placeholder {
 .prose ul,
 .prose ol {
   /* margin: 0.45em 0 0.45em 1em; */
-  margin: 0 0.25em 0 0;
+  margin: 0 0.25em 0 -1.3em;
 }
 .prose li {
-  margin: 0.7em 0;
-  /* margin: 1em 0; */
+  margin: 0.8em 0.1em;
 }
 .prose code {
   background: rgba(255, 255, 255, 0.06);

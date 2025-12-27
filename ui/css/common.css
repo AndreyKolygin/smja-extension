@@ -151,124 +151,13 @@ body.theme-landing {
   border-radius: var(--radius);
   padding: 8px 10px;
   cursor: pointer;
-  /* border: 1px solid var(--accent); */
   border: none;
-}
-.btn:hover {
-  background: var(--bg-dark);
 }
 .btn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
   pointer-events: none;
   filter: grayscale(0.2);
-}
-
-.btn.add-model {
-  color: var(--text);
-  background: var(--accent-3-light);
-  border: 1px solid var(--accent);
-}
-.btn.add-model:hover {
-  background: var(--accent-3-dark);
-}
-
-.btn.highlight {
-  border: 1px solid var(--accent);
-  background: var(--accent-3);
-}
-.btn.highlight:hover {
-  background: var(--accent-3-light);
-}
-
-.btn.edit {
-  background: var(--accent-3-light);
-}
-.btn.edit:hover {
-  background: var(--accent-3-dark);
-}
-
-.btn.edit-prompr {
-  background: var(--extra-light);
-}
-.btn.edit-prompr:hover {
-  background: var(--extra);
-  color: var(--bg-dark);
-}
-
-.btn.delete {
-  background: var(--red-light);
-}
-.btn.delete:hover {
-  background: var(--red-2-dark);
-}
-.btn.danger {
-  background: var(--red);
-  color: var(--bg-light);
-}
-.btn.danger:hover {
-  background: var(--red-deep-dark);
-}
-
-.btn.primary {
-  border: 1px solid var(--accent);
-  background: var(--accent);
-  color: #fff;
-}
-.btn.primary:hover {
-  background: var(--accent-dark);
-}
-.btn.primary.analyze {
-  width: 100%;
-}
-.btn.primary.analyze:hover {
-  background: var(--accent-dark);
-}
-.btn.secondary {
-  /* border: 1px solid #303a48; */
-  border: none;
-  background: var(--extra-dark-border);
-  color: #fff;
-}
-.btn.secondary:hover {
-  /* background: #637fa405; */
-  background: linear-gradient(
-    180deg,
-    rgba(195, 235, 229, 0.3) 0%,
-    rgba(255, 255, 255, 0.1) 100%
-  );
-  color: #46dea9;
-}
-.btn.third,
-.edit-prompt {
-  border: none;
-  background: #3a67a3;
-  color: #ffffff;
-}
-
-.btn.third:hover,
-.edit-prompt:hover {
-  /* background: #637fa405; */
-  background: linear-gradient(
-    180deg,
-    rgb(88 132 255 / 20%) 0%,
-    rgba(255, 255, 255, 0.1) 100%
-  );
-  color: #46dea9;
-}
-
-.btn.ghost {
-  background: transparent;
-  border: 1px solid var(--accent);
-  color: var(--text);
-}
-.btn.ghost:hover {
-  background: linear-gradient(
-    180deg,
-    rgb(91 160 237 / 7%) 0%,
-    rgb(255 255 255 / 5%) 100%
-  );
-  color: #46dea9;
 }
 
 .input,
@@ -296,7 +185,7 @@ textarea {
 }
 
 .row {
-  margin: 0 10px;
+  margin: 0 4px 0 0;
   display: flex;
   gap: 6px;
   flex-direction: row;
@@ -319,7 +208,7 @@ textarea {
 
 .card {
   background: var(--panel);
-  border: 1px solid var(--border);
+  /* border: 1px solid var(--border); */
   /* border-radius: 12px; */
   border-radius: var(--radius);
   padding: 16px;
@@ -333,7 +222,7 @@ textarea {
     rgba(255, 255, 255, 0.12),
     rgba(255, 255, 255, 0.04)
   );
-  border: 1px solid rgba(255, 255, 255, 0.18);
+  /* border: 1px solid rgba(255, 255, 255, 0.18); */
   backdrop-filter: blur(10px) saturate(140%);
   -webkit-backdrop-filter: blur(10px) saturate(140%);
 }

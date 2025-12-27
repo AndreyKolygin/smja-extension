@@ -4,6 +4,20 @@ All notable changes to this project will be documented in this file.
 
 The format is inspired by Keep a Changelog and this project adheres to SemVer via the extension `manifest.json` version field.
 
+## [2.6.0] - 2025-12-27
+
+### Added
+- Highlighter menu now follows the popup theme preference (light/dark/system), with theme switching decoupled from OS settings.
+
+### Changed
+- Highlighter menu styling aligned with the popup neumorphism palette, including button states and CV selector visuals.
+- Meta overlay defaults updated: Page data starts expanded, Meta tags start collapsed to reduce noise on large pages.
+- Options dialogs now use a scrollable content area with sticky footer buttons, so Import/Export and rule editing stay usable on small screens.
+
+### Fixed
+- Highlighter CV selector is isolated from host page CSS (e.g., LinkedIn), preventing site styles from breaking layout or colors.
+- Background page scroll is locked while options dialogs are open, avoiding jump-to-top and preserving scroll position.
+
 ## [2.5.0] - 2025-11-26
 
 ### Added

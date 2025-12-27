@@ -383,7 +383,7 @@ function openSiteModal(settings, rule){
         stepTitle.textContent = `${t('options.modal.site.chainStepLabel', 'Step')} ${stepIdx + 1}`;
         const removeStepBtn = document.createElement('button');
         removeStepBtn.type = 'button';
-        removeStepBtn.className = 'btn danger icon-left i-trash';
+        removeStepBtn.className = 'btn delete icon-left i-trash';
         removeStepBtn.setAttribute('data-i18n', 'options.modal.site.chainStepRemove');
         removeStepBtn.textContent = t('options.modal.site.chainStepRemove', 'Remove step');
         removeStepBtn.addEventListener('click', () => {

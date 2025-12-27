@@ -245,7 +245,7 @@
     style.id = STYLE_ID;
     style.textContent = `
       #${OVERLAY_ID} {
-        --jda-surface: #f8f9fbf0;
+        --jda-surface: #f8f9fbbf;
         --jda-contrast: #ffffff;
         --jda-border: rgb(226 226 226 / 40%);
         --jda-text: #1f2436;
@@ -271,7 +271,7 @@
         border-radius: 20px;
       }
       #${OVERLAY_ID}.jda-theme-dark {
-        --jda-surface: #1b1f23de;
+        --jda-surface: #1b1f23bf;
         --jda-contrast: #1b1f23;
         --jda-border: rgba(46, 54, 76, 0.85);
         --jda-text: #e4ecfb;
@@ -318,7 +318,7 @@
         margin-bottom: 8px;
         border-radius: 18px;
         background: var(--jda-contrast);
-        box-shadow: 3px 3px 6px var(--jda-shadow-dark), -3px -3px 6px var(--jda-shadow-light);
+        box-shadow: 0px 2px 6px var(--jda-shadow-dark), -3px -3px 6px var(--jda-shadow-light);
         color: inherit;
         cursor: grab;
         user-select: none;

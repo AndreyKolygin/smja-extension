@@ -10,6 +10,13 @@ let __anBtnStart = 0;
 const DEFAULT_EXTRACT_WAIT = 4000; // ms
 const DEFAULT_EXTRACT_POLL = 150;  // ms
 
+function isExtensionContextValid() {
+  try {
+    return !!(chrome?.runtime?.id);
+  } catch {
+    return false;
+  }
+}
 
 function startAnalyzeButtonTimer() {
   const btn = document.getElementById("analyzeBtn");
@@ -213,11 +220,17 @@ const dbg = (...a) => console.debug("[FastStart]", ...a);
 // Универсальный матчинг правил сайта оставлен в shared/rules.js
 
 export async function ensureContentScript(tabId) {
+  if (!isExtensionContextValid()) {
+    return false;
+  }
   try {
     const resp = await sendMessageWithRetry({ type: 'ENSURE_CONTENT_SCRIPT', tabId }, { retries: 2, delayMs: 250 });
     return !!resp?.ok;
   } catch (e) {
-    console.warn('[JDA] ensureContentScript failed:', e);
+    const msg = String(e?.message || e || '');
+    if (!msg.includes('Extension context invalidated')) {
+      console.warn('[JDA] ensureContentScript failed:', e);
+    }
     return false;
   }
 }
