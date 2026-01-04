@@ -4,6 +4,19 @@ All notable changes to this project will be documented in this file.
 
 The format is inspired by Keep a Changelog and this project adheres to SemVer via the extension `manifest.json` version field.
 
+## [2.7.1] - 2026-01-05
+
+### Added
+- Side panel header controls (theme toggle, meta overlay, settings, close).
+
+### Changed
+- Highlighter styles load from a dedicated stylesheet instead of inline CSS.
+- Prompt building logic is shared between popup and background to keep outputs consistent.
+- Reduced write frequency for selection storage to improve responsiveness.
+
+### Fixed
+- Side panel now opens with the correct UI context when triggered from the context menu.
+
 ## [2.7.0] - 2026-01-04
 
 ### Added

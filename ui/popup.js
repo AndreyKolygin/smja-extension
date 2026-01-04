@@ -94,11 +94,69 @@ function applyThemePreference(preference, { persist = false } = {}) {
   themeState.preference = normalized;
   themeState.effective = effective;
   setPopupThemeClass(effective);
+  updateThemeToggleUI();
   if (persist && isExtensionContextValid() && chrome?.storage?.local) {
     try {
       chrome.storage.local.set({ [THEME_KEY]: normalized });
     } catch {}
   }
+}
+
+function updateThemeToggleUI() {
+  const wrap = document.querySelector(".jda-theme-toggle");
+  if (!wrap) return;
+  const pref = themeState.preference || "system";
+  wrap.querySelectorAll("[data-theme-option]").forEach((btn) => {
+    const value = btn.getAttribute("data-theme-option");
+    const active = value === pref;
+    btn.dataset.active = active ? "true" : "false";
+    btn.setAttribute("aria-checked", active ? "true" : "false");
+  });
+}
+
+function wireSidePanelHeader() {
+  const toolbar = document.querySelector(".sidepanel-toolbar");
+  if (!toolbar) return;
+  const toggle = toolbar.querySelector(".jda-theme-toggle");
+  toggle?.addEventListener("click", (e) => {
+    const btn = e.target.closest("[data-theme-option]");
+    if (!btn) return;
+    const pref = btn.getAttribute("data-theme-option");
+    applyThemePreference(pref, { persist: true });
+  });
+
+  toolbar.querySelector("#menu")?.addEventListener("click", (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const manifest = safeRuntimeGetManifest();
+    const optionsPath = (manifest.options_ui && manifest.options_ui.page)
+      || manifest.options_page
+      || "ui/options.html";
+    const url = safeRuntimeGetURL(optionsPath);
+    try {
+      chrome.runtime.openOptionsPage(() => {
+        if (chrome.runtime.lastError) window.open(url, "_blank");
+      });
+    } catch {
+      try { window.open(url, "_blank"); } catch {}
+    }
+  });
+
+  toolbar.querySelector("#metaOverlay")?.addEventListener("click", async (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    try {
+      await chrome.runtime.sendMessage({ type: "TOGGLE_META_OVERLAY" });
+    } catch {}
+  });
+
+  toolbar.querySelector('[data-action="close"]')?.addEventListener("click", async (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    try {
+      await chrome.runtime.sendMessage({ type: "CLOSE_SIDE_PANEL" });
+    } catch {}
+  });
 }
 
 function initThemeControl() {
@@ -236,6 +294,12 @@ function wireUI() {
     });
   }
 
+  document.getElementById("refreshView")?.addEventListener("click", (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    window.location.reload();
+  });
+
   document.getElementById("selectBtn")?.addEventListener("click", startSelection);
   document.getElementById("clearBtn")?.addEventListener("click", clearSelection);
   wireModelSelector();
@@ -268,6 +332,14 @@ async function init() {
   console.debug("[POPUP] init()");
   await initI18nPopup();
   await initThemeControl();
+  const params = new URLSearchParams(window.location.search || '');
+  const isSidePanel = params.get('context') === 'sidepanel';
+  if (isSidePanel) {
+    document.body.dataset.context = 'sidepanel';
+    const toolbar = document.querySelector(".sidepanel-toolbar");
+    if (toolbar) toolbar.hidden = false;
+    wireSidePanelHeader();
+  }
   const tab = await getActiveTab();
   setActiveTab(tab);
   console.debug("[POPUP] active tab =", tab?.url);

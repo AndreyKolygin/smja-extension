@@ -146,6 +146,19 @@ async function runOverlayAction(tabId, action = 'toggle') {
   });
 }
 
+async function runMetaOverlayAction(tabId) {
+  await chrome.scripting.executeScript({
+    target: { tabId },
+    files: ['shared/i18n-content.js', 'content/meta-overlay.js']
+  });
+  await chrome.scripting.executeScript({
+    target: { tabId },
+    func: () => {
+      try { window.__JDA_META_OVERLAY__?.toggle?.(); } catch {}
+    }
+  });
+}
+
 async function extractFromPageBG(tabId, ruleInput, { waitMs = 4000, pollMs = 150 } = {}) {
   const rule = normalizeRuleForExec(ruleInput);
   if (!rule) return { ok: false, error: 'invalid_rule' };
@@ -452,6 +465,30 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         return;
       }
 
+      if (message?.type === 'TOGGLE_META_OVERLAY') {
+        try {
+          const tabId = await resolveTabId(message.tabId);
+          await runMetaOverlayAction(tabId);
+          sendResponse({ ok: true, tabId });
+        } catch (e) {
+          sendResponse({ ok: false, error: String(e?.message || e) });
+        }
+        return;
+      }
+
+      if (message?.type === 'CLOSE_SIDE_PANEL') {
+        try {
+          const tabId = await resolveTabId(message.tabId);
+          if (chrome?.sidePanel?.setOptions) {
+            await chrome.sidePanel.setOptions({ tabId, enabled: false });
+          }
+          sendResponse({ ok: true, tabId });
+        } catch (e) {
+          sendResponse({ ok: false, error: String(e?.message || e) });
+        }
+        return;
+      }
+
       return;
     } catch (e) {
       sendResponse({ ok: false, error: String(e?.message || e) });
@@ -495,7 +532,6 @@ chrome.tabs.onActivated.addListener(async ({ tabId }) => {
     const tab = await chrome.tabs.get(tabId);
     await setPopupForTab(tabId, tab?.url || tab?.pendingUrl || '');
     await updateAutoGrabVisibilityForTab(tab);
-    ensureSidePanelEnabled(tab);
   } catch (err) {
     console.debug('[JDA] onActivated popup sync failed', err?.message || err);
   }
@@ -508,11 +544,8 @@ chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
   if (changeInfo.url || changeInfo.status === 'complete') {
     setPopupForTab(tabId, (changeInfo.url ?? tab?.url ?? tab?.pendingUrl) || '').catch(() => {});
     updateAutoGrabVisibilityForTab(tab).catch(() => {});
-    ensureSidePanelEnabled(tab);
   }
 });
-
-syncPopupForActiveTab();
 
 chrome.action.onClicked.addListener(async (tab) => {
   try {
@@ -587,10 +620,10 @@ async function runContextSelect(tabId) {
   await chrome.tabs.sendMessage(tabId, { type: 'START_SELECTION' });
 }
 
-function ensureSidePanelEnabled(tab) {
-  if (!chrome?.sidePanel?.setOptions || !tab?.id) return;
+function enableSidePanelForTab(tabId) {
+  if (!chrome?.sidePanel?.setOptions || !tabId) return;
   try {
-    chrome.sidePanel.setOptions({ tabId: tab.id, path: 'ui/popup.html', enabled: true });
+    chrome.sidePanel.setOptions({ tabId, path: 'ui/popup.html?context=sidepanel', enabled: true });
   } catch (err) {
     console.debug('[JDA] side panel setOptions failed:', err?.message || err);
   }
@@ -657,6 +690,7 @@ if (chrome?.contextMenus?.onClicked) {
         await runContextSelect(tabId);
       } else if (info.menuItemId === MENU_OPEN_SIDE_PANEL) {
         if (tabId && chrome?.sidePanel?.open) {
+          enableSidePanelForTab(tabId);
           chrome.sidePanel.open({ tabId });
         }
       } else if (info.menuItemId === MENU_AUTO_GRAB) {

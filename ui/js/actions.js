@@ -5,6 +5,15 @@ import { normalizeRuleForExec, evaluateRuleInPage, siteMatches, findMatchingRule
 
 let __anBtnTicker = 0;
 let __anBtnStart = 0;
+let __lastSelectionTimer = 0;
+
+function persistLastSelectionDebounced(text) {
+  if (__lastSelectionTimer) clearTimeout(__lastSelectionTimer);
+  __lastSelectionTimer = setTimeout(() => {
+    __lastSelectionTimer = 0;
+    try { chrome.storage.local.set({ lastSelection: text }, ()=>{}); } catch {}
+  }, 400);
+}
 
 // content-extraction defaults
 const DEFAULT_EXTRACT_WAIT = 4000; // ms
@@ -494,15 +503,14 @@ export function wireAnalyzeButtons() {
       const ms = (resp && typeof resp.ms === "number") ? resp.ms : elapsed;
       stopTimer(true, ms);
 
-      if (resp?.ok) {
-        state.lastResponse = resp.text || "";
-        setResult(state.lastResponse);
-        setLastMeta(Date.now());
-        setCachedBadge(!!resp.cached);
-        setOutputTokenEstimateFromText(state.lastResponse);
-        try { chrome.storage.local.set({ lastResult: { text: state.lastResponse, when: Date.now(), ms, cached: !!resp.cached } }, ()=>{}); } catch {}
-        stopAnalyzeButtonTimer(ms, false);
-      } else {
+    if (resp?.ok) {
+      state.lastResponse = resp.text || "";
+      setResult(state.lastResponse);
+      setLastMeta(Date.now());
+      setCachedBadge(!!resp.cached);
+      setOutputTokenEstimateFromText(state.lastResponse);
+      stopAnalyzeButtonTimer(ms, false);
+    } else {
         const msg = resp?.error || t('ui.popup.messageUnknownError', 'Unknown');
         setResult(t('ui.popup.messageError', 'Error: {{message}}').replace('{{message}}', msg));
         setCachedBadge(false);
@@ -569,7 +577,7 @@ export function wireSave() {
 export function wireJobInputSync() {
   document.getElementById("jobInput")?.addEventListener("input", (e) => {
     state.selectedText = e.target.value;
-    try { chrome.storage.local.set({ lastSelection: state.selectedText }, ()=>{}); } catch {}
+    persistLastSelectionDebounced(state.selectedText);
     resetOutputTokenEstimate();
   });
 }
