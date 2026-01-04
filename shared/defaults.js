@@ -38,7 +38,16 @@ const DEFAULT_MODELS = [
     displayName: 'Llama 3 (Ollama)',
     modelId: 'llama3',
     active: true,
-    systemPrompt: ''
+    systemPrompt: '',
+    maxTokens: null,
+    temperature: null,
+    topP: null,
+    topK: null,
+    frequencyPenalty: null,
+    presencePenalty: null,
+    repetitionPenalty: null,
+    minP: null,
+    topA: null
   },
   {
     id: 'model_gemini_25_flash',
@@ -46,7 +55,16 @@ const DEFAULT_MODELS = [
     displayName: 'Gemini 2.5 Flash lite',
     modelId: 'gemini-2.5-flash-lite',
     active: true,
-    systemPrompt: ''
+    systemPrompt: '',
+    maxTokens: null,
+    temperature: null,
+    topP: null,
+    topK: null,
+    frequencyPenalty: null,
+    presencePenalty: null,
+    repetitionPenalty: null,
+    minP: null,
+    topA: null
   },
   {
     id: 'model_openai_gpt4omini',
@@ -54,7 +72,16 @@ const DEFAULT_MODELS = [
     displayName: 'GPT-4o mini',
     modelId: 'gpt-4o-mini',
     active: false,
-    systemPrompt: ''
+    systemPrompt: '',
+    maxTokens: null,
+    temperature: null,
+    topP: null,
+    topK: null,
+    frequencyPenalty: null,
+    presencePenalty: null,
+    repetitionPenalty: null,
+    minP: null,
+    topA: null
   }
 ];
 

@@ -66,7 +66,7 @@ export function initPrompts(settings){
     btn.disabled = true;
     if (hint) hint.textContent = t('options.prompts.resetDone', 'Prompt cache reset.');
 
-    const KEYS = ['lastResult', 'lastError', 'lastSelection', 'lastExport'];
+    const KEYS = ['lastResult', 'lastError', 'lastSelection', 'lastSelectionWhen', 'lastExport', 'llmResultCacheV1'];
     let removedList = [];
     try {
       const before = await storageGet(KEYS);

@@ -92,7 +92,7 @@ async function buildOllamaErrorMessage(type, root) {
   return `${baseError}\n\n${guideTitle}\n${guide}`;
 }
 
-export async function callOllama({ baseUrl, model, sys, user, timeoutMs = 120_000 }) {
+export async function callOllama({ baseUrl, model, sys, user, timeoutMs = 120_000, sampling }) {
   const root = baseUrl.replace(/\/$/, '');
   const chatUrl = `${root}/api/chat`;
   const genUrl  = `${root}/api/generate`;
@@ -113,11 +113,32 @@ export async function callOllama({ baseUrl, model, sys, user, timeoutMs = 120_00
   }
 
   try {
-    let res = await doFetch(chatUrl, { model, messages, stream: false });
+    const options = {};
+    if (sampling && typeof sampling === 'object') {
+      const temp = Number(sampling.temperature);
+      const topP = Number(sampling.topP);
+      const topK = Number(sampling.topK);
+      const repeatPenalty = Number(sampling.repetitionPenalty);
+      const presencePenalty = Number(sampling.presencePenalty);
+      const frequencyPenalty = Number(sampling.frequencyPenalty);
+      const maxTokens = Number(sampling.maxTokens);
+      if (Number.isFinite(temp)) options.temperature = temp;
+      if (Number.isFinite(topP)) options.top_p = topP;
+      if (Number.isFinite(topK)) options.top_k = Math.round(topK);
+      if (Number.isFinite(repeatPenalty)) options.repeat_penalty = repeatPenalty;
+      if (Number.isFinite(presencePenalty)) options.presence_penalty = presencePenalty;
+      if (Number.isFinite(frequencyPenalty)) options.frequency_penalty = frequencyPenalty;
+      if (Number.isFinite(maxTokens) && maxTokens > 0) options.num_predict = Math.round(maxTokens);
+    }
+    const baseBody = { model, messages, stream: false };
+    if (Object.keys(options).length) baseBody.options = options;
+    let res = await doFetch(chatUrl, baseBody);
 
     if (res.status === 404 || res.status === 405) {
       const prompt = (sys ? sys + '\n\n' : '') + user;
-      res = await doFetch(genUrl, { model, prompt, stream: false });
+      const genBody = { model, prompt, stream: false };
+      if (Object.keys(options).length) genBody.options = options;
+      res = await doFetch(genUrl, genBody);
     }
 
     if (!res.ok) {

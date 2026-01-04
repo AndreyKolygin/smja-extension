@@ -1,11 +1,13 @@
 // messaging.js — сообщения из content/select.js
-import { state, setResult, stopTimer, setJobInput, setLastMeta, setTemplateMeta } from "./state.js";
+import { state, setResult, stopTimer, setJobInput, setLastMeta, setTemplateMeta, setCachedBadge, setOutputTokenEstimateFromText, resetOutputTokenEstimate, updateTokenEstimate } from "./state.js";
 
 export function wireRuntimeMessages() {
   chrome.runtime.onMessage.addListener((msg) => {
     if (msg?.type === "LLM_RESULT") {
       state.lastResponse = msg.text || "";
       setResult(state.lastResponse);          // рисуем в resultView
+      setCachedBadge(!!msg.cached);
+      setOutputTokenEstimateFromText(state.lastResponse);
       try { setLastMeta(Date.now()); } catch {}
       const elapsed = Math.max(0, performance.now() - state.timerStart);
       stopTimer(true, elapsed);
@@ -29,7 +31,11 @@ export function warmLoadCaches() {
     if (lr?.text) {
       state.lastResponse = lr.text;
       setResult(lr.text);                 // отрисовать из кэша
+      setCachedBadge(!!lr.cached);
+      setOutputTokenEstimateFromText(lr.text);
       try { setLastMeta(lr.when); } catch {}
+    } else {
+      resetOutputTokenEstimate();
     }
     setTemplateMeta([]);
     const sel = res?.lastSelection;
@@ -37,5 +43,6 @@ export function warmLoadCaches() {
       state.selectedText = sel;
       setJobInput(sel);
     }
+    updateTokenEstimate();
   });
 }

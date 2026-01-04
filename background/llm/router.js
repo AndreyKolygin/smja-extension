@@ -68,6 +68,17 @@ export async function callLLMRouter(payload) {
   const { sys, user } = buildPrompt(payload);
   const t0 = nowMs();
   let text = '';
+  const sampling = {
+    maxTokens: payload.maxTokens ?? null,
+    temperature: payload.temperature ?? null,
+    topP: payload.topP ?? null,
+    topK: payload.topK ?? null,
+    frequencyPenalty: payload.frequencyPenalty ?? null,
+    presencePenalty: payload.presencePenalty ?? null,
+    repetitionPenalty: payload.repetitionPenalty ?? null,
+    minP: payload.minP ?? null,
+    topA: payload.topA ?? null
+  };
 
   switch (provider.type) {
     case 'openai':
@@ -79,7 +90,22 @@ export async function callLLMRouter(payload) {
         user,
         orgId: provider.orgId,
         projectId: provider.projectId,
-        timeoutMs: provider.timeoutMs || 120_000
+        timeoutMs: provider.timeoutMs || 120_000,
+        sampling
+      });
+      break;
+    case 'openrouter':
+      text = await callOpenAI({
+        baseUrl: provider.baseUrl,
+        apiKey: provider.apiKey,
+        model: payload.modelId,
+        sys,
+        user,
+        orgId: provider.orgId,
+        projectId: provider.projectId,
+        timeoutMs: provider.timeoutMs || 120_000,
+        sampling,
+        allowOpenRouterParams: true
       });
       break;
     case 'azure':
@@ -90,7 +116,8 @@ export async function callLLMRouter(payload) {
         sys,
         user,
         timeoutMs: provider.timeoutMs || 120_000,
-        apiVersion: provider.apiVersion || provider.azureApiVersion || payload.azureApiVersion
+        apiVersion: provider.apiVersion || provider.azureApiVersion || payload.azureApiVersion,
+        sampling
       });
       break;
     case 'anthropic':
@@ -102,7 +129,7 @@ export async function callLLMRouter(payload) {
         user,
         timeoutMs: provider.timeoutMs || 120_000,
         version: provider.apiVersion || provider.anthropicVersion,
-        maxTokens: provider.maxTokens || payload.maxOutputTokens
+        maxTokens: sampling.maxTokens || provider.maxTokens || payload.maxOutputTokens
       });
       break;
     case 'ollama':
@@ -111,7 +138,8 @@ export async function callLLMRouter(payload) {
         model: payload.modelId,
         sys,
         user,
-        timeoutMs: provider.timeoutMs || 120_000
+        timeoutMs: provider.timeoutMs || 120_000,
+        sampling
       });
       break;
     case 'gemini':
@@ -121,11 +149,12 @@ export async function callLLMRouter(payload) {
         model: payload.modelId,
         sys,
         user,
-        timeoutMs: provider.timeoutMs || 120_000
+        timeoutMs: provider.timeoutMs || 120_000,
+        sampling
       });
       break;
     default:
-      text = await callOpenAI({ baseUrl: provider.baseUrl, apiKey: provider.apiKey, model: payload.modelId, sys, user });
+      text = await callOpenAI({ baseUrl: provider.baseUrl, apiKey: provider.apiKey, model: payload.modelId, sys, user, sampling });
   }
 
   const ms = nowMs() - t0;

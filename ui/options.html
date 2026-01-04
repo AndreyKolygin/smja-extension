@@ -179,7 +179,7 @@
             <div class="form-row switch-row">
               <label for="notionEnabled" class="toggle">
                 <span class="toggle__text" data-i18n="options.integrations.notion.enable">Enable “Save to Notion” button</span>
-                <span class="toggle__control">
+                <span class="toggle__control toggle--compact">
                   <input type="checkbox" id="notionEnabled" class="toggle__input" />
                   <span class="toggle__track" aria-hidden="true">
                     <span class="toggle__thumb"></span>
@@ -330,6 +330,100 @@
                  placeholder="e.g. gpt-4o-mini"
                  data-i18n-attr-placeholder="options.modal.model.idPh" />
         </div>
+
+        <details class="sampling-block">
+          <summary data-i18n="options.modal.model.samplingTitle">Sampling parameters (optional)</summary>
+
+          <div class="form-row sampling-inline" data-param="maxTokens">
+            <div class="sampling-inline-header">
+              <label for="modelMaxTokens" data-i18n="options.modal.model.maxTokens">Max tokens</label>
+              <small class="param-hint" data-role="param-hint"></small>
+            </div>
+            <input type="number" id="modelMaxTokens" min="0" step="1"
+                   placeholder="0 = provider default"
+                   data-i18n-attr-placeholder="options.modal.model.maxTokensPh" />
+          </div>
+
+          <div class="form-row sampling-inline" data-param="temperature">
+            <div class="sampling-inline-header">
+              <label for="modelTemperature" data-i18n="options.modal.model.temperature">Temperature</label>
+              <small class="param-hint" data-role="param-hint"></small>
+            </div>
+            <input type="number" id="modelTemperature" min="0" step="0.01"
+                   placeholder="e.g. 0.2"
+                   data-i18n-attr-placeholder="options.modal.model.temperaturePh" />
+          </div>
+
+          <div class="form-row sampling-inline" data-param="topP">
+            <div class="sampling-inline-header">
+              <label for="modelTopP" data-i18n="options.modal.model.topP">Top P</label>
+              <small class="param-hint" data-role="param-hint"></small>
+            </div>
+            <input type="number" id="modelTopP" min="0" step="0.01"
+                   placeholder="e.g. 0.9"
+                   data-i18n-attr-placeholder="options.modal.model.topPPh" />
+          </div>
+
+          <div class="form-row sampling-inline" data-param="topK">
+            <div class="sampling-inline-header">
+              <label for="modelTopK" data-i18n="options.modal.model.topK">Top K</label>
+              <small class="param-hint" data-role="param-hint"></small>
+            </div>
+            <input type="number" id="modelTopK" min="0" step="1"
+                   placeholder="e.g. 40"
+                   data-i18n-attr-placeholder="options.modal.model.topKPh" />
+          </div>
+
+          <div class="form-row sampling-inline" data-param="frequencyPenalty">
+            <div class="sampling-inline-header">
+              <label for="modelFrequencyPenalty" data-i18n="options.modal.model.frequencyPenalty">Frequency penalty</label>
+              <small class="param-hint" data-role="param-hint"></small>
+            </div>
+            <input type="number" id="modelFrequencyPenalty" step="0.01"
+                   placeholder="e.g. 0.1"
+                   data-i18n-attr-placeholder="options.modal.model.frequencyPenaltyPh" />
+          </div>
+
+          <div class="form-row sampling-inline" data-param="presencePenalty">
+            <div class="sampling-inline-header">
+              <label for="modelPresencePenalty" data-i18n="options.modal.model.presencePenalty">Presence penalty</label>
+              <small class="param-hint" data-role="param-hint"></small>
+            </div>
+            <input type="number" id="modelPresencePenalty" step="0.01"
+                   placeholder="e.g. 0.1"
+                   data-i18n-attr-placeholder="options.modal.model.presencePenaltyPh" />
+          </div>
+
+          <div class="form-row sampling-inline" data-param="repetitionPenalty">
+            <div class="sampling-inline-header">
+              <label for="modelRepetitionPenalty" data-i18n="options.modal.model.repetitionPenalty">Repetition penalty</label>
+              <small class="param-hint" data-role="param-hint"></small>
+            </div>
+            <input type="number" id="modelRepetitionPenalty" step="0.01"
+                   placeholder="e.g. 1.05"
+                   data-i18n-attr-placeholder="options.modal.model.repetitionPenaltyPh" />
+          </div>
+
+          <div class="form-row sampling-inline" data-param="minP">
+            <div class="sampling-inline-header">
+              <label for="modelMinP" data-i18n="options.modal.model.minP">Min P</label>
+              <small class="param-hint" data-role="param-hint"></small>
+            </div>
+            <input type="number" id="modelMinP" min="0" step="0.001"
+                   placeholder="e.g. 0.05"
+                   data-i18n-attr-placeholder="options.modal.model.minPPh" />
+          </div>
+
+          <div class="form-row sampling-inline" data-param="topA">
+            <div class="sampling-inline-header">
+              <label for="modelTopA" data-i18n="options.modal.model.topA">Top A</label>
+              <small class="param-hint" data-role="param-hint"></small>
+            </div>
+            <input type="number" id="modelTopA" min="0" step="0.001"
+                   placeholder="e.g. 0.1"
+                   data-i18n-attr-placeholder="options.modal.model.topAPh" />
+          </div>
+        </details>
       </div>
 
       <div class="modal-footer">
@@ -413,7 +507,7 @@
         </div>
 
         <div class="form-row">
-          <label class="toggle toggle--inline">
+          <label class="toggle toggle--inline toggle--compact">
             <span class="toggle__text" data-i18n="options.tbl.active">Active</span>
             <span class="toggle__control">
               <input type="checkbox" id="siteActive" class="toggle__input" checked>
@@ -456,14 +550,16 @@
 
       <fieldset class="mt-8">
         <legend data-i18n="options.import.mode">Import mode</legend>
-        <label class="row">
-          <input type="radio" name="importMode" value="merge" checked>
-          <span data-i18n="options.import.mode.merge">Merge / add (preserve existing)</span>
-        </label>
-        <label class="row">
-          <input type="radio" name="importMode" value="replace">
-          <span data-i18n="options.import.mode.replace">Replace data</span>
-        </label>
+        <div class="segmented" role="radiogroup" aria-label="Import mode">
+          <label class="segmented__item">
+            <input type="radio" name="importMode" value="merge" checked>
+            <span data-i18n="options.import.mode.merge">Merge / add (preserve existing)</span>
+          </label>
+          <label class="segmented__item">
+            <input type="radio" name="importMode" value="replace">
+            <span data-i18n="options.import.mode.replace">Replace data</span>
+          </label>
+        </div>
       </fieldset>
 
       <fieldset class="mt-12 fieldset-column">
@@ -630,7 +726,7 @@
               </span>
             </span>
           </label>
-          <label class="toggle toggle--inline">
+          <label class="toggle toggle--inline toggle--compact">
             <span class="toggle__text" data-i18n="options.export.integrations">Integrations (Notion)</span>
             <span class="toggle__control">
               <input type="checkbox" name="exgrp" value="integrations" class="toggle__input" checked>
@@ -639,7 +735,7 @@
               </span>
             </span>
           </label>
-          <label class="toggle toggle--inline">
+          <label class="toggle toggle--inline toggle--compact">
             <span class="toggle__text" data-i18n="options.export.integrationsSecret">Include Notion integration token</span>
             <span class="toggle__control">
               <input type="checkbox" name="exintsecret" id="exintsecret" class="toggle__input">

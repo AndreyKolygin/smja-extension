@@ -1,7 +1,7 @@
 // background/llm/openai.js
 import { fetchWithTimeout } from '../utils.js';
 
-export async function callOpenAI({ baseUrl, apiKey, model, sys, user, orgId, projectId, timeoutMs = 120_000 }) {
+export async function callOpenAI({ baseUrl, apiKey, model, sys, user, orgId, projectId, timeoutMs = 120_000, sampling, allowOpenRouterParams = false }) {
   const raw = String(baseUrl || '').trim();
   let root = raw.replace(/\/+$/, '');
   const fullEndpointMatch = /\/v1\/(?:chat\/completions|completions)$/i;
@@ -19,6 +19,28 @@ export async function callOpenAI({ baseUrl, apiKey, model, sys, user, orgId, pro
   const body = { model, messages: [] };
   if (sys) body.messages.push({ role: 'system', content: sys });
   body.messages.push({ role: 'user', content: user });
+  if (sampling && typeof sampling === 'object') {
+    const temp = Number(sampling.temperature);
+    const topP = Number(sampling.topP);
+    const maxTokens = Number(sampling.maxTokens);
+    const frequencyPenalty = Number(sampling.frequencyPenalty);
+    const presencePenalty = Number(sampling.presencePenalty);
+    if (Number.isFinite(temp)) body.temperature = temp;
+    if (Number.isFinite(topP)) body.top_p = topP;
+    if (Number.isFinite(maxTokens) && maxTokens > 0) body.max_tokens = Math.round(maxTokens);
+    if (Number.isFinite(frequencyPenalty)) body.frequency_penalty = frequencyPenalty;
+    if (Number.isFinite(presencePenalty)) body.presence_penalty = presencePenalty;
+    if (allowOpenRouterParams) {
+      const topK = Number(sampling.topK);
+      const repetitionPenalty = Number(sampling.repetitionPenalty);
+      const minP = Number(sampling.minP);
+      const topA = Number(sampling.topA);
+      if (Number.isFinite(topK)) body.top_k = Math.round(topK);
+      if (Number.isFinite(repetitionPenalty)) body.repetition_penalty = repetitionPenalty;
+      if (Number.isFinite(minP)) body.min_p = minP;
+      if (Number.isFinite(topA)) body.top_a = topA;
+    }
+  }
 
   const timeout = Math.max(10_000, Number(timeoutMs) || 120_000);
   try {

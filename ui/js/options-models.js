@@ -95,6 +95,15 @@ function editModel(settings, m){
   const providerSelect = document.getElementById("modelProvider");
   const displayInput = document.getElementById("modelDisplay");
   const idInput = document.getElementById("modelId");
+  const maxTokensInput = document.getElementById("modelMaxTokens");
+  const temperatureInput = document.getElementById("modelTemperature");
+  const topPInput = document.getElementById("modelTopP");
+  const topKInput = document.getElementById("modelTopK");
+  const frequencyPenaltyInput = document.getElementById("modelFrequencyPenalty");
+  const presencePenaltyInput = document.getElementById("modelPresencePenalty");
+  const repetitionPenaltyInput = document.getElementById("modelRepetitionPenalty");
+  const minPInput = document.getElementById("modelMinP");
+  const topAInput = document.getElementById("modelTopA");
   if (!dlg || !providerSelect || !displayInput || !idInput) {
     // fallback prompts
     const providerRequiredMsg = t('options.alert.addProviderFirst', 'Add a provider first.');
@@ -124,15 +133,113 @@ function editModel(settings, m){
     opt.value = p.id; opt.textContent = `${p.name} (${p.type})`;
     providerSelect.appendChild(opt);
   }
+  const PARAM_LIMITS = {
+    maxTokens: { min: 0, max: null, step: 1 },
+    temperature: { min: 0, max: 2, step: 0.01 },
+    topP: { min: 0, max: 1, step: 0.01 },
+    topK: { min: 0, max: 100, step: 1 },
+    frequencyPenalty: { min: -2, max: 2, step: 0.01 },
+    presencePenalty: { min: -2, max: 2, step: 0.01 },
+    repetitionPenalty: { min: 0.1, max: 2, step: 0.01 },
+    minP: { min: 0, max: 1, step: 0.001 },
+    topA: { min: 0, max: 1, step: 0.001 }
+  };
+  const OPENAI_COMPAT = ['openai', 'deepseek', 'huggingface', 'meta', 'perplexity', 'xai', 'custom'];
+  const SUPPORT_BY_TYPE = {
+    openrouter: ['maxTokens','temperature','topP','topK','frequencyPenalty','presencePenalty','repetitionPenalty','minP','topA'],
+    openai: ['maxTokens','temperature','topP','frequencyPenalty','presencePenalty'],
+    azure: ['maxTokens','temperature','topP','frequencyPenalty','presencePenalty'],
+    gemini: ['maxTokens','temperature','topP','topK'],
+    ollama: ['maxTokens','temperature','topP','topK','frequencyPenalty','presencePenalty','repetitionPenalty'],
+    anthropic: ['maxTokens']
+  };
+  const INPUTS = {
+    maxTokens: maxTokensInput,
+    temperature: temperatureInput,
+    topP: topPInput,
+    topK: topKInput,
+    frequencyPenalty: frequencyPenaltyInput,
+    presencePenalty: presencePenaltyInput,
+    repetitionPenalty: repetitionPenaltyInput,
+    minP: minPInput,
+    topA: topAInput
+  };
+  const RANGE_LABELS = {
+    maxTokens: '0+',
+    temperature: '0–2',
+    topP: '0–1',
+    topK: '0–100',
+    frequencyPenalty: '-2–2',
+    presencePenalty: '-2–2',
+    repetitionPenalty: '0.1–2',
+    minP: '0–1',
+    topA: '0–1'
+  };
+  const setSamplingVisibility = () => {
+    const prov = settings.providers.find(p => p.id === providerSelect.value);
+    const type = prov?.type || 'custom';
+    const supported = SUPPORT_BY_TYPE[type] || (OPENAI_COMPAT.includes(type) ? SUPPORT_BY_TYPE.openai : []);
+    Object.entries(INPUTS).forEach(([key, input]) => {
+      if (!input) return;
+      const row = input.closest('.form-row');
+      const hint = row?.querySelector('[data-role="param-hint"]');
+      const isSupported = supported.includes(key);
+      if (row) row.hidden = !isSupported;
+      if (isSupported && hint) {
+        hint.textContent = t('options.modal.model.paramRange', 'Range: {{range}}')
+          .replace('{{range}}', RANGE_LABELS[key] || '—');
+      } else if (hint) {
+        hint.textContent = '';
+      }
+      const limits = PARAM_LIMITS[key];
+      if (limits) {
+        if (limits.min != null) input.min = String(limits.min);
+        if (limits.max != null) input.max = String(limits.max);
+        if (limits.step != null) input.step = String(limits.step);
+      }
+    });
+  };
+  const setNumberValue = (el, value) => {
+    if (!el) return;
+    if (value === null || value === undefined || value === '') {
+      el.value = '';
+    } else {
+      el.value = String(value);
+    }
+  };
   if (m) {
     providerSelect.value = m.providerId || (settings.providers[0]?.id || '');
     displayInput.value = m.displayName || '';
     idInput.value = m.modelId || '';
+    setNumberValue(maxTokensInput, m.maxTokens);
+    setNumberValue(temperatureInput, m.temperature);
+    setNumberValue(topPInput, m.topP);
+    setNumberValue(topKInput, m.topK);
+    setNumberValue(frequencyPenaltyInput, m.frequencyPenalty);
+    setNumberValue(presencePenaltyInput, m.presencePenalty);
+    setNumberValue(repetitionPenaltyInput, m.repetitionPenalty);
+    setNumberValue(minPInput, m.minP);
+    setNumberValue(topAInput, m.topA);
   } else {
     providerSelect.value = (settings.providers[0]?.id || '');
     displayInput.value = '';
     idInput.value = '';
+    setNumberValue(maxTokensInput, '');
+    setNumberValue(temperatureInput, '');
+    setNumberValue(topPInput, '');
+    setNumberValue(topKInput, '');
+    setNumberValue(frequencyPenaltyInput, '');
+    setNumberValue(presencePenaltyInput, '');
+    setNumberValue(repetitionPenaltyInput, '');
+    setNumberValue(minPInput, '');
+    setNumberValue(topAInput, '');
   }
+  setSamplingVisibility();
+  if (providerSelect.__samplingHandler) {
+    providerSelect.removeEventListener('change', providerSelect.__samplingHandler);
+  }
+  providerSelect.__samplingHandler = setSamplingVisibility;
+  providerSelect.addEventListener('change', setSamplingVisibility);
 
   safeShowModal(dlg);
   applyTranslations(dlg);
@@ -153,21 +260,63 @@ function editModel(settings, m){
     dlg.addEventListener('cancel', onCancel, { once: true }); // Esc key
   }
 
+  const readNumber = (el, { int = false } = {}) => {
+    if (!el) return null;
+    const raw = String(el.value || '').trim();
+    if (!raw) return null;
+    const num = Number(raw);
+    if (!Number.isFinite(num)) return null;
+    return int ? Math.round(num) : num;
+  };
+  const clampValue = (key, value) => {
+    if (value == null) return null;
+    const limits = PARAM_LIMITS[key];
+    if (!limits) return value;
+    let v = value;
+    if (limits.min != null && v < limits.min) v = limits.min;
+    if (limits.max != null && v > limits.max) v = limits.max;
+    return v;
+  };
+
   saveBtn.onclick = () => {
+    const maxTokens = clampValue('maxTokens', readNumber(maxTokensInput, { int: true }));
+    const temperature = clampValue('temperature', readNumber(temperatureInput));
+    const topP = clampValue('topP', readNumber(topPInput));
+    const topK = clampValue('topK', readNumber(topKInput, { int: true }));
+    const frequencyPenalty = clampValue('frequencyPenalty', readNumber(frequencyPenaltyInput));
+    const presencePenalty = clampValue('presencePenalty', readNumber(presencePenaltyInput));
+    const repetitionPenalty = clampValue('repetitionPenalty', readNumber(repetitionPenaltyInput));
+    const minP = clampValue('minP', readNumber(minPInput));
+    const topA = clampValue('topA', readNumber(topAInput));
+
+    const applySampling = (target) => {
+      target.maxTokens = maxTokens;
+      target.temperature = temperature;
+      target.topP = topP;
+      target.topK = topK;
+      target.frequencyPenalty = frequencyPenalty;
+      target.presencePenalty = presencePenalty;
+      target.repetitionPenalty = repetitionPenalty;
+      target.minP = minP;
+      target.topA = topA;
+    };
     if (m) {
       m.providerId = providerSelect.value;
       m.displayName = displayInput.value.trim();
       m.modelId = idInput.value.trim();
+      applySampling(m);
     } else {
       const id = "model_" + Math.random().toString(36).slice(2,8);
-      settings.models.push({
+      const next = {
         id,
         providerId: providerSelect.value,
         displayName: displayInput.value.trim(),
         modelId: idInput.value.trim(),
         active: true,
         systemPrompt: ""
-      });
+      };
+      applySampling(next);
+      settings.models.push(next);
     }
     renderModels(settings);
     persistSettings(settings);

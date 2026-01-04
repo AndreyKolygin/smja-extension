@@ -1,5 +1,5 @@
 // popup.js — точка входа
-import { state, fetchSettings, getActiveTab, setActiveTab, setJobInput, setResult, setLastMeta } from "./js/state.js";
+import { state, fetchSettings, getActiveTab, setActiveTab, setJobInput, setResult, setLastMeta, updateTokenEstimate } from "./js/state.js";
 import { populateModels, wireModelSelector } from "./js/models.js";
 import { populateCvSelect, wireCvSelector } from "./js/cv.js";
 import { startSelection, clearSelection, wireCopy, wireSave, wireSaveToNotion, wireAnalyzeButtons, wireJobInputSync, ensureContentScript, detectAndToggleFastStart, updateNotionButtonVisibility } from "./js/actions.js";
@@ -169,6 +169,31 @@ function cleanupThemeControl() {
   themeState.root = null;
 }
 
+function isSupportedUrl(url) {
+  return !!(url && (url.startsWith("http://") || url.startsWith("https://")));
+}
+
+function showUnsupportedWarning() {
+  setResult([
+    t('ui.popup.warning', 'Content cannot be analyzed.'),
+    t('ui.popup.warning2', 'Only http and https URLs are supported.')
+  ].join('\n'));
+}
+
+let __lastSupported = true;
+async function updateSupportedState(tab) {
+  const url = tab?.url || tab?.pendingUrl || '';
+  const supported = isSupportedUrl(url);
+  if (supported === __lastSupported) return;
+  __lastSupported = supported;
+  if (!supported) {
+    showUnsupportedWarning();
+  } else {
+    setResult(state.lastResponse || "");
+    await detectAndToggleFastStart();
+  }
+}
+
 function wireUI() {
   const menu = document.getElementById("menu");
   if (menu) {
@@ -247,22 +272,6 @@ async function init() {
   setActiveTab(tab);
   console.debug("[POPUP] active tab =", tab?.url);
 
-  if (!tab?.url || (!tab.url.startsWith("http://") && !tab.url.startsWith("https://"))) {
-    document.body.innerHTML = `
-      <div class="container">
-        <div class="row_popup">
-          <button id="menu" data-i18n="ui.menu.options" class="menu" title="Settings" data-i18n-attr-title="ui.menu.optionsMenu">☰</button>
-        </div>
-        <div class="row_popup">
-          <p class="muted" data-i18n="ui.popup.warning">Content cannot be analyzed.</p>
-          <p class="muted" data-i18n="ui.popup.warning2">Only http and https URLs are supported.</p>
-        </div>
-      </div>
-    `;
-    wireUI();
-    return;
-  }
-
   wireUI();
   // ensure footer buttons match current result state
   setResult(state.lastResponse || "");
@@ -274,6 +283,12 @@ async function init() {
   populateModels();
   populateCvSelect();
   warmLoadCaches();
+  updateTokenEstimate();
+
+  __lastSupported = isSupportedUrl(tab?.url || tab?.pendingUrl || '');
+  if (!__lastSupported) {
+    showUnsupportedWarning();
+  }
 
   await detectAndToggleFastStart();
 
@@ -287,3 +302,20 @@ if (document.readyState !== 'loading') {
   setTimeout(() => init(), 0);
 }
 window.addEventListener("beforeunload", cleanupThemeControl);
+
+if (chrome?.tabs?.onActivated) {
+  chrome.tabs.onActivated.addListener(async () => {
+    try {
+      const tab = await getActiveTab({ refresh: true });
+      setActiveTab(tab);
+      await updateSupportedState(tab);
+    } catch {}
+  });
+}
+if (chrome?.tabs?.onUpdated) {
+  chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
+    if (!changeInfo || (!changeInfo.url && changeInfo.status !== 'complete')) return;
+    if (state.activeTab?.id && tabId !== state.activeTab.id) return;
+    updateSupportedState(tab);
+  });
+}

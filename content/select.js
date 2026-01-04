@@ -185,8 +185,7 @@
         --menu-accent-strong: #6d95ff;
         --menu-bg: var(--menu-surface);
         --menu-fg: var(--menu-text);
-        --menu-shadow: 12px 12px 28px rgba(163, 177, 198, 0.45),
-          -10px -10px 26px rgba(255, 255, 255, 0.85);
+        --menu-shadow: rgba(0, 0, 0, 0.54) 0px 1px 19px -11px;
         --menu-btn-bg: linear-gradient(145deg, #e6e6e68a, #ffffff);
         --menu-btn-hover: linear-gradient(145deg, #e7e9ec40, #f8f9fb14);
         --menu-btn-shadow: 4px 4px 8px #e0e0e0, -4px -4px 8px #ffffff;
@@ -235,8 +234,7 @@
         --menu-accent-strong: #7ea9ff;
         --menu-bg: var(--menu-surface);
         --menu-fg: var(--menu-text);
-        --menu-shadow: 12px 12px 28px rgba(0, 0, 0, 0.75),
-          -10px -10px 26px rgba(255, 255, 255, 0.05);
+        --menu-shadow: rgba(0, 0, 0, 0.54) 0px 1px 19px -11px;
         --menu-btn-bg: linear-gradient(
           145deg,
           rgba(33, 41, 61, 0.92),
@@ -1232,6 +1230,15 @@
             systemTemplate: s.systemTemplate || '',
             outputTemplate: s.outputTemplate || '',
             modelSystemPrompt: modelMeta.systemPrompt || '',
+            maxTokens: modelMeta.maxTokens ?? null,
+            temperature: modelMeta.temperature ?? null,
+            topP: modelMeta.topP ?? null,
+            topK: modelMeta.topK ?? null,
+            frequencyPenalty: modelMeta.frequencyPenalty ?? null,
+            presencePenalty: modelMeta.presencePenalty ?? null,
+            repetitionPenalty: modelMeta.repetitionPenalty ?? null,
+            minP: modelMeta.minP ?? null,
+            topA: modelMeta.topA ?? null,
             text
           };
 
@@ -1245,9 +1252,9 @@
 
             if (resp?.ok) {
               try {
-                chrome.storage.local.set({ lastResult: { text: resp.text, when: Date.now(), ms: effectiveMs } }, () => {});
+                chrome.storage.local.set({ lastResult: { text: resp.text, when: Date.now(), ms: effectiveMs, cached: !!resp.cached } }, () => {});
               } catch {}
-              safeSendMessage({ type: 'LLM_RESULT', text: resp.text });
+              safeSendMessage({ type: 'LLM_RESULT', text: resp.text, cached: !!resp.cached });
               setAnalyzeDone(analyzeBtn, elapsedSeconds);
               analyzeBtn.dataset.mode = 'done';
               analyzeBtn.disabled = true;

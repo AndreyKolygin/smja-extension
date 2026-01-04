@@ -28,6 +28,7 @@
   display: flex;
   flex-direction: column;
   align-items: stretch;
+  min-width: 360px;
   /* width: 100%; */
   /* max-width: 460px; */
   height: 100%;
@@ -124,6 +125,41 @@ body[data-theme="dark"] {
   font-size: 13px;
   letter-spacing: 0.05em;
   text-transform: uppercase;
+}
+.label-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.progress-row {
+  justify-content: space-between;
+}
+.progress-row .progress {
+  min-height: auto;
+  text-align: right;
+}
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 10px;
+  text-transform: uppercase;
+  font-weight: 600;
+  background: rgba(45, 196, 181, 0.18);
+  color: var(--neo-accent);
+  border: 1px solid rgba(45, 196, 181, 0.35);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.18);
+}
+.badge[hidden] {
+  display: none;
+}
+.popup.theme-dark .badge {
+  background: rgba(48, 192, 245, 0.2);
+  color: var(--neo-accent);
+  border-color: rgba(48, 192, 245, 0.45);
 }
 
 .select,
@@ -234,6 +270,12 @@ textarea::placeholder {
   min-height: 18px;
   text-align: center;
   letter-spacing: 0.05em;
+}
+.token-estimate {
+  margin-top: -4px;
+}
+.token-estimate[hidden] {
+  display: none;
 }
 
 .footer {

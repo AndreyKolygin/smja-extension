@@ -7,10 +7,13 @@ JDA (Job Description Analyzer) is a Chromium-compatible browser extension that h
 ## ✨ Key features
 
 - **Floating workspace** — clicking the toolbar icon opens a draggable, resizable overlay with job description input, analysis result, and quick actions.
+- **Side panel & context menu** — open JDA in a side panel or trigger Select/Auto-grab from the right‑click menu.
 - **Smart block highlighter** — select arbitrary fragments on the page, use undo/redo, and track analysis time.
 - **Auto-extraction rules** — per-site strategies with CSS selectors, DOM chain groups, or template mode that stitches schema.org/meta/page data into text.
 - **Meta data overlay & templating** — inspect every `<meta>` tag on the page, copy placeholders, and feed those values into job descriptions, results, Notion, clipboard copies, and Markdown exports.
 - **Flexible prompts** — global templates plus per-model overrides with `{{GLOBAL_SYSTEM_PROMPT}}` and `{{RESULT_OUTPUT_TEMPLATE}}` tokens.
+- **Sampling controls** — per-model parameters for temperature/top‑p/penalties where supported.
+- **Result cache & token estimate** — cached results with a “cached” badge and an approximate token counter.
 - **Save to Notion** — configurable field mapping, optional secrets export, status defaults, and Markdown-friendly output.
 - **Import / export** — granular groups (providers, models, rules, prompts, CVs, integrations) with merge or replace modes.
 
@@ -88,6 +91,8 @@ Now every fresh install can talk to the local daemon without any manual provider
 4. Press **Analyze**. The report renders in Markdown, including match, key requirements, gaps, and action items.
 5. Copy the result, save to Markdown, or send directly to Notion.
 
+Tip: You can also right‑click the page for JDA actions, or open the side panel from the context menu.
+
 The job description and analysis persist until you clear them explicitly, so you can close/reopen the overlay without losing context.
 
 ---
@@ -95,8 +100,10 @@ The job description and analysis persist until you clear them explicitly, so you
 ## 🔒 Permissions
 
 - `activeTab` / `tabs` — injects the floating workspace only on the page you open.
+- `contextMenus` — adds right‑click actions for Select/Auto‑grab/Side panel.
 - `scripting` — highlights DOM blocks and runs per-site extraction rules.
 - `downloads` — saves reports to Markdown on demand.
+- `sidePanel` — opens JDA in the browser side panel.
 - `storage` — keeps your CVs, prompts, settings, and API keys locally.
 
 Optional host permissions are requested lazily when you add a specific integration:

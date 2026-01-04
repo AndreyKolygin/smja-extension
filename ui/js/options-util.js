@@ -19,24 +19,14 @@ function lockBodyScroll() {
     const scrollX = window.scrollX ?? document.documentElement?.scrollLeft ?? 0;
     scrollLockSnapshot = { x: scrollX, y: scrollY };
     document.body.classList.add('jda-modal-scroll-lock');
-    document.body.style.position = 'fixed';
-    document.body.style.top = `-${scrollY}px`;
-    document.body.style.left = `-${scrollX}px`;
-    document.body.style.right = '0';
-    document.body.style.width = '100%';
-    document.body.style.overflow = 'hidden';
+    document.documentElement?.classList.add('jda-modal-scroll-lock');
   }
 }
 function unlockBodyScroll() {
   modalScrollLocks = Math.max(0, modalScrollLocks - 1);
   if (modalScrollLocks === 0 && document?.body) {
     document.body.classList.remove('jda-modal-scroll-lock');
-    document.body.style.position = '';
-    document.body.style.top = '';
-    document.body.style.left = '';
-    document.body.style.right = '';
-    document.body.style.width = '';
-    document.body.style.overflow = '';
+    document.documentElement?.classList.remove('jda-modal-scroll-lock');
     if (scrollLockSnapshot) {
       window.scrollTo(scrollLockSnapshot.x ?? 0, scrollLockSnapshot.y ?? 0);
     }

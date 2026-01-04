@@ -1,5 +1,5 @@
 // actions.js — Select/Clear/Analyze/Copy/Save
-import { state, setJobInput, setProgress, startTimer, stopTimer, setResult, setLastMeta, getActiveTab, getSelectedCvInfo, setTemplateMeta } from "./state.js";
+import { state, setJobInput, setProgress, startTimer, stopTimer, setResult, setLastMeta, getActiveTab, getSelectedCvInfo, setTemplateMeta, setCachedBadge, updateTokenEstimate, resetOutputTokenEstimate, setOutputTokenEstimateFromText } from "./state.js";
 import { t } from "./i18n.js";
 import { normalizeRuleForExec, evaluateRuleInPage, siteMatches, findMatchingRule } from "../../shared/rules.js";
 
@@ -86,8 +86,11 @@ export async function clearSelection() {
     await sendMessageWithRetry({ type: 'CLEAR_SELECTION' }, { retries: 2, delayMs: 250 });
   } catch {}
   state.selectedText = "";
+  state.forceRefresh = true;
   const ji = document.getElementById("jobInput"); if (ji) ji.value = "";
   setResult("");
+  setCachedBadge(false);
+  resetOutputTokenEstimate();
   setTemplateMeta([]);
   setLastMeta(null);
   setProgress(t('ui.popup.progress', 'Progress: {{ms}} ms').replace('{{ms}}', '0'), 0, { i18nKey: 'ui.popup.progress' });
@@ -456,8 +459,12 @@ export function wireAnalyzeButtons() {
     // таймер в строке Progress + таймер на кнопке
     startTimer();
     startAnalyzeButtonTimer();
+    setCachedBadge(false);
+    resetOutputTokenEstimate();
 
     const cvInfo = getSelectedCvInfo();
+    const forceRefresh = !!state.forceRefresh;
+    state.forceRefresh = false;
 
     sendMessageWithRetry({
       type: "CALL_LLM",
@@ -470,7 +477,17 @@ export function wireAnalyzeButtons() {
         systemTemplate: state.settings.systemTemplate || "",
         outputTemplate: state.settings.outputTemplate || "",
         modelSystemPrompt: selected.systemPrompt || "",
-        text: state.selectedText
+        maxTokens: selected.maxTokens ?? null,
+        temperature: selected.temperature ?? null,
+        topP: selected.topP ?? null,
+        topK: selected.topK ?? null,
+        frequencyPenalty: selected.frequencyPenalty ?? null,
+        presencePenalty: selected.presencePenalty ?? null,
+        repetitionPenalty: selected.repetitionPenalty ?? null,
+        minP: selected.minP ?? null,
+        topA: selected.topA ?? null,
+        text: state.selectedText,
+        forceRefresh
       }
     }, { retries: 2, delayMs: 250 }).then((resp) => {
       const elapsed = Math.max(0, performance.now() - state.timerStart);
@@ -481,11 +498,15 @@ export function wireAnalyzeButtons() {
         state.lastResponse = resp.text || "";
         setResult(state.lastResponse);
         setLastMeta(Date.now());
-        try { chrome.storage.local.set({ lastResult: { text: state.lastResponse, when: Date.now(), ms } }, ()=>{}); } catch {}
+        setCachedBadge(!!resp.cached);
+        setOutputTokenEstimateFromText(state.lastResponse);
+        try { chrome.storage.local.set({ lastResult: { text: state.lastResponse, when: Date.now(), ms, cached: !!resp.cached } }, ()=>{}); } catch {}
         stopAnalyzeButtonTimer(ms, false);
       } else {
         const msg = resp?.error || t('ui.popup.messageUnknownError', 'Unknown');
         setResult(t('ui.popup.messageError', 'Error: {{message}}').replace('{{message}}', msg));
+        setCachedBadge(false);
+        resetOutputTokenEstimate();
         stopAnalyzeButtonTimer(elapsed || 0, true);
       }
     }).catch((err) => {
@@ -493,6 +514,8 @@ export function wireAnalyzeButtons() {
       const elapsed = Math.max(0, performance.now() - state.timerStart);
       stopTimer(true, elapsed);
       setResult(t('ui.popup.messageError', 'Error: {{message}}').replace('{{message}}', t('ui.popup.messageRequestFailed', 'request failed')));
+      setCachedBadge(false);
+      resetOutputTokenEstimate();
       stopAnalyzeButtonTimer(elapsed || 0, true);
     });
   };
@@ -547,5 +570,6 @@ export function wireJobInputSync() {
   document.getElementById("jobInput")?.addEventListener("input", (e) => {
     state.selectedText = e.target.value;
     try { chrome.storage.local.set({ lastSelection: state.selectedText }, ()=>{}); } catch {}
+    resetOutputTokenEstimate();
   });
 }

@@ -1,5 +1,5 @@
 // ui/js/cv.js — manage CV selector in popup
-import { state } from "./state.js";
+import { state, resetOutputTokenEstimate } from "./state.js";
 import { t } from "./i18n.js";
 
 let storageSyncReady = false;
@@ -89,6 +89,7 @@ export function wireCvSelector() {
   sel.addEventListener("change", () => {
     state.chosenCvId = sel.value;
     persistChosenCv(sel.value);
+    resetOutputTokenEstimate();
   });
 }
 

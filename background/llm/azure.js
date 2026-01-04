@@ -1,7 +1,7 @@
 // background/llm/azure.js
 import { fetchWithTimeout } from '../utils.js';
 
-export async function callAzureOpenAI({ baseUrl, apiKey, deployment, sys, user, timeoutMs = 120_000, apiVersion }) {
+export async function callAzureOpenAI({ baseUrl, apiKey, deployment, sys, user, timeoutMs = 120_000, apiVersion, sampling }) {
   const raw = String(baseUrl || '').trim();
   if (!raw) throw new Error('Azure OpenAI baseUrl is required');
   if (!apiKey) throw new Error('Azure OpenAI API key is required');
@@ -42,6 +42,18 @@ export async function callAzureOpenAI({ baseUrl, apiKey, deployment, sys, user, 
   const body = { messages: [] };
   if (sys) body.messages.push({ role: 'system', content: sys });
   body.messages.push({ role: 'user', content: user });
+  if (sampling && typeof sampling === 'object') {
+    const temp = Number(sampling.temperature);
+    const topP = Number(sampling.topP);
+    const maxTokens = Number(sampling.maxTokens);
+    const frequencyPenalty = Number(sampling.frequencyPenalty);
+    const presencePenalty = Number(sampling.presencePenalty);
+    if (Number.isFinite(temp)) body.temperature = temp;
+    if (Number.isFinite(topP)) body.top_p = topP;
+    if (Number.isFinite(maxTokens) && maxTokens > 0) body.max_tokens = Math.round(maxTokens);
+    if (Number.isFinite(frequencyPenalty)) body.frequency_penalty = frequencyPenalty;
+    if (Number.isFinite(presencePenalty)) body.presence_penalty = presencePenalty;
+  }
 
   const timeout = Math.max(10_000, Number(timeoutMs) || 120_000);
   try {

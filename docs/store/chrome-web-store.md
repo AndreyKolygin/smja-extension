@@ -43,11 +43,14 @@ Job Description Analyzer (JDA) helps you evaluate vacancies against your CV in s
 
 Key features:
 • Floating overlay with draggable, resizable UI.
+• Side panel support and context menu actions for quick access.
 • Block highlighter with undo/redo and analysis timer.
 • Auto-grab rules per site (CSS, DOM chain, or schema-aware templates).
 • Flexible prompting: global templates and per-model overrides.
+• Per-model sampling controls where supported.
 • Save to Notion with configurable field mapping and optional status defaults.
 • Import/export of providers, models, prompts, rules, and integrations.
+• Result caching with quick refresh from the UI.
 
 Privacy-friendly by design:
 • CV, prompts, and API keys stay in your browser.

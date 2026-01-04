@@ -4,9 +4,114 @@ import { sanitizeText, requireFields, guardedCall } from './utils.js';
 import { getSettings, saveSettings, resetSettings } from './settings.js';
 import { callLLMRouter, invalidateLLMProviderCache } from './llm/router.js';
 import { saveToNotion } from './integrations/notion.js';
-import { normalizeRuleForExec, evaluateRuleInPage } from '../shared/rules.js';
+import { normalizeRuleForExec, evaluateRuleInPage, findMatchingRule } from '../shared/rules.js';
 
 const FALLBACK_POPUP = 'ui/popup.html';
+const LLM_CACHE_KEY = 'llmResultCacheV1';
+const LLM_CACHE_LIMIT = 20;
+const MENU_SELECT_DESCRIPTION = 'jda_select_description';
+const MENU_AUTO_GRAB = 'jda_auto_grab';
+const MENU_OPEN_SIDE_PANEL = 'jda_open_side_panel';
+const DEFAULT_EXTRACT_WAIT = 4000; // ms
+const DEFAULT_EXTRACT_POLL = 150;  // ms
+
+let llmCache = null;
+let llmCachePromise = null;
+
+function hashString(input) {
+  const str = String(input || '');
+  let h = 2166136261;
+  for (let i = 0; i < str.length; i++) {
+    h ^= str.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  return `${(h >>> 0).toString(36)}:${str.length}`;
+}
+
+function buildLLMCacheKey(payload) {
+  if (!payload) return '';
+  const source = {
+    providerId: payload.providerId || '',
+    modelId: payload.modelId || '',
+    systemTemplate: payload.systemTemplate || '',
+    outputTemplate: payload.outputTemplate || '',
+    modelSystemPrompt: payload.modelSystemPrompt || '',
+    cv: payload.cv || '',
+    text: payload.text || ''
+  };
+  return hashString(JSON.stringify(source));
+}
+
+function normalizeCache(raw) {
+  const entries = Array.isArray(raw?.entries) ? raw.entries : [];
+  return {
+    entries: entries.filter(e => e && typeof e.key === 'string' && typeof e.text === 'string')
+  };
+}
+
+function storageGet(key) {
+  return new Promise((resolve) => {
+    try {
+      chrome.storage.local.get([key], (res) => resolve(res?.[key]));
+    } catch {
+      resolve(undefined);
+    }
+  });
+}
+
+function storageSet(patch) {
+  return new Promise((resolve) => {
+    try {
+      chrome.storage.local.set(patch, () => resolve());
+    } catch {
+      resolve();
+    }
+  });
+}
+
+async function getLLMCache() {
+  if (llmCache) return llmCache;
+  if (!llmCachePromise) {
+    llmCachePromise = storageGet(LLM_CACHE_KEY).then((raw) => {
+      llmCache = normalizeCache(raw);
+      return llmCache;
+    }).finally(() => {
+      llmCachePromise = null;
+    });
+  }
+  return llmCachePromise;
+}
+
+function findCacheEntry(cache, key) {
+  if (!cache || !key) return null;
+  const idx = cache.entries.findIndex(e => e.key === key);
+  if (idx < 0) return null;
+  const [entry] = cache.entries.splice(idx, 1);
+  cache.entries.push(entry);
+  return entry;
+}
+
+function upsertCacheEntry(cache, entry) {
+  if (!cache || !entry?.key) return;
+  const idx = cache.entries.findIndex(e => e.key === entry.key);
+  if (idx >= 0) cache.entries.splice(idx, 1);
+  cache.entries.push(entry);
+  if (cache.entries.length > LLM_CACHE_LIMIT) {
+    cache.entries.splice(0, cache.entries.length - LLM_CACHE_LIMIT);
+  }
+}
+
+function removeCacheEntry(cache, key) {
+  if (!cache || !key) return false;
+  const idx = cache.entries.findIndex(e => e.key === key);
+  if (idx < 0) return false;
+  cache.entries.splice(idx, 1);
+  return true;
+}
+
+async function persistLLMCache(cache) {
+  await storageSet({ [LLM_CACHE_KEY]: cache });
+}
 
 function sanitizeTab(tab) {
   if (!tab) return null;
@@ -228,6 +333,36 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
         try { chrome.storage.local.set({ lastSelection: payload.text }); } catch {}
 
+        const cacheKey = buildLLMCacheKey(payload);
+        const forceRefresh = !!payload.forceRefresh;
+        const cache = await getLLMCache();
+        if (cacheKey) {
+          if (forceRefresh) {
+            if (removeCacheEntry(cache, cacheKey)) await persistLLMCache(cache);
+          } else {
+            const hit = findCacheEntry(cache, cacheKey);
+            if (hit) {
+              const cachedResult = { ok: true, text: hit.text || '', ms: hit.ms || 0, cached: true };
+              try {
+                chrome.storage.local.set({
+                  lastResult: {
+                    text: cachedResult.text,
+                    ms: cachedResult.ms || 0,
+                    when: Date.now(),
+                    providerId: payload.providerId || null,
+                    modelId: payload.modelId || null,
+                    cvId: payload.cvId || null,
+                    cvTitle: payload.cvTitle || '',
+                    cached: true
+                  }
+                });
+              } catch {}
+              sendResponse(cachedResult);
+              return;
+            }
+          }
+        }
+
         const result = await guardedCall(() => callLLMRouter(payload));
 
         try {
@@ -243,6 +378,15 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                 cvTitle: payload.cvTitle || ''
               }
             });
+            if (cacheKey) {
+              upsertCacheEntry(cache, {
+                key: cacheKey,
+                text: result.text || '',
+                ms: result.ms || 0,
+                when: Date.now()
+              });
+              await persistLLMCache(cache);
+            }
           } else if (result?.error) {
             chrome.storage.local.set({ lastError: { error: result.error, when: Date.now() } });
           }
@@ -350,6 +494,8 @@ chrome.tabs.onActivated.addListener(async ({ tabId }) => {
   try {
     const tab = await chrome.tabs.get(tabId);
     await setPopupForTab(tabId, tab?.url || tab?.pendingUrl || '');
+    await updateAutoGrabVisibilityForTab(tab);
+    ensureSidePanelEnabled(tab);
   } catch (err) {
     console.debug('[JDA] onActivated popup sync failed', err?.message || err);
   }
@@ -361,6 +507,8 @@ chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
   }
   if (changeInfo.url || changeInfo.status === 'complete') {
     setPopupForTab(tabId, (changeInfo.url ?? tab?.url ?? tab?.pendingUrl) || '').catch(() => {});
+    updateAutoGrabVisibilityForTab(tab).catch(() => {});
+    ensureSidePanelEnabled(tab);
   }
 });
 
@@ -379,3 +527,148 @@ chrome.action.onClicked.addListener(async (tab) => {
     console.warn('[JDA] overlay toggle failed:', e);
   }
 });
+
+function createContextMenus() {
+  if (!chrome?.contextMenus) return;
+  try {
+    chrome.contextMenus.removeAll(() => {
+      try {
+        chrome.contextMenus.create({
+          id: MENU_SELECT_DESCRIPTION,
+          title: 'JDA: Select description',
+          contexts: ['page', 'selection']
+        });
+        chrome.contextMenus.create({
+          id: MENU_OPEN_SIDE_PANEL,
+          title: 'JDA: Open side panel',
+          contexts: ['page', 'selection']
+        });
+        chrome.contextMenus.create({
+          id: MENU_AUTO_GRAB,
+          title: 'JDA: Auto-grab',
+          contexts: ['page'],
+          visible: false
+        });
+      } catch (err) {
+        console.debug('[JDA] context menu create failed:', err?.message || err);
+      }
+    });
+  } catch (err) {
+    console.debug('[JDA] context menu setup failed:', err?.message || err);
+  }
+}
+
+async function updateAutoGrabVisibilityForTab(tab) {
+  if (!chrome?.contextMenus?.update) return;
+  const url = tab?.url || tab?.pendingUrl || '';
+  if (!tab?.id || !url) {
+    try { chrome.contextMenus.update(MENU_AUTO_GRAB, { visible: false }); } catch {}
+    return;
+  }
+  try {
+    const settings = await getSettings();
+    const rules = settings?.sites || [];
+    const match = findMatchingRule(rules, url);
+    chrome.contextMenus.update(MENU_AUTO_GRAB, { visible: !!match });
+  } catch {
+    try { chrome.contextMenus.update(MENU_AUTO_GRAB, { visible: false }); } catch {}
+  }
+}
+
+async function syncContextMenusForActiveTab() {
+  try {
+    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    if (tab) await updateAutoGrabVisibilityForTab(tab);
+  } catch {}
+}
+
+async function runContextSelect(tabId) {
+  await chrome.scripting.executeScript({ target: { tabId }, files: ['shared/i18n-content.js', 'content/select.js'] });
+  await chrome.tabs.sendMessage(tabId, { type: 'START_SELECTION' });
+}
+
+function ensureSidePanelEnabled(tab) {
+  if (!chrome?.sidePanel?.setOptions || !tab?.id) return;
+  try {
+    chrome.sidePanel.setOptions({ tabId: tab.id, path: 'ui/popup.html', enabled: true });
+  } catch (err) {
+    console.debug('[JDA] side panel setOptions failed:', err?.message || err);
+  }
+}
+
+function buildCombinedText(resp, rule) {
+  const ruleTargets = {
+    toJob: !!rule?.templateToJob,
+    toResult: !!rule?.templateToResult
+  };
+  const templateTargets = resp?.templateTargets || ruleTargets;
+  const includeTemplateInJob = templateTargets.toJob === true;
+  const baseText = String(resp?.text || '').trim();
+  const rawTemplateText = String(resp?.templateText || '').trim();
+  const rawTemplateEntries = Array.isArray(resp?.templateEntries) ? resp.templateEntries : [];
+
+  let templateJobText = '';
+  if (includeTemplateInJob) {
+    if (rawTemplateEntries.length) {
+      templateJobText = rawTemplateEntries
+        .map(({ key, value }) => `${key}: ${value}`)
+        .join('\n')
+        .trim();
+    } else {
+      templateJobText = rawTemplateText;
+    }
+  }
+  return [baseText, templateJobText].filter(Boolean).join('\n\n').trim();
+}
+
+async function runContextAutoGrab(tab) {
+  const tabId = tab?.id;
+  const url = tab?.url || tab?.pendingUrl || '';
+  if (!tabId || !url) return;
+
+  const settings = await getSettings();
+  const rules = settings?.sites || [];
+  const match = findMatchingRule(rules, url);
+  if (!match) return;
+
+  const rule = normalizeRuleForExec(match);
+  if (!rule) return;
+
+  const resp = await extractFromPageBG(tabId, rule, { waitMs: DEFAULT_EXTRACT_WAIT, pollMs: DEFAULT_EXTRACT_POLL });
+  if (!resp?.ok) return;
+
+  const combinedText = buildCombinedText(resp, rule);
+  if (!combinedText) return;
+
+  try {
+    chrome.storage.local.set({ lastSelection: combinedText, lastSelectionWhen: Date.now() });
+  } catch {}
+  try {
+    chrome.runtime.sendMessage({ type: 'SELECTION_RESULT', text: combinedText });
+  } catch {}
+}
+
+if (chrome?.contextMenus?.onClicked) {
+  chrome.contextMenus.onClicked.addListener(async (info, tab) => {
+    const tabId = tab?.id;
+    try {
+      if (info.menuItemId === MENU_SELECT_DESCRIPTION) {
+        if (!tabId) return;
+        await runContextSelect(tabId);
+      } else if (info.menuItemId === MENU_OPEN_SIDE_PANEL) {
+        if (tabId && chrome?.sidePanel?.open) {
+          chrome.sidePanel.open({ tabId });
+        }
+      } else if (info.menuItemId === MENU_AUTO_GRAB) {
+        await runContextAutoGrab(tab);
+      }
+    } catch (err) {
+      console.debug('[JDA] context menu action failed:', err?.message || err);
+    }
+  });
+}
+
+createContextMenus();
+chrome.runtime.onInstalled.addListener(() => { createContextMenus(); });
+chrome.runtime.onStartup?.addListener(() => { createContextMenus(); });
+syncContextMenusForActiveTab();

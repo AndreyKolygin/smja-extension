@@ -12,7 +12,9 @@ export const state = {
   chosenCvId: null,
   activeTab: null,
   templateMetaEntries: [],
-  templateMetaEntriesRaw: []
+  templateMetaEntriesRaw: [],
+  forceRefresh: false,
+  lastOutputTokens: 0
 };
 
 
@@ -94,6 +96,65 @@ function mdToHtml(md) {
   });
   return lines.join('\n');
 }
+
+function buildPrompt({ cv, systemTemplate, outputTemplate, modelSystemPrompt, text }) {
+  const globalPromptRaw = (systemTemplate || '').trim();
+  const modelPromptRaw = (modelSystemPrompt || '').trim();
+  const outputTemplateTrimmed = (outputTemplate || '').trim();
+
+  const globalPlaceholder = /((?:не|not)\s+[^{}]*?)?{{\s*GLOBAL_SYSTEM_PROMPT\s*}}/gi;
+  const outputPlaceholder = /((?:не|not)\s+[^{}]*?)?{{\s*RESULT_OUTPUT_TEMPLATE\s*}}/gi;
+
+  let includeOutputTemplate = !!outputTemplateTrimmed;
+
+  const replaceOutputPlaceholders = (input) => {
+    if (!input) return input;
+    return input.replace(outputPlaceholder, (_, neg) => {
+      includeOutputTemplate = false;
+      if (neg) return neg.replace(/\s+$/, '');
+      return outputTemplateTrimmed;
+    });
+  };
+
+  const replaceGlobalPlaceholders = (input) => {
+    if (!input) return input;
+    return input.replace(globalPlaceholder, (_, neg) => {
+      if (neg) return neg.replace(/\s+$/, '');
+      if (globalPromptRaw) {
+        return globalPromptRaw;
+      }
+      return '';
+    });
+  };
+
+  let sys = '';
+
+  if (modelPromptRaw) {
+    let prompt = modelPromptRaw;
+    prompt = replaceGlobalPlaceholders(prompt);
+    prompt = replaceOutputPlaceholders(prompt);
+    sys = prompt.trim();
+  } else {
+    let prompt = replaceOutputPlaceholders(globalPromptRaw);
+    sys = prompt.trim();
+  }
+
+  const userParts = [];
+  if (cv) userParts.push(`CV:\n${cv}`);
+  if (text) userParts.push(`JOB DESCRIPTION:\n${text}`);
+  if (includeOutputTemplate && outputTemplateTrimmed) {
+    userParts.push(`OUTPUT FORMAT:\n${outputTemplateTrimmed}`);
+  }
+
+  const user = userParts.join('\n\n').trim();
+  return { sys, user };
+}
+
+function estimateTokens(text) {
+  if (!text) return 0;
+  const chars = String(text).length;
+  return Math.max(1, Math.ceil(chars / 4));
+}
 // утилита для безопасной отрисовки результата в стилизованный блок
 export function setResult(text) {
   const el = document.getElementById("resultView");
@@ -104,6 +165,36 @@ export function setResult(text) {
     if (btn) btn.disabled = !hasText;
   });
   renderTemplateMeta();
+}
+
+export function setCachedBadge(isCached) {
+  const badge = document.getElementById("cachedBadge");
+  if (!badge) return;
+  const on = !!isCached;
+  badge.hidden = !on;
+}
+
+export function setTokenEstimate(tokens) {
+  const el = document.getElementById("tokenEstimate");
+  if (!el) return;
+  const safe = Number.isFinite(tokens) ? Math.max(0, Math.round(tokens)) : 0;
+  if (!safe) {
+    el.hidden = true;
+    return;
+  }
+  el.hidden = false;
+  const label = t('ui.popup.tokensEstimate', 'Approx. tokens: ~{{tokens}}').replace('{{tokens}}', String(safe));
+  el.textContent = label;
+}
+
+export function setOutputTokenEstimateFromText(text) {
+  state.lastOutputTokens = estimateTokens(text);
+  updateTokenEstimate();
+}
+
+export function resetOutputTokenEstimate() {
+  state.lastOutputTokens = 0;
+  updateTokenEstimate();
 }
 
 export async function getActiveTab({ refresh = false } = {}) {
@@ -277,6 +368,7 @@ export async function fetchSettings() {
 export function setJobInput(text) {
   const el = document.getElementById("jobInput");
   if (el) el.value = text ?? "";
+  updateTokenEstimate();
 }
 
 export function getSelectedCvInfo() {
@@ -287,4 +379,37 @@ export function getSelectedCvInfo() {
     return { id: null, title: '', content: '' };
   }
   return { id: active.id, title: active.title || '', content: active.content || '' };
+}
+
+export function updateTokenEstimate() {
+  const settings = state.settings;
+  if (!settings) {
+    setTokenEstimate(0);
+    return;
+  }
+  const jobText = document.getElementById("jobInput")?.value?.trim() || "";
+  const cvInfo = getSelectedCvInfo();
+  const cvText = cvInfo.content || "";
+  if (!jobText && !cvText) {
+    setTokenEstimate(0);
+    return;
+  }
+
+  const models = Array.isArray(settings?.models) ? settings.models : [];
+  const selectedId = state.chosenModel || document.getElementById("modelSelect")?.value || "";
+  const selected = models.find(m => m && m.id === selectedId) || null;
+  const modelSystemPrompt = selected?.systemPrompt || "";
+
+  const { sys, user } = buildPrompt({
+    cv: cvText,
+    systemTemplate: settings.systemTemplate || "",
+    outputTemplate: settings.outputTemplate || "",
+    modelSystemPrompt,
+    text: jobText
+  });
+
+  const total = [sys, user].filter(Boolean).join('\n\n');
+  const inputTokens = estimateTokens(total);
+  const outputTokens = Number.isFinite(state.lastOutputTokens) ? Math.max(0, state.lastOutputTokens) : 0;
+  setTokenEstimate(inputTokens + outputTokens);
 }

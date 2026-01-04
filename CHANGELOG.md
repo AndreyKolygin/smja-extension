@@ -4,6 +4,23 @@ All notable changes to this project will be documented in this file.
 
 The format is inspired by Keep a Changelog and this project adheres to SemVer via the extension `manifest.json` version field.
 
+## [2.7.0] - 2026-01-04
+
+### Added
+- Context menu actions: Select description, Auto-grab, and Open side panel.
+- Side panel support (opens the main UI in a persistent panel).
+- Result caching with forced refresh on “Start over”, plus cached badge in the popup.
+- Approximate token counter (input + output) in the popup.
+- Per-model sampling parameters in Options (temperature, top‑p, penalties, etc.) with provider support.
+
+### Changed
+- Import mode selector switched to segmented control.
+- Sampling parameters in the model editor are grouped into a collapsible block with inline range hints.
+- Auto-grab context menu item now appears only when a site rule matches the current page.
+
+### Fixed
+- Side panel UI no longer gets stuck on non‑HTTP(S) pages when the active tab changes.
+
 ## [2.6.0] - 2025-12-27
 
 ### Added

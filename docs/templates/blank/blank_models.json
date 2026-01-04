@@ -6,7 +6,16 @@
       "modelId": "model-identifier",
       "providerId": "prov_example",
       "active": true,
-      "systemPrompt": ""
+      "systemPrompt": "",
+      "maxTokens": null,
+      "temperature": null,
+      "topP": null,
+      "topK": null,
+      "frequencyPenalty": null,
+      "presencePenalty": null,
+      "repetitionPenalty": null,
+      "minP": null,
+      "topA": null
     }
   ]
 }

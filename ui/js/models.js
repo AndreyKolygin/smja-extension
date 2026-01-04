@@ -1,5 +1,5 @@
 // ui/js/models.js
-import { state } from "./state.js";
+import { state, resetOutputTokenEstimate } from "./state.js";
 
 /** Активные модели: всё, что НЕ active === false */
 function getActiveModels() {
@@ -76,5 +76,6 @@ export function wireModelSelector() {
         chrome.storage.local.set({ ui }, () => {});
       });
     } catch {}
+    resetOutputTokenEstimate();
   });
 }
