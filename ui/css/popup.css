@@ -40,6 +40,27 @@
   /* gap: 10px; */
   color: var(--neo-text);
 }
+.unsupported-panel {
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 18px 16px 20px;
+  margin: 12px;
+  border-radius: 14px;
+  background: var(--field-surface);
+  box-shadow: var(--row-shadow);
+  text-align: center;
+}
+.unsupported-panel.is-visible {
+  display: flex;
+}
+.unsupported-title {
+  font-weight: 600;
+}
+.unsupported-text {
+  color: var(--neo-muted);
+}
 .sidepanel-toolbar {
   display: none;
   align-items: center;
@@ -50,29 +71,53 @@
 body[data-context="sidepanel"] .sidepanel-toolbar {
   display: flex;
 }
+.sidepanel-toolbar .jda-theme-toggle-wrapper {
+  display: flex;
+  align-items: center;
+}
 .sidepanel-toolbar .jda-theme-toggle {
   display: inline-flex;
-  gap: 6px;
-  background: var(--field-surface);
+  align-items: center;
+  gap: 4px;
   padding: 4px;
   border-radius: 999px;
-  box-shadow: inset 3px 3px 6px var(--field-shadow-dark),
-    inset -3px -3px 6px var(--field-shadow-light);
+  border: 1px solid var(--pane-border);
+  background: var(--btn-bg);
 }
 .sidepanel-toolbar .jda-theme-toggle button {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
   border: none;
   background: transparent;
-  color: var(--neo-muted);
-  padding: 4px 6px;
-  border-radius: 999px;
-  cursor: pointer;
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  color: var(--neo-muted);
+  cursor: pointer;
+  transition: background 150ms ease, color 150ms ease, box-shadow 150ms ease;
+}
+.sidepanel-toolbar .jda-theme-toggle button svg {
+  width: 16px;
+  height: 16px;
+  stroke: currentColor;
 }
 .sidepanel-toolbar .jda-theme-toggle button[data-active="true"] {
-  background: var(--neo-accent);
-  color: var(--neo-text);
+  background: linear-gradient(145deg, var(--neo-accent), var(--neo-accent-strong));
+  color: #ffffff;
+  box-shadow: 2px 2px 4px var(--neo-shadow-dark),
+    -2px -2px 4px var(--neo-shadow-light);
+}
+.sidepanel-toolbar .jda-theme-toggle button:hover {
+  color: var(--neo-accent);
+}
+.sidepanel-toolbar .jda-theme-toggle button:active {
+  box-shadow: inset 2px 2px 4px var(--neo-shadow-dark),
+    inset -2px -2px 4px var(--neo-shadow-light);
+}
+.sidepanel-toolbar .jda-theme-toggle button:focus-visible {
+  outline: 2px solid var(--neo-accent);
+  outline-offset: 2px;
 }
 .sidepanel-toolbar .jda-app-overlay-actions {
   display: inline-flex;

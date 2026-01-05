@@ -4,7 +4,7 @@
   <meta charset="utf-8"/>
   <link rel="stylesheet" href="./css/common.css">
   <link rel="stylesheet" href="./css/popup.css">
-  <title>Job description Analyzer</title>
+  <title>JDA</title>
 </head>
 <body>
 <div class="popup">
@@ -45,7 +45,13 @@
       <button type="button" data-action="close" title="Close">✕</button>
     </div>
   </div>
-  <div>
+  <div class="unsupported-panel" id="unsupportedPanel" hidden>
+    <div class="unsupported-title" data-i18n="ui.popup.warning">Content cannot be analyzed.</div>
+    <div class="unsupported-text" data-i18n="ui.popup.warning2">Only http and https URLs are supported.</div>
+    <button type="button" id="unsupportedSettings" class="btn ghost icon-left i-settings" data-i18n="ui.menu.options">Settings</button>
+  </div>
+  <div class="popup-content">
+    <div>
       <div class="selectors">
         <div class="select-row">
           <span class="select-label" data-i18n="ui.popup.modelLabel">LLM</span>
@@ -56,10 +62,10 @@
           <select id="cvSelect" class="select input" data-i18n-attr-title="ui.popup.cvSelectTitle" title="Select resume"></select>
         </div>
       </div>
-  </div>
+    </div>
 
 <!-- body-->
-  <div class="body-analyzer">
+    <div class="body-analyzer">
     <div class="row highligter">
       <button id="selectBtn" data-i18n="ui.popup.select" class="btn highlight icon-left i-select">Select job description</button>
       <button id="fastStartBtn" class="btn third icon-left i-autograb hidden" hidden data-i18n="ui.popup.autograb" title="Auto-grab job description by site rule" data-i18n-attr-title="ui.popup.autograb">Auto-grab</button>
@@ -91,6 +97,7 @@
 
       </div> -->
 
+    </div>
     </div>
   </div>
 </div>

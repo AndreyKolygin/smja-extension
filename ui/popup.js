@@ -232,10 +232,35 @@ function isSupportedUrl(url) {
 }
 
 function showUnsupportedWarning() {
-  setResult([
-    t('ui.popup.warning', 'Content cannot be analyzed.'),
-    t('ui.popup.warning2', 'Only http and https URLs are supported.')
-  ].join('\n'));
+  const panel = document.getElementById("unsupportedPanel");
+  const body = document.querySelector(".body-analyzer");
+  const content = document.querySelector(".popup-content");
+  if (panel) {
+    panel.classList.add("is-visible");
+    panel.hidden = false;
+  }
+  if (body) {
+    body.hidden = true;
+  }
+  if (content) {
+    content.hidden = true;
+  }
+}
+
+function hideUnsupportedWarning() {
+  const panel = document.getElementById("unsupportedPanel");
+  const body = document.querySelector(".body-analyzer");
+  const content = document.querySelector(".popup-content");
+  if (panel) {
+    panel.classList.remove("is-visible");
+    panel.hidden = true;
+  }
+  if (body) {
+    body.hidden = false;
+  }
+  if (content) {
+    content.hidden = false;
+  }
 }
 
 let __lastSupported = true;
@@ -247,6 +272,7 @@ async function updateSupportedState(tab) {
   if (!supported) {
     showUnsupportedWarning();
   } else {
+    hideUnsupportedWarning();
     setResult(state.lastResponse || "");
     await detectAndToggleFastStart();
   }
@@ -254,6 +280,7 @@ async function updateSupportedState(tab) {
 
 function wireUI() {
   const menu = document.getElementById("menu");
+  const unsupportedSettings = document.getElementById("unsupportedSettings");
   if (menu) {
     menu.addEventListener("click", (e) => {
       e.preventDefault();
@@ -291,6 +318,13 @@ function wireUI() {
         console.debug("[POPUP] openOptionsPage threw:", err);
         openFallback();
       }
+    });
+  }
+  if (unsupportedSettings) {
+    unsupportedSettings.addEventListener("click", (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      menu?.click();
     });
   }
 
@@ -360,6 +394,8 @@ async function init() {
   __lastSupported = isSupportedUrl(tab?.url || tab?.pendingUrl || '');
   if (!__lastSupported) {
     showUnsupportedWarning();
+  } else {
+    hideUnsupportedWarning();
   }
 
   await detectAndToggleFastStart();

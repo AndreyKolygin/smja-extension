@@ -45,7 +45,7 @@ cp README.md README.ru.md QUICKSTART.md "$STAGING_DIR/" 2>/dev/null || true
 
 (
   cd "$STAGING_DIR"
-  zip -qr "../${ARCHIVE_NAME}" . -x "*.DS_Store"
+  zip -qr "../${ARCHIVE_NAME}" . -x "*.DS_Store" -x "_metadata/*"
 )
 
 rm -rf "$STAGING_DIR"
