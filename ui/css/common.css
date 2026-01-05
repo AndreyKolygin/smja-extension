@@ -177,12 +177,16 @@ textarea {
   margin: 4px 0;
   display: block;
 }
+/* check is required: selector not found in project */
+/*
 .row_popup {
   margin: 0;
   display: flex;
   flex-direction: column;
   align-items: center;
 }
+*/
+
 
 .row {
   margin: 0 4px 0 0;
@@ -300,21 +304,37 @@ fieldset {
   justify-content: center;
 }
 
+/* check is required: selector not found in project */
+/*
 .icon-14 {
   --icon-size: 14px;
 }
+*/
+
+/* check is required: selector not found in project */
+/*
 .icon-16 {
   --icon-size: 16px;
 }
+*/
+
 .icon-18 {
   --icon-size: 18px;
 }
+/* check is required: selector not found in project */
+/*
 .icon-20 {
   --icon-size: 20px;
 }
+*/
+
+/* check is required: selector not found in project */
+/*
 .icon-24 {
   --icon-size: 24px;
 }
+*/
+
 
 /* Icon mappings */
 .i-copy {
@@ -329,9 +349,13 @@ fieldset {
 .i-download {
   --icon: url("../../icons/download-svgrepo-com.svg");
 }
+/* check is required: selector not found in project */
+/*
 .i-link {
   --icon: url("../../icons/link-minimalistic-svgrepo-com.svg");
 }
+*/
+
 .i-file {
   --icon: url("../../icons/markdown-svgrepo-com.svg");
 }
@@ -344,27 +368,43 @@ fieldset {
 .i-add {
   --icon: url("../../icons/add-square-svgrepo-com.svg");
 }
+/* check is required: selector not found in project */
+/*
 .i-chat {
   --icon: url("../../icons/chat-dots-svgrepo-com.svg");
 }
+*/
+
 .i-eraser {
   --icon: url("../../icons/eraser-svgrepo-com.svg");
 }
+/* check is required: selector not found in project */
+/*
 .i-cursor {
   --icon: url("../../icons/cursor-square-svgrepo-com.svg");
 }
+*/
+
 .i-select {
   --icon: url("../../icons/cursor-square-svgrepo-com.svg");
 }
+/* check is required: selector not found in project */
+/*
 .i-menu {
   --icon: url("../../icons/settings-svgrepo-com.svg");
 }
+*/
+
 .i-settings {
   --icon: url("../../icons/settings.svg");
 }
+/* check is required: selector not found in project */
+/*
 .i-archive {
   --icon: url("../../icons/archive-down-minimlistic-svgrepo-com.svg");
 }
+*/
+
 .i-undo {
   --icon: url("../../icons/undo-left-square-svgrepo-com.svg");
 }
@@ -380,14 +420,22 @@ fieldset {
 .i-autograb {
   --icon: url("../../icons/magnet-wave.svg");
 }
+/* check is required: selector not found in project */
+/*
 .i-paperclip {
   --icon: url("../../icons/paperclip-2-svgrepo-com.svg");
 }
+*/
+
 
 /* Extra icons for Options actions */
+/* check is required: selector not found in project */
+/*
 .i-paperbin {
   --icon: url("../../icons/paper-bin-svgrepo-com.svg");
 }
+*/
+
 .i-doc-add {
   /* --icon: url("../../icons/document-add-svgrepo-com.svg"); */
   --icon: url("../../icons/chat-left-text-svgrepo-com.svg");
@@ -420,9 +468,13 @@ fieldset {
 }
 
 /* Overlay switch icon */
+/* check is required: selector not found in project */
+/*
 .i-maximize {
   --icon: url("../../icons/maximize-square-svgrepo-com.svg");
 }
+*/
+
 
 /* Optional: icon-only buttons */
 .btn.icon-only {

@@ -164,14 +164,22 @@ body.theme-landing .link-chip:focus-visible {
   /* border: 1px solid var(--border); */
 }
 
+/* check is required: selector not found in project */
+/*
 .section-title {
   font-weight: 600;
   margin: 0 0 8px;
 }
+*/
+
+/* check is required: selector not found in project */
+/*
 .subtle {
   color: var(--muted);
   font-size: 12px;
 }
+*/
+
 .hint-success {
   color: #22c55e;
 }
@@ -421,9 +429,13 @@ body.theme-landing .toggle__input:checked + .toggle__track {
     flex: 1 1 100%;
     min-width: 240px;
   }
-  .cv-item-controls {
+  /* check is required: selector not found in project */
+/*
+.cv-item-controls {
     flex-direction: row;
   }
+*/
+
 }
 .cv-list-header {
   display: flex;
@@ -1589,17 +1601,25 @@ body.theme-landing dialog menu .btn.danger {
   flex-direction: row;
   flex-wrap: nowrap;
 }
+/* check is required: selector not found in project */
+/*
 .bmc-button {
   display: inline-block;
   height: 60px !important;
   width: 217px !important;
   cursor: pointer;
 }
+*/
+
+/* check is required: selector not found in project */
+/*
 .bmc-button img {
   height: 100% !important;
   width: 100% !important;
   object-fit: contain;
 }
+*/
+
 .chain-group-list {
   display: flex;
   flex-direction: column;

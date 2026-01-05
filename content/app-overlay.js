@@ -559,8 +559,14 @@
     refreshBtn?.addEventListener('click', (event) => {
       event?.preventDefault?.();
       event?.stopPropagation?.();
+      const frame = state.frame;
+      if (!frame) return;
       try {
-        state.frame?.contentWindow?.location?.reload?.();
+        frame.contentWindow?.location?.reload?.();
+      } catch {}
+      try {
+        const src = frame.getAttribute('src');
+        if (src) frame.setAttribute('src', src);
       } catch {}
     }, true);
 
