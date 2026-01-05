@@ -4,6 +4,15 @@ All notable changes to this project will be documented in this file.
 
 The format is inspired by Keep a Changelog and this project adheres to SemVer via the extension `manifest.json` version field.
 
+## [2.7.2] - 2026-01-06
+
+### Added
+- Overlay styles moved to dedicated CSS files for content scripts (app overlay, meta overlay, debug badge).
+
+### Changed
+- Overlay header actions now match popup/side panel button styling and use icons.
+- Refresh action in overlay header reloads the embedded UI reliably.
+
 ## [2.7.1] - 2026-01-05
 
 ### Added
