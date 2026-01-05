@@ -103,21 +103,35 @@ function applyThemePreference(preference, { persist = false } = {}) {
 }
 
 function updateThemeToggleUI() {
-  const wrap = document.querySelector(".jda-theme-toggle");
-  if (!wrap) return;
   const pref = themeState.preference || "system";
-  wrap.querySelectorAll("[data-theme-option]").forEach((btn) => {
-    const value = btn.getAttribute("data-theme-option");
-    const active = value === pref;
-    btn.dataset.active = active ? "true" : "false";
-    btn.setAttribute("aria-checked", active ? "true" : "false");
+  document.querySelectorAll(".jda-theme-toggle").forEach((wrap) => {
+    wrap.querySelectorAll("[data-theme-option]").forEach((btn) => {
+      const value = btn.getAttribute("data-theme-option");
+      const active = value === pref;
+      btn.dataset.active = active ? "true" : "false";
+      btn.setAttribute("aria-checked", active ? "true" : "false");
+    });
   });
 }
 
-function wireSidePanelHeader() {
-  const toolbar = document.querySelector(".sidepanel-toolbar");
-  if (!toolbar) return;
-  const toggle = toolbar.querySelector(".jda-theme-toggle");
+function openOptionsPage() {
+  const manifest = safeRuntimeGetManifest();
+  const optionsPath = (manifest.options_ui && manifest.options_ui.page)
+    || manifest.options_page
+    || "ui/options.html";
+  const url = safeRuntimeGetURL(optionsPath);
+  try {
+    chrome.runtime.openOptionsPage(() => {
+      if (chrome.runtime.lastError) window.open(url, "_blank");
+    });
+  } catch {
+    try { window.open(url, "_blank"); } catch {}
+  }
+}
+
+function wireHeaderActions(container, isSidePanel) {
+  if (!container) return;
+  const toggle = container.querySelector(".jda-theme-toggle");
   toggle?.addEventListener("click", (e) => {
     const btn = e.target.closest("[data-theme-option]");
     if (!btn) return;
@@ -125,24 +139,19 @@ function wireSidePanelHeader() {
     applyThemePreference(pref, { persist: true });
   });
 
-  toolbar.querySelector("#menu")?.addEventListener("click", (e) => {
+  container.querySelector('[data-action="refresh"]')?.addEventListener("click", (e) => {
     e.preventDefault();
     e.stopPropagation();
-    const manifest = safeRuntimeGetManifest();
-    const optionsPath = (manifest.options_ui && manifest.options_ui.page)
-      || manifest.options_page
-      || "ui/options.html";
-    const url = safeRuntimeGetURL(optionsPath);
-    try {
-      chrome.runtime.openOptionsPage(() => {
-        if (chrome.runtime.lastError) window.open(url, "_blank");
-      });
-    } catch {
-      try { window.open(url, "_blank"); } catch {}
-    }
+    window.location.reload();
   });
 
-  toolbar.querySelector("#metaOverlay")?.addEventListener("click", async (e) => {
+  container.querySelector('[data-action="menu"]')?.addEventListener("click", (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    openOptionsPage();
+  });
+
+  container.querySelector('[data-action="meta"]')?.addEventListener("click", async (e) => {
     e.preventDefault();
     e.stopPropagation();
     try {
@@ -150,11 +159,17 @@ function wireSidePanelHeader() {
     } catch {}
   });
 
-  toolbar.querySelector('[data-action="close"]')?.addEventListener("click", async (e) => {
+  container.querySelector('[data-action="close"]')?.addEventListener("click", async (e) => {
     e.preventDefault();
     e.stopPropagation();
+    if (isSidePanel) {
+      try {
+        await chrome.runtime.sendMessage({ type: "CLOSE_SIDE_PANEL" });
+      } catch {}
+      return;
+    }
     try {
-      await chrome.runtime.sendMessage({ type: "CLOSE_SIDE_PANEL" });
+      window.close();
     } catch {}
   });
 }
@@ -279,60 +294,14 @@ async function updateSupportedState(tab) {
 }
 
 function wireUI() {
-  const menu = document.getElementById("menu");
   const unsupportedSettings = document.getElementById("unsupportedSettings");
-  if (menu) {
-    menu.addEventListener("click", (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      const manifest = safeRuntimeGetManifest();
-      const optionsPath = (manifest.options_ui && manifest.options_ui.page)
-        || manifest.options_page
-        || "ui/options.html"; // safe default
-      const url = safeRuntimeGetURL(optionsPath);
-
-      let fallbackTimer = null;
-      const openFallback = () => {
-        if (fallbackTimer) { clearTimeout(fallbackTimer); fallbackTimer = null; }
-        try { window.open(url, "_blank"); } catch {}
-      };
-
-      if (!isExtensionContextValid()) {
-        openFallback();
-        return;
-      }
-
-      try {
-        // MV3-safe path; if it fails or not supported, fallback fires
-        fallbackTimer = setTimeout(openFallback, 400);
-        chrome.runtime.openOptionsPage(() => {
-          if (chrome.runtime.lastError) {
-            console.debug("[POPUP] openOptionsPage lastError:", chrome.runtime.lastError.message);
-            openFallback();
-          } else {
-            // success → cancel fallback
-            if (fallbackTimer) { clearTimeout(fallbackTimer); fallbackTimer = null; }
-          }
-        });
-      } catch (err) {
-        console.debug("[POPUP] openOptionsPage threw:", err);
-        openFallback();
-      }
-    });
-  }
   if (unsupportedSettings) {
     unsupportedSettings.addEventListener("click", (e) => {
       e.preventDefault();
       e.stopPropagation();
-      menu?.click();
+      openOptionsPage();
     });
   }
-
-  document.getElementById("refreshView")?.addEventListener("click", (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    window.location.reload();
-  });
 
   document.getElementById("selectBtn")?.addEventListener("click", startSelection);
   document.getElementById("clearBtn")?.addEventListener("click", clearSelection);
@@ -367,12 +336,23 @@ async function init() {
   await initI18nPopup();
   await initThemeControl();
   const params = new URLSearchParams(window.location.search || '');
-  const isSidePanel = params.get('context') === 'sidepanel';
+  const context = params.get('context') || 'overlay';
+  const isSidePanel = context === 'sidepanel';
+  const isPopup = context === 'popup';
+  document.body.dataset.context = context;
+  const toolbar = document.querySelector(".sidepanel-toolbar");
+  const header = document.querySelector(".jda-app-overlay-header");
   if (isSidePanel) {
-    document.body.dataset.context = 'sidepanel';
-    const toolbar = document.querySelector(".sidepanel-toolbar");
+    if (header) header.hidden = true;
     if (toolbar) toolbar.hidden = false;
-    wireSidePanelHeader();
+    wireHeaderActions(toolbar, true);
+  } else if (isPopup) {
+    if (toolbar) toolbar.hidden = true;
+    if (header) header.hidden = false;
+    wireHeaderActions(header, false);
+  } else {
+    if (toolbar) toolbar.hidden = true;
+    if (header) header.hidden = true;
   }
   const tab = await getActiveTab();
   setActiveTab(tab);

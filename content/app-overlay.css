@@ -1,0 +1,241 @@
+#jda-app-overlay {
+  --jda-surface: #f8f9fbbf;
+  --jda-contrast: #ffffff;
+  --jda-border: rgb(226 226 226 / 40%);
+  --jda-text: #1f2436;
+  --jda-muted: #6d738a;
+  --jda-button-bg: rgba(255, 255, 255, 0.92);
+  --jda-shadow-dark: rgba(146, 154, 175, 0.25);
+  --jda-shadow-light: rgba(255, 255, 255, 0.85);
+  --jda-accent: #22c4b2;
+  --jda-accent-strong: #6d95ff;
+  --jda-button-bg: rgba(255, 255, 255, 0.92);
+  position: fixed;
+  top: 15px;
+  right: 15px;
+  left: auto;
+  transform: none;
+  z-index: 2147483645;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  pointer-events: none;
+  color: var(--jda-text);
+  box-shadow: rgba(0, 0, 0, 0.54) -4px 13px 30px -11px;
+  border-radius: 20px;
+}
+#jda-app-overlay.jda-theme-dark {
+  --jda-surface: #1b1f23bf;
+  --jda-contrast: #1b1f23;
+  --jda-border: rgba(46, 54, 76, 0.85);
+  --jda-text: #e4ecfb;
+  --jda-muted: #9aa7c6;
+  --jda-button-bg: rgba(30, 38, 58, 0.92);
+  --jda-shadow-dark: rgba(6, 8, 15, 0.75);
+  --jda-shadow-light: rgba(255, 255, 255, 0.05);
+  --jda-accent: #30c0f5;
+  --jda-accent-strong: #7ea9ff;
+  --jda-button-bg: rgba(33, 42, 64, 0.92);
+}
+#jda-app-overlay.jda-overlay-dragging {
+  cursor: grabbing;
+}
+#jda-app-overlay.jda-overlay-dragging .jda-app-overlay-card {
+  box-shadow: none;
+}
+#jda-app-overlay .jda-app-overlay-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  width: min(400px, calc(100vw - 24px));
+  max-width: min(400px, calc(100vw - 16px));
+  height: min(90vh, calc(100vh - 28px));
+  max-height: calc(100vh - 20px);
+  min-height: 600px;
+  background: var(--jda-surface);
+  color: inherit;
+  border-radius: 20px;
+  box-shadow: none;
+  border: 1px solid var(--jda-border);
+  overflow: hidden;
+  pointer-events: auto;
+  padding: 2px;
+  transition: box-shadow 180ms ease;
+}
+#jda-app-overlay .jda-app-overlay-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 5px 10px;
+  margin-bottom: 8px;
+  border-radius: 18px;
+  background: var(--jda-contrast);
+  box-shadow: 0px 2px 6px var(--jda-shadow-dark),
+    -3px -3px 6px var(--jda-shadow-light);
+  color: inherit;
+  cursor: grab;
+  user-select: none;
+  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+}
+#jda-app-overlay.jda-overlay-dragging .jda-app-overlay-header {
+  cursor: grabbing;
+}
+#jda-app-overlay .jda-app-overlay-title {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: inherit;
+}
+#jda-app-overlay .jda-theme-toggle-wrapper {
+  display: flex;
+  align-items: center;
+}
+#jda-app-overlay .jda-app-overlay-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+#jda-app-overlay .jda-theme-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px;
+  border-radius: 999px;
+  border: 1px solid var(--jda-border);
+  background: var(--jda-button-bg);
+}
+#jda-app-overlay:not(.jda-theme-dark) .jda-theme-toggle {
+  background: rgb(231 231 231 / 66%);
+}
+#jda-app-overlay .jda-theme-toggle button {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: none;
+  background: transparent;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--jda-muted);
+  cursor: pointer;
+  transition: background 150ms ease, color 150ms ease, box-shadow 150ms ease;
+}
+#jda-app-overlay .jda-theme-toggle button svg {
+  width: 16px;
+  height: 16px;
+  stroke: currentColor;
+}
+#jda-app-overlay .jda-theme-toggle button[data-active="true"] {
+  background: linear-gradient(145deg, var(--jda-accent), var(--jda-accent-strong));
+  color: #ffffff;
+  box-shadow: 2px 2px 4px var(--jda-shadow-dark),
+    -2px -2px 4px var(--jda-shadow-light);
+}
+#jda-app-overlay .jda-theme-toggle button:hover {
+  color: var(--jda-accent);
+}
+#jda-app-overlay .jda-theme-toggle button:active {
+  box-shadow: inset 2px 2px 4px var(--jda-shadow-dark),
+    inset -2px -2px 4px var(--jda-shadow-light);
+}
+#jda-app-overlay .jda-theme-toggle button:focus-visible {
+  outline: 2px solid var(--jda-accent);
+  outline-offset: 2px;
+}
+#jda-app-overlay .jda-app-overlay-actions button {
+  border: none;
+  border-radius: 10px;
+  padding: 4px 8px;
+  background: var(--jda-button-bg);
+  color: inherit;
+  cursor: pointer;
+  box-shadow: 4px 4px 8px rgba(163, 177, 198, 0.5),
+    -4px -4px 8px rgba(255, 255, 255, 0.7);
+  transition: box-shadow 120ms ease, color 150ms ease;
+  font-weight: 600;
+}
+#jda-app-overlay .jda-app-overlay-actions button:hover {
+  color: var(--jda-accent);
+  box-shadow: 3px 3px 6px rgba(163, 177, 198, 0.45),
+    -3px -3px 6px rgba(255, 255, 255, 0.75);
+}
+#jda-app-overlay .jda-app-overlay-actions button:active {
+  box-shadow: inset 3px 3px 6px rgba(163, 177, 198, 0.6),
+    inset -3px -3px 6px rgba(255, 255, 255, 0.8);
+}
+#jda-app-overlay .jda-app-overlay-actions button:focus-visible {
+  outline: 2px solid var(--jda-accent);
+  outline-offset: 2px;
+}
+#jda-app-overlay .jda-app-overlay-actions .icon-only {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+#jda-app-overlay .jda-app-overlay-actions .icon-only::before {
+  content: "";
+  display: inline-block;
+  width: 18px;
+  height: 18px;
+  background-color: currentColor;
+  mask: var(--icon) center / contain no-repeat;
+  -webkit-mask: var(--icon) center / contain no-repeat;
+}
+#jda-app-overlay .jda-app-overlay-actions .i-refresh { --icon: url("../icons/refresh.svg"); }
+#jda-app-overlay .jda-app-overlay-actions .i-settings { --icon: url("../icons/settings.svg"); }
+#jda-app-overlay .jda-app-overlay-actions .i-meta { --icon: url("../icons/notes.svg"); }
+#jda-app-overlay .jda-app-overlay-actions .i-close { --icon: url("../icons/close.svg"); }
+#jda-app-overlay.jda-theme-dark .jda-app-overlay-actions button {
+  box-shadow: 4px 4px 8px rgba(0, 0, 0, 0.7),
+    -4px -4px 8px rgba(255, 255, 255, 0.12);
+}
+#jda-app-overlay.jda-theme-dark .jda-app-overlay-actions button:hover {
+  box-shadow: 3px 3px 6px rgba(0, 0, 0, 0.65),
+    -3px -3px 6px rgba(255, 255, 255, 0.18);
+}
+#jda-app-overlay.jda-theme-dark .jda-app-overlay-actions button:active {
+  box-shadow: inset 3px 3px 6px rgba(0, 0, 0, 0.7),
+    inset -3px -3px 6px rgba(255, 255, 255, 0.12);
+}
+#jda-app-overlay .jda-app-overlay-body {
+  flex: 1;
+  border-radius: 16px;
+  background: var(--jda-contrast);
+  overflow: hidden;
+  position: relative;
+}
+#jda-app-overlay .jda-app-overlay-frame {
+  width: 100%;
+  height: 100%;
+  border: none;
+  background: var(--jda-surface);
+  border-radius: 12px;
+  box-shadow: inset 3px 3px 6px var(--jda-shadow-dark),
+    inset -3px -3px 6px var(--jda-shadow-light);
+}
+#jda-app-overlay .jda-app-overlay-resize {
+  height: 5px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: ns-resize;
+  background: transparent;
+  border: none;
+  margin-top: 5px;
+}
+#jda-app-overlay .jda-app-overlay-resize::before {
+  content: "";
+  width: 50px;
+  height: 3px;
+  border-radius: 999px;
+  background: #6d738a;
+}
+#jda-app-overlay .jda-app-overlay-resize:active::before {
+  box-shadow: inset 4px 4px 8px rgba(163, 177, 198, 0.6),
+    inset -4px -4px 8px rgba(255, 255, 255, 0.9);
+}

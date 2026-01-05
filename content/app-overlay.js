@@ -241,240 +241,11 @@
 
   function ensureStyle() {
     if (document.getElementById(STYLE_ID)) return;
-    const style = document.createElement('style');
-    style.id = STYLE_ID;
-    style.textContent = `
-      #${OVERLAY_ID} {
-        --jda-surface: #f8f9fbbf;
-        --jda-contrast: #ffffff;
-        --jda-border: rgb(226 226 226 / 40%);
-        --jda-text: #1f2436;
-        --jda-muted: #6d738a;
-        --jda-button-bg: rgba(255, 255, 255, 0.92);
-        --jda-shadow-dark: rgba(146, 154, 175, 0.25);
-        --jda-shadow-light: rgba(255, 255, 255, 0.85);
-        --jda-accent: #22c4b2;
-        --jda-accent-strong: #6d95ff;
-        --jda-button-bg: rgba(255, 255, 255, 0.92);
-        position: fixed;
-        top: 15px;
-        right: 15px;
-        left: auto;
-        transform: none;
-        z-index: 2147483645;
-        display: flex;
-        flex-direction: column;
-        align-items: stretch;
-        pointer-events: none;
-        color: var(--jda-text);
-        box-shadow: rgba(0, 0, 0, 0.54) -4px 13px 30px -11px;
-        border-radius: 20px;
-      }
-      #${OVERLAY_ID}.jda-theme-dark {
-        --jda-surface: #1b1f23bf;
-        --jda-contrast: #1b1f23;
-        --jda-border: rgba(46, 54, 76, 0.85);
-        --jda-text: #e4ecfb;
-        --jda-muted: #9aa7c6;
-        --jda-button-bg: rgba(30, 38, 58, 0.92);
-        --jda-shadow-dark: rgba(6, 8, 15, 0.75);
-        --jda-shadow-light: rgba(255, 255, 255, 0.05);
-        --jda-accent: #30c0f5;
-        --jda-accent-strong: #7ea9ff;
-        --jda-button-bg: rgba(33, 42, 64, 0.92);
-      }
-      #${OVERLAY_ID}.jda-overlay-dragging {
-        cursor: grabbing;
-      }
-      #${OVERLAY_ID}.jda-overlay-dragging .${CARD_CLASS} {
-        box-shadow: none;
-      }
-      #${OVERLAY_ID} .${CARD_CLASS} {
-        position: relative;
-        display: flex;
-        flex-direction: column;
-        gap: 0;
-        width: min(400px, calc(100vw - 24px));
-        max-width: min(400px, calc(100vw - 16px));
-        height: min(90vh, calc(100vh - 28px));
-        max-height: calc(100vh - 20px);
-        min-height: 600px;
-        background: var(--jda-surface);
-        color: inherit;
-        border-radius: 20px;
-        box-shadow: none;
-        border: 1px solid var(--jda-border);
-        overflow: hidden;
-        pointer-events: auto;
-        padding: 2px;
-        transition: box-shadow 180ms ease;
-      }
-      #${OVERLAY_ID} .jda-app-overlay-header {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 10px;
-        padding: 5px 10px;
-        margin-bottom: 8px;
-        border-radius: 18px;
-        background: var(--jda-contrast);
-        box-shadow: 0px 2px 6px var(--jda-shadow-dark), -3px -3px 6px var(--jda-shadow-light);
-        color: inherit;
-        cursor: grab;
-        user-select: none;
-        font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-        font-size: 14px;
-        font-weight: 500;
-        /* letter-spacing: 0.03em; */
-      }
-      #${OVERLAY_ID}.jda-overlay-dragging .jda-app-overlay-header {
-        cursor: grabbing;
-      }
-      #${OVERLAY_ID} .jda-app-overlay-title {
-        flex: 1;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-        color: inherit;
-      }
-      #${OVERLAY_ID} .jda-theme-toggle-wrapper {
-        display: flex;
-        align-items: center;
-      }
-      #${OVERLAY_ID} .jda-app-overlay-actions {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-      }
-      #${OVERLAY_ID} .jda-theme-toggle {
-        display: inline-flex;
-        align-items: center;
-        gap: 4px;
-        padding: 4px;
-        border-radius: 999px;
-        border: 1px solid var(--jda-border);
-        background: var(--jda-button-bg);
-      }
-      #${OVERLAY_ID}:not(.jda-theme-dark) .jda-theme-toggle {
-        background: rgb(231 231 231 / 66%);
-      }
-      #${OVERLAY_ID} .jda-theme-toggle button {
-        width: 28px;
-        height: 28px;
-        border-radius: 50%;
-        border: none;
-        background: transparent;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        color: var(--jda-muted);
-        cursor: pointer;
-        transition: background 150ms ease, color 150ms ease, box-shadow 150ms ease;
-      }
-      #${OVERLAY_ID} .jda-theme-toggle button svg {
-        width: 16px;
-        height: 16px;
-        stroke: currentColor;
-      }
-      #${OVERLAY_ID} .jda-theme-toggle button[data-active="true"] {
-        background: linear-gradient(145deg, var(--jda-accent), var(--jda-accent-strong));
-        color: #ffffff;
-        box-shadow: 2px 2px 4px var(--jda-shadow-dark), -2px -2px 4px var(--jda-shadow-light);
-      }
-      #${OVERLAY_ID} .jda-theme-toggle button:hover {
-        color: var(--jda-accent);
-      }
-      #${OVERLAY_ID} .jda-theme-toggle button:active {
-        box-shadow: inset 2px 2px 4px var(--jda-shadow-dark), inset -2px -2px 4px var(--jda-shadow-light);
-      }
-      #${OVERLAY_ID} .jda-theme-toggle button:focus-visible {
-        outline: 2px solid var(--jda-accent);
-        outline-offset: 2px;
-      }
-      #${OVERLAY_ID} .jda-app-overlay-actions button {
-        border: none;
-        border-radius: 14px;
-        width: 24px;
-        height: 24px;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        background: var(--jda-button-bg);
-        color: inherit;
-        padding: 0;
-        cursor: pointer;
-        box-shadow: 4px 4px 8px rgba(163, 177, 198, 0.5), -4px -4px 8px rgba(255, 255, 255, 0.7);
-        transition: box-shadow 120ms ease;
-      }
-      #${OVERLAY_ID} .jda-app-overlay-actions button:hover {
-        box-shadow: 3px 3px 6px rgba(163, 177, 198, 0.45), -3px -3px 6px rgba(255, 255, 255, 0.75);
-      }
-      #${OVERLAY_ID} .jda-app-overlay-actions button:active {
-        box-shadow: inset 3px 3px 6px rgba(163, 177, 198, 0.6), inset -3px -3px 6px rgba(255, 255, 255, 0.8);
-      }
-      #${OVERLAY_ID} .jda-app-overlay-actions button:focus-visible {
-        outline: 2px solid var(--jda-accent);
-        outline-offset: 2px;
-      }
-      #${OVERLAY_ID} .jda-app-overlay-actions button[data-action="close"] {
-        background: linear-gradient(145deg, var(--jda-accent), var(--jda-accent-strong));
-        color: #ffffff;
-        border: none;
-        box-shadow: 1px 3px 4px rgba(79, 124, 255, 0.4), -5px -5px 5px rgba(255, 255, 255, 0.45);
-      }
-      #${OVERLAY_ID} .jda-app-overlay-actions button[data-action="close"]:active {
-        box-shadow: inset 4px 4px 10px rgba(54, 87, 177, 0.6), inset -4px -4px 10px rgba(255, 255, 255, 0.4);
-      }
-      #${OVERLAY_ID}.jda-theme-dark .jda-app-overlay-actions button {
-        box-shadow: 4px 4px 8px rgba(0, 0, 0, 0.7), -4px -4px 8px rgba(255, 255, 255, 0.12);
-      }
-      #${OVERLAY_ID}.jda-theme-dark .jda-app-overlay-actions button:hover {
-        box-shadow: 3px 3px 6px rgba(0, 0, 0, 0.65), -3px -3px 6px rgba(255, 255, 255, 0.18);
-      }
-      #${OVERLAY_ID}.jda-theme-dark .jda-app-overlay-actions button:active {
-        box-shadow: inset 3px 3px 6px rgba(0, 0, 0, 0.7), inset -3px -3px 6px rgba(255, 255, 255, 0.12);
-      }
-      #${OVERLAY_ID} .jda-app-overlay-body {
-        flex: 1;
-        border-radius: 16px;
-        background: var(--jda-contrast);
-        /* border: 1px solid var(--jda-border); */
-        /* box-shadow: inset 4px 4px 8px var(--jda-shadow-dark), inset -4px -4px 8px var(--jda-shadow-light); */
-        overflow: hidden;
-        position: relative;
-      }
-      #${OVERLAY_ID} .jda-app-overlay-frame {
-        width: 100%;
-        height: 100%;
-        border: none;
-        background: var(--jda-surface);
-        border-radius: 12px;
-        box-shadow: inset 3px 3px 6px var(--jda-shadow-dark), inset -3px -3px 6px var(--jda-shadow-light);
-      }
-      #${OVERLAY_ID} .jda-app-overlay-resize {
-        height: 5px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        cursor: ns-resize;
-        background: transparent;
-        border: none;
-        margin-top: 5px;
-      }
-      #${OVERLAY_ID} .jda-app-overlay-resize::before {
-        content: '';
-        width: 50px;
-        height: 3px;
-        border-radius: 999px;
-        background: #6d738a;
-        /* border: 1px solid rgba(255, 255, 255, 0.4); */
-        /* box-shadow: 3px 3px 6px rgba(163, 177, 198, 0.4), -1px -1px 6px rgba(255, 255, 255, 0.7); */
-      }
-      #${OVERLAY_ID} .jda-app-overlay-resize:active::before {
-        box-shadow: inset 4px 4px 8px rgba(163, 177, 198, 0.6), inset -4px -4px 8px rgba(255, 255, 255, 0.9);
-      }
-    `;
-    document.documentElement.appendChild(style);
+    const link = document.createElement('link');
+    link.id = STYLE_ID;
+    link.rel = 'stylesheet';
+    link.href = chrome.runtime.getURL('content/app-overlay.css');
+    (document.head || document.documentElement).appendChild(link);
   }
 
   function clampPosition(left, top, width, height) {
@@ -688,7 +459,7 @@
     const title = t('ui.app.title', 'Job Description Analyzer');
     const closeTitle = t('ui.highlighter.close', 'Close');
     const menuTitle = t('ui.menu.optionsMenu', 'Settings menu');
-    const frameUrl = chrome.runtime.getURL('ui/popup.html');
+    const frameUrl = chrome.runtime.getURL('ui/popup.html?context=overlay');
     const themeToggleTitle = t('ui.theme.cycle', 'Switch theme');
     const themeStateLabels = {
       dark: t('ui.theme.state.dark', 'Dark theme'),
@@ -696,6 +467,7 @@
       light: t('ui.theme.state.light', 'Light theme')
     };
     const metaTitle = t('ui.metaOverlay.buttonTitle', 'Page meta data');
+    const refreshTitle = t('ui.popup.refresh', 'Refresh');
 
     const container = document.createElement('div');
     container.id = OVERLAY_ID;
@@ -736,9 +508,10 @@
             </div>
           </div>
           <div class="jda-app-overlay-actions">
-            <button type="button" id="metaOverlay" class="jda-app-overlay-meta" title="${metaTitle}" aria-label="${metaTitle}" data-i18n-title-key="ui.metaOverlay.buttonTitle" data-i18n-attr-aria-label="ui.metaOverlay.buttonTitle">M</button>
-            <button type="button" id="menu" class="jda-app-overlay-menu" title="${menuTitle}" data-i18n-title-key="ui.menu.optionsMenu">☰</button>
-            <button type="button" data-action="close" data-i18n-title-key="ui.highlighter.close" title="${closeTitle}">✕</button>
+            <button type="button" id="refreshView" class="jda-app-overlay-refresh icon-only i-refresh" title="${refreshTitle}" aria-label="${refreshTitle}"></button>
+            <button type="button" id="metaOverlay" class="jda-app-overlay-meta icon-only i-meta" title="${metaTitle}" aria-label="${metaTitle}" data-i18n-title-key="ui.metaOverlay.buttonTitle" data-i18n-attr-aria-label="ui.metaOverlay.buttonTitle"></button>
+            <button type="button" id="menu" class="jda-app-overlay-menu icon-only i-settings" title="${menuTitle}" data-i18n-title-key="ui.menu.optionsMenu" aria-label="${menuTitle}"></button>
+            <button type="button" data-action="close" class="icon-only i-close" data-i18n-title-key="ui.highlighter.close" title="${closeTitle}" aria-label="${closeTitle}"></button>
           </div>
         </div>
         <div class="jda-app-overlay-body">
@@ -780,6 +553,15 @@
       const metaOverlay = window.__JDA_META_OVERLAY__;
       if (metaOverlay) metaOverlay.toggle();
       else console.debug('[JDA overlay] Meta overlay helper is missing.');
+    }, true);
+
+    const refreshBtn = container.querySelector('#refreshView');
+    refreshBtn?.addEventListener('click', (event) => {
+      event?.preventDefault?.();
+      event?.stopPropagation?.();
+      try {
+        state.frame?.contentWindow?.location?.reload?.();
+      } catch {}
     }, true);
 
     const handle = container.querySelector(HEADER_HANDLE);

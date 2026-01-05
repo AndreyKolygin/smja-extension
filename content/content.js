@@ -26,41 +26,43 @@ try { console.debug("[JDA] content loaded:", location.href); } catch {}
     });
 
   const BADGE_ID = "__jda_debug_badge";
+  const BADGE_STYLE_ID = "__jda_debug_badge_style";
+
+  function ensureBadgeStyles(shadowRoot) {
+    if (shadowRoot) {
+      if (shadowRoot.querySelector(`#${BADGE_STYLE_ID}`)) return;
+      const link = document.createElement("link");
+      link.id = BADGE_STYLE_ID;
+      link.rel = "stylesheet";
+      link.href = chrome.runtime.getURL("content/debug-badge.css");
+      shadowRoot.appendChild(link);
+      return;
+    }
+    if (document.getElementById(BADGE_STYLE_ID)) return;
+    const link = document.createElement("link");
+    link.id = BADGE_STYLE_ID;
+    link.rel = "stylesheet";
+    link.href = chrome.runtime.getURL("content/debug-badge.css");
+    (document.head || document.documentElement).appendChild(link);
+  }
+
   function createBadge() {
     const host = document.createElement("div");
     host.id = BADGE_ID;
-    host.style.position = "fixed";
-    host.style.top = "10px";
-    host.style.right = "10px";
-    host.style.zIndex = "2147483647";
-    host.style.pointerEvents = "none";
+    host.className = "jda-debug-badge";
 
     // Shadow DOM чтобы не конфликтовать со стилями страницы
     const shadow = host.attachShadow ? host.attachShadow({ mode: "open" }) : null;
-    const style = document.createElement("style");
-    style.textContent = `
-      .wrap {
-        pointer-events: auto;
-        padding: 6px 10px;
-        background: #111;
-        color: #fff;
-        font-size: 12px;
-        border-radius: 6px;
-        font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial, Noto Sans, "Apple Color Emoji","Segoe UI Emoji","Segoe UI Symbol";
-        box-shadow: 0 6px 20px rgba(0,0,0,.25);
-        opacity: .9;
-      }
-    `;
     const el = document.createElement("div");
     el.className = "wrap";
     el.textContent = "✓ Extension Active";
 
     if (shadow) {
-      shadow.appendChild(style);
+      ensureBadgeStyles(shadow);
       shadow.appendChild(el);
     } else {
       // fallback без Shadow DOM
-      host.appendChild(style);
+      ensureBadgeStyles(null);
       host.appendChild(el);
     }
     if (document.documentElement) document.documentElement.appendChild(host);
