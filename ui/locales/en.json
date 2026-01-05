@@ -17,6 +17,7 @@
   "ui.popup.cachedTitle": "Cached result",
   "ui.popup.warning": "Content cannot be analyzed.",
   "ui.popup.warning2": "Only http and https URLs are supported.",
+  "ui.popup.hostPermissionDenied": "Please allow access to this site to use selection.",
   "ui.popup.copy": "Clipboard",
   "ui.popup.save": "Save to file",
   "ui.popup.notion": "Notion",

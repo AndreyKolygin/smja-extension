@@ -17,6 +17,7 @@
   "ui.popup.cachedTitle": "Результат из кэша",
   "ui.popup.warning": "Невозможно проанализировать содержимое.",
   "ui.popup.warning2": "Поддерживаются только URL-адреса http и https.",
+  "ui.popup.hostPermissionDenied": "Разрешите доступ к этому сайту, чтобы выделять текст.",
   "ui.popup.copy": "Скопировать",
   "ui.popup.save": "Сохранить",
   "ui.popup.notion": "В Notion",

@@ -79,6 +79,8 @@ async function sendMessageWithRetry(message, { retries = 1, delayMs = 200 } = {}
 
 export async function startSelection() {
   try {
+    const allowed = await ensureSelectionPermission();
+    if (!allowed) return;
     const resp = await sendMessageWithRetry({ type: 'BEGIN_SELECTION' }, { retries: 2, delayMs: 250 });
     if (!resp?.ok) {
       const msg = resp?.error || 'unknown error';
@@ -87,6 +89,40 @@ export async function startSelection() {
   } catch (err) {
     console.warn('[JDA] BEGIN_SELECTION failed:', err);
     alert(t('ui.popup.selectionFailed', 'Cannot start selection: {{error}}').replace('{{error}}', t('ui.popup.messageRequestFailed', 'request failed')));
+  }
+}
+
+async function ensureSelectionPermission() {
+  if (!isExtensionContextValid()) return true;
+  if (document.body?.dataset?.context !== 'sidepanel') return true;
+  if (!chrome?.permissions?.contains || !chrome?.permissions?.request) return true;
+
+  let tab = null;
+  try {
+    tab = await getActiveTab();
+  } catch {
+    return true;
+  }
+  const url = tab?.url || tab?.pendingUrl || '';
+  if (!(url.startsWith('http://') || url.startsWith('https://'))) return true;
+
+  let originPattern = '';
+  try {
+    originPattern = `${new URL(url).origin}/*`;
+  } catch {
+    return true;
+  }
+
+  try {
+    const has = await chrome.permissions.contains({ origins: [originPattern] });
+    if (has) return true;
+    const granted = await chrome.permissions.request({ origins: [originPattern] });
+    if (!granted) {
+      alert(t('ui.popup.hostPermissionDenied', 'Please allow access to this site to use selection.'));
+    }
+    return !!granted;
+  } catch {
+    return true;
   }
 }
 

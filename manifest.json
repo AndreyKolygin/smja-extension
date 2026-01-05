@@ -17,6 +17,8 @@
   ],
   "host_permissions": [],
   "optional_host_permissions": [
+    "https://*/*",
+    "http://*/*",
     "https://*.openai.azure.com/*",
     "https://api.anthropic.com/*",
     "https://api.deepseek.com/*",
